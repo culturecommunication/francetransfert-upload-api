@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "/api-private/upload")
-@Api(value = "Upload", description = "Upload ressources")
-public class UploadRessources {
+@Api(value = "Upload")
+public class UploadResources {
 
     @RequestMapping(value = "/get", method = RequestMethod.GET)
     @ApiOperation(httpMethod = "GET", value = "Gets  ")
