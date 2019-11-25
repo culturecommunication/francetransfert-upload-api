@@ -7,6 +7,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,6 +36,7 @@ import java.util.Collections;
 @EnableSwagger2
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @SpringBootApplication
+@ComponentScan(basePackages ={"com.opengroup"})
 public class StarterKitApplicationStarter extends WebSecurityConfigurerAdapter {
 
     @Autowired
