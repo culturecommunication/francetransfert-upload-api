@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(value = "/api-private/upload")
-@Api(value = "Upload")
+@RequestMapping(value = "/api-private/rate")
+@Api(value = "Rate")
 public class RateApplication {
 
     @RequestMapping(value = "/rate", method = RequestMethod.POST)
