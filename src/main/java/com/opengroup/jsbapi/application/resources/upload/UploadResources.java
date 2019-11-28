@@ -1,10 +1,14 @@
 package com.opengroup.jsbapi.application.resources.upload;
 
 
+import com.opengroup.jsbapi.configuration.ConfigProperties;
+import com.opengroup.jsbapi.configuration.ExtensionProperties;
+import com.opengroup.jsbapi.domain.utils.ExtensionFileUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -31,11 +35,16 @@ public class UploadResources {
 
     private final Map<String, FileInfo> fileInfos = new ConcurrentHashMap<>();
 
-    private final String uploadDirectory;
+    private final String uploadDirectory = "uploadDirectory";
+
+    @Autowired
+    ConfigProperties configProp;
+
+    @Autowired
+    ExtensionProperties extensionProp;
 
     public UploadResources(
             @Value("#{environment.uploadDirectory}") String uploadDirectory) {
-        this.uploadDirectory = uploadDirectory;
         Path dataDir = Paths.get(uploadDirectory);
 
         try {
@@ -78,7 +87,11 @@ public class UploadResources {
                               @RequestParam("flowTotalSize") long flowTotalSize,
                               @RequestParam("flowIdentifier") String flowIdentifier,
                               @RequestParam("flowFilename") String flowFilename,
-                              @RequestParam("file") MultipartFile file) throws IOException {
+                              @RequestParam("file") MultipartFile file) throws Exception {
+        if (!ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), file, flowFilename)) { // Test authorized file to upload.
+            LOGGER.debug("return POST method : KO");
+            throw new Exception();
+        }
 
         FileInfo fileInfo = this.fileInfos.get(flowIdentifier);
         if (fileInfo == null) {
@@ -86,7 +99,7 @@ public class UploadResources {
             this.fileInfos.put(flowIdentifier, fileInfo);
         }
 
-        Path identifierFile = Paths.get(this.uploadDirectory, flowIdentifier);
+        Path identifierFile = Paths.get(configProp.getConfigValue(uploadDirectory), flowIdentifier);
 
         try (RandomAccessFile raf = new RandomAccessFile(identifierFile.toString(), "rw");
              InputStream is = file.getInputStream()) {
@@ -108,7 +121,7 @@ public class UploadResources {
         fileInfo.addUploadedChunk(flowChunkNumber);
 
         if (fileInfo.isUploadFinished(flowTotalChunks)) {
-            Path uploadedFile = Paths.get(this.uploadDirectory, flowFilename);
+            Path uploadedFile = Paths.get(configProp.getConfigValue(uploadDirectory) , flowFilename);
             Files.move(identifierFile, uploadedFile, StandardCopyOption.ATOMIC_MOVE);
 
             this.fileInfos.remove(flowIdentifier);
