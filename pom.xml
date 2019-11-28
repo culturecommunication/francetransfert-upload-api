@@ -138,6 +138,11 @@
             <version>3.0.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.opengroup.mc.francetransfert.api</groupId>
+            <artifactId>francetransfert-metaload-api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
