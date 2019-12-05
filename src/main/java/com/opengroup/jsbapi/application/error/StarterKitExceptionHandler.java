@@ -3,8 +3,7 @@ package com.opengroup.jsbapi.application.error;
 
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
-import com.opengroup.jsbapi.domain.exceptions.BusinessDomainException;
-import com.opengroup.jsbapi.domain.exceptions.DomainNotFoundException;
+import com.opengroup.jsbapi.domain.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -43,6 +42,24 @@ public class StarterKitExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessDomainException.class)
     public ResponseEntity<Object>  handleBusinessDomainException(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ExtensionNotFoundException.class)
+    public ResponseEntity<Object>  handleExtensionNotFoundException(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(FlowChunkNotExistException.class)
+    public ResponseEntity<Object>  handleFlowChunkNotExistException(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(UnauthorizedMailAddressException.class)
+    public ResponseEntity<Object>  handleUnauthorizedMailAddressException(Exception ex)  {
         LOGGER.error(ex.getMessage());
         return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
