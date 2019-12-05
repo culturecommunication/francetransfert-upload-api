@@ -1,29 +1,18 @@
 package com.opengroup.jsbapi.application.resources.upload;
 
 
-import com.opengroup.jsbapi.configuration.ConfigProperties;
-import com.opengroup.jsbapi.configuration.ExtensionProperties;
-import com.opengroup.jsbapi.domain.utils.ExtensionFileUtils;
+import com.opengroup.jsbapi.application.services.UploadServices;
+import com.opengroup.jsbapi.domain.utils.StringUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @CrossOrigin
 @RestController
@@ -33,27 +22,8 @@ public class UploadResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UploadResources.class);
 
-    private final Map<String, FileInfo> fileInfos = new ConcurrentHashMap<>();
-
-    private final String uploadDirectory = "uploadDirectory";
-
     @Autowired
-    ConfigProperties configProp;
-
-    @Autowired
-    ExtensionProperties extensionProp;
-
-    public UploadResources(
-            @Value("#{environment.uploadDirectory}") String uploadDirectory) {
-        Path dataDir = Paths.get(uploadDirectory);
-
-        try {
-            Files.createDirectories(dataDir);
-        }
-        catch (IOException e) {
-            LOGGER.error("ERROR -> file reading error : ", e);
-        }
-    }
+    private UploadServices uploadServices;
 
     @GetMapping("/upload")
     @ApiOperation(httpMethod = "GET", value = "Upload  ")
@@ -66,15 +36,7 @@ public class UploadResources {
                             @RequestParam("flowFilename") String flowFilename,
                             @RequestParam("flowRelativePath") String flowRelativePath,
                             @RequestParam("flowTotalChunks") int flowTotalChunks) {
-
-        FileInfo fi = this.fileInfos.get(flowIdentifier);
-
-        if (fi != null && fi.containsChunk(flowChunkNumber)) {
-            LOGGER.debug("return GET method : {}", HttpStatus.OK.value());
-            response.setStatus(HttpStatus.OK.value());
-            return;
-        }
-        LOGGER.debug("return GET method : {}", HttpStatus.EXPECTATION_FAILED.value());
+        uploadServices.chunkExists(flowChunkNumber, flowIdentifier);
         response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
     }
 
@@ -88,46 +50,36 @@ public class UploadResources {
                               @RequestParam("flowIdentifier") String flowIdentifier,
                               @RequestParam("flowFilename") String flowFilename,
                               @RequestParam("file") MultipartFile file) throws Exception {
-        if (!ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), file, flowFilename)) { // Test authorized file to upload.
-            LOGGER.debug("return POST method : KO");
-            throw new Exception();
-        }
+        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowIdentifier, flowFilename, file);
+        response.setStatus(HttpStatus.OK.value());
+    }
 
-        FileInfo fileInfo = this.fileInfos.get(flowIdentifier);
-        if (fileInfo == null) {
-            fileInfo = new FileInfo();
-            this.fileInfos.put(flowIdentifier, fileInfo);
-        }
+    @PostMapping("/verify-mail")
+    @ApiOperation(httpMethod = "GET", value = "Verify Mail  ")
+    public void verifyMail(HttpServletResponse response,
+                           @RequestParam("receiverEmailAddress") String receiverEmailAddress,
+                           @RequestParam("senderEmailAddress") String senderEmailAddress) throws Exception {
 
-        Path identifierFile = Paths.get(configProp.getConfigValue(uploadDirectory), flowIdentifier);
+        String domainReceiverEmail = StringUtils.extractDomainNameFromEmailAddress(receiverEmailAddress);
 
-        try (RandomAccessFile raf = new RandomAccessFile(identifierFile.toString(), "rw");
-             InputStream is = file.getInputStream()) {
-            raf.seek((flowChunkNumber - 1) * flowChunkSize);
+        if (domainReceiverEmail.contains("gouv.fr")) {
 
-            long readed = 0;
-            long content_length = file.getSize();
-            byte[] bytes = new byte[1024 * 100];
-            while (readed < content_length) {
-                int r = is.read(bytes);
-                if (r < 0) {
-                    break;
-                }
-                raf.write(bytes, 0, r);
-                readed += r;
+
+            if (receiverEmailAddress.contains("gouv.fr")) {
+
+            }
+            if (receiverEmailAddress.contains("gouv.fr")) {
+                // TODO: authorised
+            } else {
+                //TODO:  envoyer mail de confirmation code 4 chiffre
+            }
+        } else {
+            if (receiverEmailAddress.contains("gouv.fr")) {
+                //TODO: authorised
+            } else {
+                //TODO: not authorised
             }
         }
-
-        fileInfo.addUploadedChunk(flowChunkNumber);
-
-        if (fileInfo.isUploadFinished(flowTotalChunks)) {
-            Path uploadedFile = Paths.get(configProp.getConfigValue(uploadDirectory) , flowFilename);
-            Files.move(identifierFile, uploadedFile, StandardCopyOption.ATOMIC_MOVE);
-
-            this.fileInfos.remove(flowIdentifier);
-        }
-        LOGGER.debug("return POST method : {}", HttpStatus.OK.value());
-        response.setStatus(HttpStatus.OK.value());
     }
 
 }

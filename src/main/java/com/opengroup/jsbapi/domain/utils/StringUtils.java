@@ -127,4 +127,12 @@ public class StringUtils {
         return new String(chars, 0, pos);
     }
 
+    public static String extractDomainNameFromEmailAddress(String str) {
+        String result = "";
+        if (str != null && !str.isEmpty()) {
+            result = str.substring(str.indexOf("@") + 1);
+        }
+        return result;
+    }
+
 }
