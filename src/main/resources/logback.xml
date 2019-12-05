@@ -44,7 +44,7 @@
         <appender-ref ref="errors"/>
     </root>
 
-    <logger name="com.opengroup.jsbapi" level="debug" additivity="false">
+    <logger name="fr.gouv.culture.francetransfert" level="debug" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="system"/>
         <appender-ref ref="errors"/>
