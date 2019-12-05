@@ -1,5 +1,8 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * StringUtils class
  * Utily class to manipulate Strings
@@ -7,6 +10,9 @@ package fr.gouv.culture.francetransfert.domain.utils;
 public class StringUtils {
 
     private static final int INDEX_NOT_FOUND = -1;
+
+    private final static Pattern gouvEmailPattern = Pattern.compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$");
+    private final static Pattern emailPattern = Pattern.compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$");
 
 
     private StringUtils() {
@@ -134,5 +140,24 @@ public class StringUtils {
         }
         return result;
     }
+
+    public static boolean isGouvEmail(String email) {
+        String regex_gouv_email ="^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$";
+        return isValidRegex(regex_gouv_email, email);
+    }
+
+    public static boolean isValidEmail(String email) {
+        String regex_valid_email = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
+        return isValidRegex(regex_valid_email, email);
+    }
+
+    public static boolean isValidRegex(String p, String str) {
+        if (null == str) {
+            return false;
+        }
+        return Pattern.matches(p, str);
+    }
+
+
 
 }

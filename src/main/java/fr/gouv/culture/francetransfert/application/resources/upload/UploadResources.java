@@ -2,13 +2,15 @@ package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.domain.utils.StringUtils;
+import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
+import fr.gouv.culture.francetransfert.validator.GroupEmails;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 @RestController
 @RequestMapping("/api-private/upload-module")
 @Api(value = "Upload resources")
+@Validated
 public class UploadResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UploadResources.class);
@@ -55,31 +58,9 @@ public class UploadResources {
     }
 
     @PostMapping("/verify-mail")
-    @ApiOperation(httpMethod = "GET", value = "Verify Mail  ")
-    public void verifyMail(HttpServletResponse response,
-                           @RequestParam("receiverEmailAddress") String receiverEmailAddress,
-                           @RequestParam("senderEmailAddress") String senderEmailAddress) throws Exception {
-
-        String domainReceiverEmail = StringUtils.extractDomainNameFromEmailAddress(receiverEmailAddress);
-
-        if (domainReceiverEmail.contains("gouv.fr")) {
-
-
-            if (receiverEmailAddress.contains("gouv.fr")) {
-
-            }
-            if (receiverEmailAddress.contains("gouv.fr")) {
-                // TODO: authorised
-            } else {
-                //TODO:  envoyer mail de confirmation code 4 chiffre
-            }
-        } else {
-            if (receiverEmailAddress.contains("gouv.fr")) {
-                //TODO: authorised
-            } else {
-                //TODO: not authorised
-            }
-        }
+    @ApiOperation(httpMethod = "POST", value = "Verify Mail  ")
+    public void verifyMail(HttpServletResponse response, @EmailsFranceTransfert @RequestBody GroupEmails groupEmails) throws Exception {
+        response.setStatus(HttpStatus.OK.value());
     }
 
 }
