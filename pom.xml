@@ -50,7 +50,7 @@
   <distributionManagement>
     <repository>
       <id>gitlab-nexus</id>
-      <url>${env.MVN_RELEASES}</url>
+      <url>${env.MVN_SNAPSHOTS}</url>
     </repository>
     <snapshotRepository>
       <id>gitlab-nexus</id>
