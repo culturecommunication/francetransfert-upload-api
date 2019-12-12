@@ -2,8 +2,9 @@ package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
-import fr.gouv.culture.francetransfert.validator.GroupEmails;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 @CrossOrigin
 @RestController
@@ -52,16 +54,26 @@ public class UploadResources {
                               @RequestParam("flowTotalSize") long flowTotalSize,
                               @RequestParam("flowIdentifier") String flowIdentifier,
                               @RequestParam("flowFilename") String flowFilename,
-                              @RequestParam("file") MultipartFile file) throws Exception {
-        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowIdentifier, flowFilename, file);
+                              @RequestParam("file") MultipartFile file,
+                              @RequestParam("enclosureId") String enclosureId) throws Exception {
+        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId);
         response.setStatus(HttpStatus.OK.value());
     }
 
-    @PostMapping("/verify-mail")
-    @ApiOperation(httpMethod = "POST", value = "Verify Mail  ")
-    public void verifyMail(HttpServletResponse response, @EmailsFranceTransfert @RequestBody GroupEmails groupEmails) throws Exception {
+    @PostMapping("/sender-info")
+    @ApiOperation(httpMethod = "POST", value = "sender Info  ")
+    public EnclosureRepresentation senderInfo(HttpServletResponse response, @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfo(metadata);
         response.setStatus(HttpStatus.OK.value());
+        return enclosureRepresentation;
     }
+
+//    @GetMapping("/generate-key")
+//    @ApiOperation(httpMethod = "GET", value = "generate-key  ")
+//    public void generateKey(HttpServletResponse response, @RequestParam("flowFilename") String flowFilename, @RequestParam("flowIdentifier") String flowIdentifier) throws Exception {
+//        uploadServices.generateKeyOSU(flowFilename, flowIdentifier);
+//        response.setStatus(HttpStatus.OK.value());
+//    }
 
 }
 
