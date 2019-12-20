@@ -2,22 +2,27 @@ package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.domain.utils.StringUtils;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/api-private/upload-module")
 @Api(value = "Upload resources")
+@Validated
 public class UploadResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UploadResources.class);
@@ -49,38 +54,26 @@ public class UploadResources {
                               @RequestParam("flowTotalSize") long flowTotalSize,
                               @RequestParam("flowIdentifier") String flowIdentifier,
                               @RequestParam("flowFilename") String flowFilename,
-                              @RequestParam("file") MultipartFile file) throws Exception {
-        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowIdentifier, flowFilename, file);
+                              @RequestParam("file") MultipartFile file,
+                              @RequestParam("enclosureId") String enclosureId) throws Exception {
+        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId);
         response.setStatus(HttpStatus.OK.value());
     }
 
-    @PostMapping("/verify-mail")
-    @ApiOperation(httpMethod = "GET", value = "Verify Mail  ")
-    public void verifyMail(HttpServletResponse response,
-                           @RequestParam("receiverEmailAddress") String receiverEmailAddress,
-                           @RequestParam("senderEmailAddress") String senderEmailAddress) throws Exception {
-
-        String domainReceiverEmail = StringUtils.extractDomainNameFromEmailAddress(receiverEmailAddress);
-
-        if (domainReceiverEmail.contains("gouv.fr")) {
-
-
-            if (receiverEmailAddress.contains("gouv.fr")) {
-
-            }
-            if (receiverEmailAddress.contains("gouv.fr")) {
-                // TODO: authorised
-            } else {
-                //TODO:  envoyer mail de confirmation code 4 chiffre
-            }
-        } else {
-            if (receiverEmailAddress.contains("gouv.fr")) {
-                //TODO: authorised
-            } else {
-                //TODO: not authorised
-            }
-        }
+    @PostMapping("/sender-info")
+    @ApiOperation(httpMethod = "POST", value = "sender Info  ")
+    public EnclosureRepresentation senderInfo(HttpServletResponse response, @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfo(metadata);
+        response.setStatus(HttpStatus.OK.value());
+        return enclosureRepresentation;
     }
+
+//    @GetMapping("/generate-key")
+//    @ApiOperation(httpMethod = "GET", value = "generate-key  ")
+//    public void generateKey(HttpServletResponse response, @RequestParam("flowFilename") String flowFilename, @RequestParam("flowIdentifier") String flowIdentifier) throws Exception {
+//        uploadServices.generateKeyOSU(flowFilename, flowIdentifier);
+//        response.setStatus(HttpStatus.OK.value());
+//    }
 
 }
 

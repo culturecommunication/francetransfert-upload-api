@@ -36,7 +36,7 @@ import java.util.Collections;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @SpringBootApplication
 @ComponentScan(basePackages ={"fr.gouv.culture"})
-public class StarterKitApplicationStarter extends WebSecurityConfigurerAdapter {
+public class FranceTransfertUploadStarter extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private Environment env;
@@ -51,7 +51,7 @@ public class StarterKitApplicationStarter extends WebSecurityConfigurerAdapter {
      * @param args the input arguments
      */
     public static void main(String[] args) {
-        SpringApplication.run(StarterKitApplicationStarter.class, args);
+        SpringApplication.run(FranceTransfertUploadStarter.class, args);
     }
 
 
