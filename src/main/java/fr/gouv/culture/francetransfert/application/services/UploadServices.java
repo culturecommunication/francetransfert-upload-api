@@ -34,7 +34,7 @@ public class UploadServices {
 
             StorageManager storageManager = new StorageManager();
 
-            RedisManager redisManager = new RedisManager();
+            RedisManager redisManager = RedisManager.getInstance();
             String keyUploadOsu = RedisUtils.getUploadId(redisManager, enclosureId, flowIdentifier);
             String fileNameWithPath = RedisUtils.getFileNameWithPath(redisManager, enclosureId, flowIdentifier);
             String bucketName = RedisUtils.getBucketName();
@@ -70,7 +70,7 @@ public class UploadServices {
 //    }
 
     public static EnclosureRepresentation senderInfo(FranceTransfertDataRepresentation metadata) throws Exception {
-        RedisManager redisManager = new RedisManager();
+        RedisManager redisManager = RedisManager.getInstance();
         String enclosureId = RedisUtils.createHashEnclosure(redisManager, metadata);
         LOGGER.info(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.generateKey(enclosureId), EnclosureKeysEnum.TIMESTAMP.getKey()));
         LOGGER.info(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.generateKey(enclosureId),EnclosureKeysEnum.MESSAGE.getKey()));
