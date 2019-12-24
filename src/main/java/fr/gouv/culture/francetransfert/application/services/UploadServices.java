@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.PartETag;
 import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
 import com.opengroup.mc.francetransfert.api.francetransfert_storage_api.StorageManager;
 import fr.gouv.culture.francetransfert.application.enums.*;
+import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
@@ -11,7 +12,7 @@ import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,12 +22,12 @@ import java.util.List;
 public class UploadServices {
         private static final Logger LOGGER = LoggerFactory.getLogger(UploadServices.class);
 
-    @Value("#{'${extension.name}'.split(',')}")
-    private List<String> extension;
+        @Autowired
+        private ExtensionProperties extensionProp;
 
 
         public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId) throws Exception {
-            if (!ExtensionFileUtils.isAuthorisedToUpload(extension, multipartFile, flowFilename)) { // Test authorized file to upload.
+            if (!ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
                 LOGGER.debug("extension file no authorised");
                 throw new ExtensionNotFoundException("extension file no authorised");
             }
@@ -44,12 +45,7 @@ public class UploadServices {
             List<PartETag> partETags = RedisUtils.getPartEtags(redisManager, enclosureId, flowIdentifier);
             LOGGER.debug("=========> {} partETags  size", partETags.size());
             if (flowTotalChunks == partETags.size()) {
-                LOGGER.debug("== finish upload ==> {} ",redisManager.lrange("email-notification-queue", 0, -1));
-                String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
-//                if (succesUpload != null) {
-//                    String mailSender = RedisUtils.getSenderMail(redisManager, enclosureId);
-//                    redisManager.insertList("email-notification-queue", Arrays.asList(mailSender));
-//                }
+                storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
             }
 
 
