@@ -206,11 +206,4 @@ public class RedisUtils {
         return redisManager.getHgetString(key, FileKeysEnum.REL_OBJ_KEY.getKey());
     }
 
-    public static String getSenderMail(RedisManager redisManager, String enclosureId) throws Exception {
-        String key = RedisKeysEnum.FT_SENDER.generateKey(enclosureId);
-        return redisManager.getHgetString(key, SenderKeysEnum.EMAIL.getKey());
-    }
-
-
-
 }
