@@ -1,6 +1,9 @@
 package fr.gouv.culture.francetransfert.application.error;
 
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.*;
@@ -99,4 +102,26 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
         LOGGER.error(ex.getMessage());
         return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+
+    @ExceptionHandler(AmazonS3Exception.class)
+    public ResponseEntity<Object>  handleAmazonS3Exception(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(SdkClientException.class)
+    public ResponseEntity<Object>  handleSdkClientException(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+
+    @ExceptionHandler(AmazonServiceException.class)
+    public ResponseEntity<Object>  handleAmazonServiceException(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+
 }
