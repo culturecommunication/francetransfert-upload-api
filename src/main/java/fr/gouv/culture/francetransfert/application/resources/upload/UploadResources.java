@@ -1,9 +1,11 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
-import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
+import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.services.UploadServices;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -40,8 +42,10 @@ public class UploadResources {
                             @RequestParam("flowIdentifier") String flowIdentifier,
                             @RequestParam("flowFilename") String flowFilename,
                             @RequestParam("flowRelativePath") String flowRelativePath,
-                            @RequestParam("flowTotalChunks") int flowTotalChunks) {
-        uploadServices.chunkExists(flowChunkNumber, flowIdentifier);
+                            @RequestParam("flowTotalChunks") int flowTotalChunks,
+                            @RequestParam("enclosureId") String enclosureId) throws Exception {
+        String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
+        uploadServices.chunkExists(RedisManager.getInstance(), flowChunkNumber, hashFid);
         response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
     }
 
@@ -67,13 +71,6 @@ public class UploadResources {
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
     }
-
-//    @GetMapping("/generate-key")
-//    @ApiOperation(httpMethod = "GET", value = "generate-key  ")
-//    public void generateKey(HttpServletResponse response, @RequestParam("flowFilename") String flowFilename, @RequestParam("flowIdentifier") String flowIdentifier) throws Exception {
-//        uploadServices.generateKeyOSU(flowFilename, flowIdentifier);
-//        response.setStatus(HttpStatus.OK.value());
-//    }
 
 }
 

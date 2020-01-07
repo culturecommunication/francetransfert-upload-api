@@ -2,57 +2,39 @@ package fr.gouv.culture.francetransfert.domain.utils;
 
 import com.amazonaws.services.s3.model.PartETag;
 import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
+import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.*;
+import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
 import com.opengroup.mc.francetransfert.api.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.application.enums.*;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
-import org.apache.commons.codec.digest.DigestUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.client.RedisTryAgainException;
 import org.springframework.util.CollectionUtils;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-public class RedisUtils {
+@Slf4j
+public class RedisForUploadUtils {
 
-    public static  Map<String, String> generateMapRedis(List<String> keys, List<String> values) {
-        return IntStream.range(0, Math.min(keys.size(), values.size()))
-                .boxed()
-                .collect(Collectors.toMap(keys::get, values::get));
-    }
-
-    public static String generateGUID() {
-        return UUID.randomUUID().toString();
-    }
-
-    public static String generateHashsha1(String value) {
-        return DigestUtils.sha1Hex(value);
-    }
-
-    public static String getBucketName() {
-        return "fr-gouv-culture-francetransfert-devic1-plis-"+ LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-    }
-
-
-
-
-    public static String createHashEnclosure(RedisManager redisManager, FranceTransfertDataRepresentation metadata) {
+    public static String createHashEnclosure(RedisManager redisManager, FranceTransfertDataRepresentation metadata, int expiredays) {
         //  ================ set enclosure info in redis ================
-        String guidEnclosure = generateGUID();
+        String guidEnclosure = RedisUtils.generateGUID();
         Map<String, String> map = RedisUtils.generateMapRedis(
                 EnclosureKeysEnum.keys(),
                 Arrays.asList(
                         LocalDateTime.now().toString(),
+                        LocalDateTime.now().plusDays(expiredays).toString(),
                         metadata.getPassword(),
                         metadata.getMessage()
                 )
         );
-        redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.generateKey(guidEnclosure), map);
+        redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
         return guidEnclosure;
     }
 
@@ -63,7 +45,7 @@ public class RedisUtils {
         }
         boolean isNewSender = (null == metadata.getConfirmedSenderId() || "".equals(metadata.getConfirmedSenderId()));
         if (isNewSender) {
-            metadata.setConfirmedSenderId(generateGUID());
+            metadata.setConfirmedSenderId(RedisUtils.generateGUID());
         }
         Map<String, String> map = RedisUtils.generateMapRedis(
                 SenderKeysEnum.keys(),
@@ -73,7 +55,7 @@ public class RedisUtils {
                         metadata.getConfirmedSenderId()
                 )
         );
-        redisManager.insertHASH(RedisKeysEnum.FT_SENDER.generateKey(enclosureId), map);
+        redisManager.insertHASH(RedisKeysEnum.FT_SENDER.getKey(enclosureId), map);
         return metadata.getConfirmedSenderId();
     }
 
@@ -83,7 +65,7 @@ public class RedisUtils {
         }
         List<String> listRecipientId = new ArrayList<>();
         metadata.getRecipientEmails().forEach(r -> {
-            String recipientId = RedisKeysEnum.FT_RECIPIENT.generateKey(generateGUID());
+            String recipientId = RedisKeysEnum.FT_RECIPIENT.getKey(RedisUtils.generateGUID());
             listRecipientId.add(recipientId);
 
             // idRecepient => HASH { nbDl: "0" }
@@ -94,7 +76,7 @@ public class RedisUtils {
         });
         // enclosure:enclosureId:recipients:emails-ids  => HASH <mail_recepient, idRecepient>
         redisManager.insertHASH(
-                RedisKeysEnum.FT_RECIPIENTS.generateKey(enclosureId),
+                RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId),
                 RedisUtils.generateMapRedis(metadata.getRecipientEmails(), listRecipientId));
     }
 
@@ -102,14 +84,14 @@ public class RedisUtils {
         Map<String, String> filesMap = FileUtils.searchRootFiles(metadata);
         //  ================ set List root-files info in redis================
         redisManager.insertList(                                          // idRootFilesNames => LIST [file1, file2, ...]
-                RedisKeysEnum.FT_ROOT_FILES.generateKey(enclosureId),
+                RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId),
                 new ArrayList(filesMap.keySet())
         );
 
         for (Map.Entry<String, String> currentFile : filesMap.entrySet()) {
             //  ================ set HASH root-file info in redis================
             redisManager.insertHASH(
-                    RedisKeysEnum.FT_ROOT_FILE.generateKey(generateHashsha1(enclosureId + ":" + currentFile.getKey())),
+                    RedisKeysEnum.FT_ROOT_FILE.getKey(RedisUtils.generateHashsha1(enclosureId + ":" + currentFile.getKey())),
                     RedisUtils.generateMapRedis(
                             RootFileKeysEnum.keys(),
                             Arrays.asList(currentFile.getValue())
@@ -122,14 +104,14 @@ public class RedisUtils {
         Map<String, String> dirsMap = FileUtils.searchRootDirs(metadata);
         //  ================ set List root-dirs info in redis================
         redisManager.insertList(                                          // idRootDirsNames => LIST [dir1, dir2, ...]
-                RedisKeysEnum.FT_ROOT_DIRS.generateKey(enclosureId),
+                RedisKeysEnum.FT_ROOT_DIRS.getKey(enclosureId),
                 new ArrayList(dirsMap.keySet())
         );
 
         for (Map.Entry<String, String> currentDir : dirsMap.entrySet()) {
             //  ================ set HASH root-dir info in redis================
             redisManager.insertHASH(
-                    RedisKeysEnum.FT_ROOT_DIR.generateKey(generateHashsha1(enclosureId + ":" + currentDir.getKey())),
+                    RedisKeysEnum.FT_ROOT_DIR.getKey(RedisUtils.generateHashsha1(enclosureId + ":" + currentDir.getKey())),
                     RedisUtils.generateMapRedis(
                             RootDirKeysEnum.keys(),
                             Arrays.asList(currentDir.getValue())
@@ -142,21 +124,21 @@ public class RedisUtils {
         List<FileDomain> files = FileUtils.searchFiles(metadata, enclosureId);
         //  ================ set List files info in redis================
         redisManager.insertList(  // FILES_IDS => list [ SHA1(enclosureId":"fid1), SHA1(enclosureId":"fid2), ...]
-                RedisKeysEnum.FT_FILES_IDS.generateKey(enclosureId),
-                files.stream().map(file -> generateHashsha1(enclosureId + ":" + file.getFid())).collect(Collectors.toList())
+                RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),
+                files.stream().map(file -> RedisUtils.generateHashsha1(enclosureId + ":" + file.getFid())).collect(Collectors.toList())
         );
         StorageManager storageManager = new StorageManager();
-        String bucketName = getBucketName();
+        String bucketName = RedisUtils.getBucketName(redisManager, null);
         for (FileDomain currentfile : files) {
-            String shaFid = generateHashsha1(enclosureId + ":" + currentfile.getFid());
+            String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());
             String uploadID = storageManager.generateUploadIdOsu(bucketName, currentfile.getPath());
 
             //create list part-etags for each file in Redis =  file:SHA1(GUID_pli:fid):mul:part-etags =>List [etag1.getPartNumber()+":"+etag1.getETag(), etag2.getPartNumber()+":"+etag2.getETag(), ...]
-            createListPartEtags(redisManager, shaFid);
+            RedisUtils.createListPartEtags(redisManager, shaFid);
 
             //  ================ set HASH file info in redis================
             redisManager.insertHASH(          //file:SHA1(GUID_pli:fid) => HASH { rel-obj-key: "Façade.jpg", size: "2", mul-id: "..." }
-                    RedisKeysEnum.FT_FILE.generateKey(shaFid),
+                    RedisKeysEnum.FT_FILE.getKey(shaFid),
                     RedisUtils.generateMapRedis(
                             FileKeysEnum.keys(),
                             Arrays.asList(currentfile.getPath(), currentfile.getSize(), uploadID)
@@ -165,18 +147,10 @@ public class RedisUtils {
         }
     }
 
-    public static void createListPartEtags(RedisManager redisManager, String shaFid) throws Exception {
-        redisManager.insertList(
-                RedisKeysEnum.FT_PART_ETAGS.generateKey(generateHashsha1(shaFid)),
-                new ArrayList<>()
-        );
-    }
-
-    public static List<PartETag> getPartEtags(RedisManager redisManager, String enclosureId, String fid) throws Exception {
-        String key = RedisKeysEnum.FT_PART_ETAGS.generateKey(RedisUtils.generateHashsha1(enclosureId + ":" + fid));
+    public static List<PartETag> getPartEtags(RedisManager redisManager, String hashFid) throws Exception {
         Pattern pattern = Pattern.compile(":");
         List<PartETag> partETags = new ArrayList<>();
-        redisManager.lrange(key, 0, -1).stream().forEach(k-> {
+        RedisUtils.getPartEtagsString(redisManager, hashFid).stream().forEach(k-> {
             String[] items = pattern.split(k, 2);
             if (2 == items.length) {
                 PartETag partETag = new PartETag(Integer.parseInt(items[0]), items[1]);
@@ -189,21 +163,10 @@ public class RedisUtils {
         return partETags;
     }
 
-    public static String addToPartEtags(RedisManager redisManager, PartETag partETag,  String enclosureId, String fid) throws Exception {
-        String key = RedisKeysEnum.FT_PART_ETAGS.generateKey(RedisUtils.generateHashsha1(enclosureId + ":" + fid));
+    public static String addToPartEtags(RedisManager redisManager, PartETag partETag, String hashFid) throws Exception {
+        String key = RedisKeysEnum.FT_PART_ETAGS.getKey(hashFid);
         String partEtagRedisForm = partETag.getPartNumber()+":"+partETag.getETag();
-        redisManager.addToList(key, partEtagRedisForm);
+        redisManager.rpush(key, partEtagRedisForm);
         return partEtagRedisForm;
     }
-
-    public static String getUploadId(RedisManager redisManager, String enclosureId, String fid) throws Exception {
-        String key = RedisKeysEnum.FT_FILE.generateKey(RedisUtils.generateHashsha1(enclosureId + ":" + fid));
-        return redisManager.getHgetString(key, FileKeysEnum.MUL_ID.getKey());
-    }
-
-    public static String getFileNameWithPath(RedisManager redisManager, String enclosureId, String fid) throws Exception {
-        String key = RedisKeysEnum.FT_FILE.generateKey(RedisUtils.generateHashsha1(enclosureId + ":" + fid));
-        return redisManager.getHgetString(key, FileKeysEnum.REL_OBJ_KEY.getKey());
-    }
-
 }

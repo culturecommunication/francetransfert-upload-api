@@ -1,5 +1,7 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -16,6 +18,8 @@ public class DateUtils {
     }
 
     private static String DATE_ERROR_NULL ="The date must not be null";
+
+    private static String infinity_Date = "2000-12-31";
 
     /**
      * <p>Checks if two date objects represent the same instant in time.</p>
@@ -80,6 +84,23 @@ public class DateUtils {
                 cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                 cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR));
     }
+
+    public static LocalDateTime convertStringToLocalDateTime(String date) {
+        if (null == date) {
+            date = infinity_Date;
+        }
+        //convert String to LocalDateTime
+        return LocalDateTime.parse(date);
+    }
+
+    public static String convertLocalDateTimeToString(LocalDateTime localDateTime, String pattern) {
+        String result = "";
+        if (localDateTime != null) {
+            result = localDateTime.format(DateTimeFormatter.ofPattern(pattern));
+        }
+        return result;
+    }
+
 
 
 }
