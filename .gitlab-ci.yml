@@ -41,7 +41,7 @@ sbapi:sonar:
       - develop
   script:
     - >
-       mvn sonar:sonar
+      mvn sonar:sonar
       -Dsonar.host.url=$SONAR_URL
       -Dsonar.login=$SONAR_TOKEN
       -Dsonar.gitlab.project_id=$CI_SONAR_PROJECT_KEY_DEVELOP
@@ -57,7 +57,7 @@ sbapi:sonar:master:
       - master
   script:
     - >
-       mvn sonar:sonar
+      mvn sonar:sonar
       -Dsonar.host.url=$SONAR_URL
       -Dsonar.login=$SONAR_TOKEN
       -Dsonar.gitlab.project_id=$CI_SONAR_PROJECT_KEY_MASTER
