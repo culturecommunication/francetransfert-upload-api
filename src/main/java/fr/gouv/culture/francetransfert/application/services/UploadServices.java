@@ -65,9 +65,9 @@ public class UploadServices {
             String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
             if (succesUpload != null) {
                 LOGGER.info("== finish upload File ==> {} ", fileNameWithPath);
-                redisManager.rpush(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
+                redisManager.publishFT(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
                 if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == RedisUtils.getListOfSuccessfulUploadFiles(redisManager, enclosureId).size()) {
-                    redisManager.insertList(RedisKeysEnum.FT_WORKER_QUEUE.getKey(""), Arrays.asList(enclosureId));
+                    redisManager.publishFT(RedisKeysEnum.FT_WORKER_QUEUE.getKey(""), enclosureId);
                     LOGGER.info("== finish upload enclosure ==> {} ",redisManager.lrange(RedisKeysEnum.FT_WORKER_QUEUE.getKey(""), 0, -1));
                 }
             }
