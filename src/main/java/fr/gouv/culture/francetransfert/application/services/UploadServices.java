@@ -2,16 +2,14 @@ package fr.gouv.culture.francetransfert.application.services;
 
 import com.amazonaws.services.s3.model.PartETag;
 import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.FileKeysEnum;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.RedisKeysEnum;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.SenderKeysEnum;
+import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.*;
 import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
 import com.opengroup.mc.francetransfert.api.francetransfert_storage_api.StorageManager;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import org.slf4j.Logger;
@@ -21,9 +19,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class UploadServices {
@@ -37,13 +35,18 @@ public class UploadServices {
     private ExtensionProperties extensionProp;
 
 
-    public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId) throws Exception {
+    public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
+
         if (!ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
             LOGGER.debug("extension file no authorised");
             throw new ExtensionNotFoundException("extension file no authorised");
         }
 
         RedisManager redisManager = RedisManager.getInstance();
+        //verify token validity
+        String senderMail = RedisUtils.getSenderEnclosure(redisManager, enclosureId);
+        validateToken(redisManager, senderMail, token);
+
         String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
         if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
             return true; // multipart is uploaded
@@ -67,8 +70,8 @@ public class UploadServices {
                 LOGGER.info("== finish upload File ==> {} ", fileNameWithPath);
                 redisManager.publishFT(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
                 if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == RedisUtils.getListOfSuccessfulUploadFiles(redisManager, enclosureId).size()) {
-                    redisManager.publishFT(RedisKeysEnum.FT_WORKER_QUEUE.getKey(""), enclosureId);
-                    LOGGER.info("== finish upload enclosure ==> {} ",redisManager.lrange(RedisKeysEnum.FT_WORKER_QUEUE.getKey(""), 0, -1));
+                    redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
+                    LOGGER.info("== finish upload enclosure ==> {} ",redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
                 }
             }
         }
@@ -79,8 +82,11 @@ public class UploadServices {
         return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
     }
 
-    public EnclosureRepresentation senderInfo(FranceTransfertDataRepresentation metadata) throws Exception {
+    public EnclosureRepresentation senderInfo(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         RedisManager redisManager = RedisManager.getInstance();
+        //verify token validity
+        validateToken(redisManager, metadata.getSenderEmail(), token);
+        LOGGER.debug("================== create enclosure metadata in redis ===================");
         String enclosureId = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.TIMESTAMP.getKey()));
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.MESSAGE.getKey()));
@@ -128,5 +134,21 @@ public class UploadServices {
                 .enclosureId(enclosureId)
                 .senderId(senderId)
                 .build();
+    }
+
+    private void validateToken(RedisManager redisManager, String senderMail, String token) throws Exception{
+        if (token != null && !token.equalsIgnoreCase("unknown")) {
+            // verify token in redis
+            Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+            boolean tokenExistInRedis = setTokenInRedis.stream().filter(tokenRedis -> tokenRedis.equals(token)).findFirst().isPresent();
+            if (!tokenExistInRedis) {
+                LOGGER.error("=============================================> invalid token: token does not exist in redis ");
+                throw new UploadExcption("invalid token: token does not exist in redis ");
+            }
+        } else {
+            LOGGER.error("=============================================> invalid token ");
+            throw new UploadExcption("invalid token");
+        }
+        LOGGER.info("=============================================> valid token for sender mail {}", senderMail);
     }
 }
