@@ -123,5 +123,11 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
         return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(UploadExcption.class)
+    public ResponseEntity<Object>  handleUploadExcption(Exception ex)  {
+        LOGGER.error(ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
 
 }

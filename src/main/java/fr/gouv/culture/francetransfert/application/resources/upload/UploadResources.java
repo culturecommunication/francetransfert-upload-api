@@ -5,7 +5,9 @@ import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisMa
 import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -17,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
@@ -31,6 +34,9 @@ public class UploadResources {
 
     @Autowired
     private UploadServices uploadServices;
+
+    @Autowired
+    private ConfirmationServices confirmationServices;
 
     @GetMapping("/upload")
     @ApiOperation(httpMethod = "GET", value = "Upload  ")
@@ -52,6 +58,7 @@ public class UploadResources {
     @PostMapping("/upload")
     @ApiOperation(httpMethod = "POST", value = "Upload  ")
     public void processUpload(HttpServletResponse response,
+                              @RequestHeader(value = "sender-token", defaultValue = "unknown") String token,
                               @RequestParam("flowChunkNumber") int flowChunkNumber,
                               @RequestParam("flowTotalChunks") int flowTotalChunks,
                               @RequestParam("flowChunkSize") long flowChunkSize,
@@ -60,16 +67,31 @@ public class UploadResources {
                               @RequestParam("flowFilename") String flowFilename,
                               @RequestParam("file") MultipartFile file,
                               @RequestParam("enclosureId") String enclosureId) throws Exception {
-        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId);
+        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId, token);
         response.setStatus(HttpStatus.OK.value());
     }
 
     @PostMapping("/sender-info")
     @ApiOperation(httpMethod = "POST", value = "sender Info  ")
-    public EnclosureRepresentation senderInfo(HttpServletResponse response, @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfo(metadata);
+    public EnclosureRepresentation senderInfo(HttpServletResponse response,
+                                              @RequestHeader(value = "sender-token", defaultValue = "unknown") String token,
+                                              @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+
+        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfo(metadata, token);
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
+    }
+
+    @GetMapping("/validate-code")
+    @ApiOperation(httpMethod = "GET", value = "Validate code  ")
+    public void validateCode(HttpServletResponse response,
+                             @RequestParam("senderMail") String senderMail,
+                             @RequestParam("code") String code) throws UploadExcption {
+        String token = confirmationServices.validateCodeConfirmation(senderMail, code);
+        Cookie cookie = new Cookie("sender-token", token);
+        cookie.isHttpOnly();
+        response.addCookie(cookie);
+        response.setStatus(HttpStatus.OK.value());
     }
 
 }
