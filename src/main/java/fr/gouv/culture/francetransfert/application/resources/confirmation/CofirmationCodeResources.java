@@ -31,8 +31,13 @@ public class CofirmationCodeResources {
     @ApiOperation(httpMethod = "GET", value = "Generate code  ")
     public void generateCode(HttpServletResponse response,
                             @RequestParam("senderMail") String senderMail) throws UploadExcption {
-        confirmationServices.generateCodeConfirmation(senderMail);
-        response.setStatus(HttpStatus.OK.value());
+        try {
+            confirmationServices.generateCodeConfirmation(senderMail);
+            response.setStatus(HttpStatus.OK.value());
+        } catch (Exception e) {
+            LOGGER.error("generate confirmation code error ");
+            throw new UploadExcption("generate confirmation code error ");
+        }
     }
 
     @GetMapping("/validate-code")
@@ -40,11 +45,16 @@ public class CofirmationCodeResources {
     public void validateCode(HttpServletResponse response,
                              @RequestParam("senderMail") String senderMail,
                              @RequestParam("code") String code) throws UploadExcption {
-        String token = confirmationServices.validateCodeConfirmation(senderMail, code);
-        Cookie cookie = new Cookie("sender-token", token);
-        cookie.isHttpOnly();
-        response.addCookie(cookie);
-        response.setStatus(HttpStatus.OK.value());
+        try {
+            String token = confirmationServices.validateCodeConfirmation(senderMail, code);
+            Cookie cookie = new Cookie("sender-token", token);
+            cookie.isHttpOnly();
+            response.addCookie(cookie);
+            response.setStatus(HttpStatus.OK.value());
+        } catch (Exception e) {
+            LOGGER.error("validate confirmation code error ");
+            throw new UploadExcption("validate confirmation code error ");
+        }
     }
 }
 
