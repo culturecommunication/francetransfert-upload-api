@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -33,6 +34,9 @@ public class UploadServices {
 
     @Autowired
     private ExtensionProperties extensionProp;
+
+    @Autowired
+    private PasswordHasherServices passwordHasherServices;
 
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
@@ -87,6 +91,11 @@ public class UploadServices {
         //verify token validity
         validateToken(redisManager, metadata.getSenderEmail(), token);
         LOGGER.debug("================== create enclosure metadata in redis ===================");
+        if (!StringUtils.isEmpty(metadata.getPassword())) {    // set pasword hashed if password not empty and not-null
+            String passwordHashed = passwordHasherServices.calculatePasswordHashed(metadata.getPassword());
+            metadata.setPassword(passwordHashed);
+            LOGGER.debug("================== calculate pasword hashed ******");
+        }
         String enclosureId = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.TIMESTAMP.getKey()));
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.MESSAGE.getKey()));

@@ -160,6 +160,18 @@
             <artifactId>jackson-core</artifactId>
             <version>2.10.1</version>
         </dependency>
+        <!--    Argon2 password hashing    -->
+        <dependency>
+            <groupId>com.kosprov.jargon2</groupId>
+            <artifactId>jargon2-api</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.kosprov.jargon2</groupId>
+            <artifactId>jargon2-native-ri-backend</artifactId>
+            <version>1.1.1</version>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>com.opengroup.mc.francetransfert.api</groupId>
             <artifactId>francetransfert-metaload-api</artifactId>
