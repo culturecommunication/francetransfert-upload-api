@@ -22,7 +22,7 @@ public class ConfirmationServices {
     private final static int secondsToExpiretokenSender = 2678400; //31 days to exipre
 
 
-    public void generateCodeConfirmation(String senderMail) throws UploadExcption {
+    public void generateCodeConfirmation(String senderMail) throws Exception {
 //generate confirmation code
         //verify code exist in REDIS for this mail : if not exist -> generate confirmation code and insert in queue redis (send mail to the sender enclosure with code)
         RedisManager redisManager = RedisManager.getInstance();
@@ -42,7 +42,7 @@ public class ConfirmationServices {
 
     }
 
-    public String validateCodeConfirmation(String senderMail, String code) throws UploadExcption {
+    public String validateCodeConfirmation(String senderMail, String code) throws Exception {
         RedisManager redisManager = RedisManager.getInstance();
 // validate confirmation code
         String redisCode = redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail));
