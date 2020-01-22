@@ -13,6 +13,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FileUtils {
+	
+	
+	private FileUtils() {
+		// private Constructor
+	}
+	
+	
     //return Map<name-file, size>
     public static Map<String, String> searchRootFiles(FranceTransfertDataRepresentation metadata) {
         Map<String, String> files = new HashMap<>();

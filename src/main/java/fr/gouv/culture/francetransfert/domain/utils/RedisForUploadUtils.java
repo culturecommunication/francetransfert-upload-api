@@ -29,6 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RedisForUploadUtils {
+	
+	private RedisForUploadUtils() {
+		// private Constructor
+	}
 
     public static String createHashEnclosure(RedisManager redisManager, FranceTransfertDataRepresentation metadata, int expiredays) {
         //  ================ set enclosure info in redis ================
