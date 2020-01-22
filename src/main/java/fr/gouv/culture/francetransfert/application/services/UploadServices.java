@@ -1,17 +1,9 @@
 package fr.gouv.culture.francetransfert.application.services;
 
-import com.amazonaws.services.s3.model.PartETag;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.*;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
-import com.opengroup.mc.francetransfert.api.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
-import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
-import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +12,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.amazonaws.services.s3.model.PartETag;
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
+import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
+import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
 
 @Service
 public class UploadServices {

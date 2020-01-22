@@ -1,16 +1,17 @@
 package fr.gouv.culture.francetransfert.application.services;
 
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.RedisKeysEnum;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.RedisQueueEnum;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import java.time.LocalDateTime;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 
 @Service
 public class ConfirmationServices {
