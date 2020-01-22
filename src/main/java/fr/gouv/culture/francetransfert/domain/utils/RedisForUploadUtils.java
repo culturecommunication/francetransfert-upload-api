@@ -1,16 +1,5 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
-import com.amazonaws.services.s3.model.PartETag;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.enums.*;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
-import com.opengroup.mc.francetransfert.api.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
-import lombok.extern.slf4j.Slf4j;
-import org.redisson.client.RedisTryAgainException;
-import org.springframework.util.CollectionUtils;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,6 +7,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.redisson.client.RedisTryAgainException;
+import org.springframework.util.CollectionUtils;
+
+import com.amazonaws.services.s3.model.PartETag;
+
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RecipientKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDirKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RedisForUploadUtils {

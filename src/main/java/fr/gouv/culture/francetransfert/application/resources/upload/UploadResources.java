@@ -1,27 +1,35 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.RedisManager;
-import com.opengroup.mc.francetransfert.api.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
-import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
+import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 @CrossOrigin
 @RestController
