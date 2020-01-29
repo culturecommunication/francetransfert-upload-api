@@ -77,8 +77,9 @@ public class RedisForUploadUtils {
         }
         List<String> listRecipientId = new ArrayList<>();
         metadata.getRecipientEmails().forEach(r -> {
-            String recipientId = RedisKeysEnum.FT_RECIPIENT.getKey(RedisUtils.generateGUID());
-            listRecipientId.add(recipientId);
+            String guidRecipient = RedisUtils.generateGUID();
+            String recipientId = RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient);
+            listRecipientId.add(guidRecipient);
 
             // idRecepient => HASH { nbDl: "0" }
             redisManager.insertHASH(

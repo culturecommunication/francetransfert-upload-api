@@ -43,6 +43,9 @@ public class UploadServices {
     @Autowired
     private PasswordHasherServices passwordHasherServices;
 
+    @Autowired
+    private ConfirmationServices confirmationServices;
+
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
 
@@ -54,7 +57,9 @@ public class UploadServices {
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity
         String senderMail = RedisUtils.getSenderEnclosure(redisManager, enclosureId);
-        validateToken(redisManager, senderMail, token);
+        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(senderMail)) {
+            validateToken(redisManager, senderMail, token);
+        }
 
         String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
         if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
@@ -93,8 +98,15 @@ public class UploadServices {
 
     public EnclosureRepresentation senderInfo(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         RedisManager redisManager = RedisManager.getInstance();
-        //verify token validity
-        validateToken(redisManager, metadata.getSenderEmail(), token);
+        //verify token validity and generate code if token is not valid
+        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())) {
+            boolean isGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+            if (isGeneratedCode) {
+                // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
+                return null;
+            }
+        }
+
         LOGGER.debug("================== create enclosure metadata in redis ===================");
         if (!StringUtils.isEmpty(metadata.getPassword())) {    // set pasword hashed if password not empty and not-null
             String passwordHashed = passwordHasherServices.calculatePasswordHashed(metadata.getPassword());
@@ -151,10 +163,10 @@ public class UploadServices {
     }
 
     private void validateToken(RedisManager redisManager, String senderMail, String token) throws Exception{
+        // verify token in redis
         if (token != null && !token.equalsIgnoreCase("unknown")) {
-            // verify token in redis
             Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-            boolean tokenExistInRedis = setTokenInRedis.stream().filter(tokenRedis -> tokenRedis.equals(token)).findFirst().isPresent();
+            boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
             if (!tokenExistInRedis) {
                 LOGGER.error("=============================================> invalid token: token does not exist in redis ");
                 throw new UploadExcption("invalid token: token does not exist in redis ");
@@ -164,5 +176,25 @@ public class UploadServices {
             throw new UploadExcption("invalid token");
         }
         LOGGER.info("=============================================> valid token for sender mail {}", senderMail);
+    }
+
+    private boolean generateCode(RedisManager redisManager, String senderMail, String token) throws Exception{
+        boolean result = false;
+        // verify token in redis
+        if (token != null && !token.equalsIgnoreCase("unknown")) {
+            Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+            boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
+            if (!tokenExistInRedis) {
+                confirmationServices.generateCodeConfirmation(senderMail);
+                result = true;
+                LOGGER.info("=============================================> generate confirmation code ");
+            }
+        } else {
+            confirmationServices.generateCodeConfirmation(senderMail);
+            result = true;
+            LOGGER.info("=============================================> generate confirmation code ");
+        }
+        LOGGER.info("=============================================> generate confirmation code for sender mail {}", senderMail);
+        return result;
     }
 }

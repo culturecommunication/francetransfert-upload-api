@@ -1,6 +1,7 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
@@ -37,8 +38,10 @@ public class ConfirmationServices {
                 throw new UploadExcption("error generation confirmation code");
             }
             // insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" ( insert in queue to: send mail to sender in worker module)
-            redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), senderMail+":"+confirmationCode);
+            redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
+            redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), Arrays.asList(senderMail+":"+confirmationCode));
             LOGGER.info("sender: {} =========> insert in queue rdis to send mail with confirmation code", senderMail);
+            LOGGER.debug("sender: {} =========> insert in queue rdis :", redisManager.lrange(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), 0, -1));
         }
 
     }
