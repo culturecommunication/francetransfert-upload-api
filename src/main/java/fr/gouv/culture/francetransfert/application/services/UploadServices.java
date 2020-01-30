@@ -49,7 +49,7 @@ public class UploadServices {
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
 
-        if (!ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
+        if (ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
             LOGGER.debug("extension file no authorised");
             throw new ExtensionNotFoundException("extension file no authorised");
         }
