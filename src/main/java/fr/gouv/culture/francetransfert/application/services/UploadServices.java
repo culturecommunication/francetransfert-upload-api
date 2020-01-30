@@ -37,6 +37,13 @@ public class UploadServices {
     @Value("${enclosure.expire.days}")
     private int expiredays;
 
+    @Value("${bucket.prefix}")
+    private String bucketPrefix;
+
+    @Value("${upload.limit}")
+    private long uploadLimitSize;
+
+
     @Autowired
     private ExtensionProperties extensionProp;
 
@@ -49,8 +56,13 @@ public class UploadServices {
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
 
+        // enclo
+        if (uploadLimitSize < flowTotalSize) {
+            LOGGER.error("enclosure size > {}", uploadLimitSize);
+            throw new UploadExcption("enclosure size > " + uploadLimitSize);
+        }
         if (ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
-            LOGGER.debug("extension file no authorised");
+            LOGGER.error("extension file no authorised");
             throw new ExtensionNotFoundException("extension file no authorised");
         }
 
@@ -70,7 +82,7 @@ public class UploadServices {
         Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
         String keyUploadOsu = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
         String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
-        String bucketName = RedisUtils.getBucketName(redisManager, enclosureId);
+        String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
         PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), keyUploadOsu);
         String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
         LOGGER.debug("=========> partETag added {} ", partETagToString);
@@ -114,6 +126,7 @@ public class UploadServices {
             LOGGER.debug("================== calculate pasword hashed ******");
         }
         String enclosureId = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
+        LOGGER.debug("================" + enclosureId);
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.TIMESTAMP.getKey()));
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.MESSAGE.getKey()));
         LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.PASSWORD.getKey()));
@@ -140,7 +153,7 @@ public class UploadServices {
             LOGGER.debug("root dirs to upload:"+f);
         });
 
-        RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
+        RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId, bucketPrefix);
         /*redisManager.lrange(RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),0,-1).forEach(f-> {
             //TODO: delete at the end of dev upload api
             LOGGER.debug("files ids:"+f);
