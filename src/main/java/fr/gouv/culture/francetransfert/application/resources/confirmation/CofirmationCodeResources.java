@@ -41,29 +41,5 @@ public class CofirmationCodeResources {
             throw new UploadExcption("generate confirmation code error ");
         }
     }
-
-    @GetMapping("/validate-code")
-    @ApiOperation(httpMethod = "GET", value = "Validate code  ")
-    public void validateCode(HttpServletResponse response,
-                                       @RequestParam("senderMail") String senderMail,
-                                       @RequestParam("code") String code) throws UploadExcption {
-        try {
-            String token = confirmationServices.validateCodeConfirmation(senderMail, code);
-            Cookie cookie = new Cookie("sender-token", token);
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(31 * 24 * 60 * 60);
-            response.addCookie(cookie);
-            response.setStatus(HttpStatus.OK.value());
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setExpires(69874445);
-//            headers.add("Set-Cookie","platform=mobile; Max-Age=604800; Path=/; Secure; HttpOnly; Expires=Fri, 28-Mar-2020 14:35:06 GMT");
-//            return new ResponseEntity(token, headers, HttpStatus.OK);
-        } catch (Exception e) {
-            LOGGER.error("validate confirmation code error ");
-            throw new UploadExcption("validate confirmation code error ");
-        }
-    }
 }
 

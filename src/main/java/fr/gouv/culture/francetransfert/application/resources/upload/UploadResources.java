@@ -1,38 +1,33 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.rate.RateRepresentation;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
+import fr.gouv.culture.francetransfert.application.services.CookiesServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+
 
 @CrossOrigin
 @RestController
@@ -51,6 +46,9 @@ public class UploadResources {
 
     @Autowired
     private ConfirmationServices confirmationServices;
+
+    @Autowired
+    private CookiesServices cookiesServices;
 
     @GetMapping("/upload")
     @ApiOperation(httpMethod = "GET", value = "Upload  ")
@@ -88,27 +86,29 @@ public class UploadResources {
     @ApiOperation(httpMethod = "POST", value = "sender Info  ")
     public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
                                               @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfo(metadata, "token");
+        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, request);
+        if (enclosureRepresentation != null) {
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), false, "/", "localhost", 396 * 24 * 60 * 600));
+        }
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
     }
 
-    @GetMapping("/validate-code")
-    @ApiOperation(httpMethod = "GET", value = "Validate code  ")
-    public void validateCode(HttpServletResponse response,
+    @PostMapping("/validate-code")
+    @ApiOperation(httpMethod = "POST", value = "Validate code  ")
+    public void validateCode(HttpServletRequest request, HttpServletResponse response,
                              @RequestParam("senderMail") String senderMail,
-                             @RequestParam("code") String code) throws UploadExcption {
+                             @RequestParam("code") String code,
+                            @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws UploadExcption {
         try {
-            String token = confirmationServices.validateCodeConfirmation(senderMail, code);
-            Cookie cookie = new Cookie("sender-token", token);
-            cookie.setHttpOnly(true);
-//            cookie.setSecure(true);
-            cookie.setPath("/");
-            cookie.setDomain("localhost");
-            cookie.setMaxAge(-1);
-            response.addCookie(cookie);
+            if (cookiesServices.isConsented(request.getCookies())) {
+                Cookie cookie = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
+//                EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookie.getValue());
+                response.addCookie(cookie);
+            } else {
+                uploadServices.senderInfoWithCodeValidation(metadata, code);
+            }
             response.setStatus(HttpStatus.OK.value());
-
         } catch (Exception e) {
             LOGGER.error("validate confirmation code error ");
             throw new UploadExcption("validate confirmation code error ");
