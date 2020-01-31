@@ -89,7 +89,7 @@ public class UploadResources {
         String token = cookiesServices.getToken(request);
         EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
         if (enclosureRepresentation != null) {
-            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), false, "/", "localhost", 396 * 24 * 60 * 600));
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 600));
         }
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
