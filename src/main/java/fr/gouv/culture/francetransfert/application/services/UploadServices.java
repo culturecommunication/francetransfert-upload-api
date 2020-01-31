@@ -4,7 +4,6 @@ import com.amazonaws.services.s3.model.PartETag;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
-import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,14 +106,7 @@ public class UploadServices {
         return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
     }
 
-    public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, HttpServletRequest request) throws Exception {
-        //extract token from cookies if exist
-        String token = "";
-        boolean isConsented = cookiesServices.isConsented(request.getCookies());
-        if (isConsented) {
-            token = cookiesServices.extractCookie(request.getCookies(), CookiesEnum.SENDER_TOKEN.name());
-        }
-
+    public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity and generate code if token is not valid
         if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())) {

@@ -86,7 +86,8 @@ public class UploadResources {
     @ApiOperation(httpMethod = "POST", value = "sender Info  ")
     public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
                                               @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, request);
+        String token = cookiesServices.getToken(request);
+        EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
         if (enclosureRepresentation != null) {
             response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), false, "/", "localhost", 396 * 24 * 60 * 600));
         }
@@ -96,19 +97,23 @@ public class UploadResources {
 
     @PostMapping("/validate-code")
     @ApiOperation(httpMethod = "POST", value = "Validate code  ")
-    public void validateCode(HttpServletRequest request, HttpServletResponse response,
+    public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
                              @RequestParam("senderMail") String senderMail,
                              @RequestParam("code") String code,
                             @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws UploadExcption {
         try {
+            EnclosureRepresentation enclosureRepresentation = null;
             if (cookiesServices.isConsented(request.getCookies())) {
+                LOGGER.info("===========================> with IS-CONSENTED");
                 Cookie cookie = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
-//                EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookie.getValue());
+                enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookie.getValue());
                 response.addCookie(cookie);
             } else {
-                uploadServices.senderInfoWithCodeValidation(metadata, code);
+                LOGGER.info("===========================> without IS-CONSENTED");
+                enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
             }
             response.setStatus(HttpStatus.OK.value());
+            return enclosureRepresentation;
         } catch (Exception e) {
             LOGGER.error("validate confirmation code error ");
             throw new UploadExcption("validate confirmation code error ");

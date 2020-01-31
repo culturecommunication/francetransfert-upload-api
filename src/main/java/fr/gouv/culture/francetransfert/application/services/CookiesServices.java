@@ -4,6 +4,7 @@ import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 
 @Service
 public class CookiesServices {
@@ -39,6 +40,16 @@ public class CookiesServices {
             }
         }
         return false;
+    }
+
+    public String getToken(HttpServletRequest request) throws Exception {
+        //extract token from cookies if exist
+        String token = "";
+        boolean isConsented = isConsented(request.getCookies());
+        if (isConsented) {
+            token = extractCookie(request.getCookies(), CookiesEnum.SENDER_TOKEN.name());
+        }
+        return token;
     }
 
 
