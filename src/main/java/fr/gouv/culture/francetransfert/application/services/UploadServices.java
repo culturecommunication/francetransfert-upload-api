@@ -66,10 +66,10 @@ public class UploadServices {
 
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity
-        String senderMail = RedisUtils.getSenderEnclosure(redisManager, enclosureId);
-        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(senderMail)) {
-            validateToken(redisManager, senderMail, token);
-        }
+//        String senderMail = RedisUtils.getSenderEnclosure(redisManager, enclosureId);
+//        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(senderMail)) {
+//            validateToken(redisManager, senderMail, token);
+//        }
 
         String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
         if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
