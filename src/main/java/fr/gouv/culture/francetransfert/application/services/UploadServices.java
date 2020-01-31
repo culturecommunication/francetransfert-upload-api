@@ -1,9 +1,18 @@
 package fr.gouv.culture.francetransfert.application.services;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.amazonaws.services.s3.model.PartETag;
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
+import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
+import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
+import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.*;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,22 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.model.PartETag;
-import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
-import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
-import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class UploadServices {
@@ -52,6 +49,9 @@ public class UploadServices {
 
     @Autowired
     private ConfirmationServices confirmationServices;
+
+    @Autowired
+    private CookiesServices cookiesServices;
 
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
@@ -108,17 +108,35 @@ public class UploadServices {
         return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
     }
 
-    public EnclosureRepresentation senderInfo(FranceTransfertDataRepresentation metadata, String token) throws Exception {
+    public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, HttpServletRequest request) throws Exception {
+        //extract token from cookies if exist
+        String token = "";
+        boolean isConsented = cookiesServices.isConsented(request.getCookies());
+        if (isConsented) {
+            token = cookiesServices.extractCookie(request.getCookies(), CookiesEnum.SENDER_TOKEN.name());
+        }
+
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity and generate code if token is not valid
         if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())) {
-            boolean isGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
-            if (isGeneratedCode) {
-                // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
-                return null;
+            if (StringUtils.isEmpty(token)) {
+                boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+                if (isRequiredToGeneratedCode) {
+                    // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
+                    return null;
+                }
             }
         }
+        return createMetaDataEnclosureInRedis(metadata, redisManager);
+    }
 
+    public EnclosureRepresentation senderInfoWithCodeValidation(FranceTransfertDataRepresentation metadata, String code) throws Exception {
+        RedisManager redisManager = RedisManager.getInstance();
+        confirmationServices.validateCodeConfirmation(redisManager, metadata.getSenderEmail(), code);
+        return createMetaDataEnclosureInRedis(metadata, redisManager);
+    }
+
+    private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata, RedisManager redisManager) throws Exception {
         LOGGER.debug("================== create enclosure metadata in redis ===================");
         if (!StringUtils.isEmpty(metadata.getPassword())) {    // set pasword hashed if password not empty and not-null
             String passwordHashed = passwordHasherServices.calculatePasswordHashed(metadata.getPassword());
@@ -194,7 +212,7 @@ public class UploadServices {
     private boolean generateCode(RedisManager redisManager, String senderMail, String token) throws Exception{
         boolean result = false;
         // verify token in redis
-        if (token != null && !token.equalsIgnoreCase("unknown")) {
+        if (!StringUtils.isEmpty(token)) {
             Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
             boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
             if (!tokenExistInRedis) {

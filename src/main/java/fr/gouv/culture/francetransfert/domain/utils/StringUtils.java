@@ -11,9 +11,9 @@ public class StringUtils {
 
     private static final int INDEX_NOT_FOUND = -1;
 
-    private final static Pattern gouvEmailPattern = Pattern.compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$");
-    private final static Pattern emailPattern = Pattern.compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$");
+    private final static String regex_valid_email = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
 
+    private final static String regex_gouv_email ="^\\w+([\\.-]\\w+)*(\\+\\w+)?@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$";
 
     private StringUtils() {
         // private constructor
@@ -142,12 +142,10 @@ public class StringUtils {
     }
 
     public static boolean isGouvEmail(String email) {
-        String regex_gouv_email ="^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$";
         return isValidRegex(regex_gouv_email, email);
     }
 
     public static boolean isValidEmail(String email) {
-        String regex_valid_email = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
         return isValidRegex(regex_valid_email, email);
     }
 
