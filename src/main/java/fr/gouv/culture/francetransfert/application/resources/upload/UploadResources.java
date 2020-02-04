@@ -78,7 +78,8 @@ public class UploadResources {
                               @RequestParam("flowFilename") String flowFilename,
                               @RequestParam("file") MultipartFile file,
                               @RequestParam("enclosureId") String enclosureId) throws Exception {
-        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId, "token");
+        LOGGER.info("=============================================== upload chunk number: {}/{} ===============================================", flowChunkNumber, flowTotalChunks);
+        uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier, flowFilename, file, enclosureId);
         response.setStatus(HttpStatus.OK.value());
     }
 
@@ -86,9 +87,13 @@ public class UploadResources {
     @ApiOperation(httpMethod = "POST", value = "sender Info  ")
     public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
                                               @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+        LOGGER.info("======================================================================================================================");
+        LOGGER.info("=============================================== start upload enclosure ===============================================");
+        LOGGER.info("======================================================================================================================");
         String token = cookiesServices.getToken(request);
         EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
         if (enclosureRepresentation != null) {
+            LOGGER.info("==============================> add cookie sender-id " );
             response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 600));
         }
         response.setStatus(HttpStatus.OK.value());
@@ -102,14 +107,17 @@ public class UploadResources {
                              @RequestParam("code") String code,
                             @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws UploadExcption {
         try {
+            LOGGER.info("================================================================================================================================");
+            LOGGER.info("=============================================== start validate confirmation code ===============================================");
+            LOGGER.info("================================================================================================================================");
             EnclosureRepresentation enclosureRepresentation = null;
             if (cookiesServices.isConsented(request.getCookies())) {
-                LOGGER.info("===========================> with IS-CONSENTED");
+                LOGGER.debug("===========================> with IS-CONSENTED");
                 Cookie cookie = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
                 enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookie.getValue());
                 response.addCookie(cookie);
             } else {
-                LOGGER.info("===========================> without IS-CONSENTED");
+                LOGGER.debug("===========================> without IS-CONSENTED");
                 enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
             }
             response.setStatus(HttpStatus.OK.value());
@@ -119,7 +127,7 @@ public class UploadResources {
             throw new UploadExcption("validate confirmation code error ");
         }
     }
-    
+
 
     @RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
     @ApiOperation(httpMethod = "POST", value = "Rates the app on a scvale of 1 to 4")

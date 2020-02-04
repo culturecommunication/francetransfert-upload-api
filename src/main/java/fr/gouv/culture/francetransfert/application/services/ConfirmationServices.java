@@ -38,15 +38,15 @@ public class ConfirmationServices {
             //insert confirmation code in REDIS
             try {
                 redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail), confirmationCode, secondsToExpireConfirmationCode);
-                LOGGER.info("sender: {} =========> generated confirmation code in redis", senderMail);
+                LOGGER.info("================ sender: {} =========> generated confirmation code in redis", senderMail);
             } catch (Exception e) {
+                LOGGER.error("================ error generation confirmation code");
                 throw new UploadExcption("error generation confirmation code");
             }
             // insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" ( insert in queue to: send mail to sender in worker module)
             redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
             redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), Arrays.asList(senderMail+":"+confirmationCode));
-            LOGGER.info("sender: {} =========> insert in queue rdis to send mail with confirmation code", senderMail);
-            LOGGER.debug("sender: {} =========> insert in queue rdis :", redisManager.lrange(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), 0, -1));
+            LOGGER.info("================ sender: {} =========> insert in queue rdis to send mail with confirmation code", senderMail);
         }
 
     }
@@ -57,19 +57,20 @@ public class ConfirmationServices {
         validateCodeConfirmation(redisManager, senderMail, code);
          /*genarate and insert in REDIS :(GUID && timpStamp cokies) per sender by internet browser
          add token validity sender to Redis. Token form : "sender:senderMail:token" => SET ["GUID:time-stamp"] exemple : "sender:test@gouv.fr:token" => SET [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]*/
-        String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();//TODO: timeStamp 64 bits
+        String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
         redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
-        LOGGER.info("sender: {} =========> generated token: {} ", senderMail, token);
+        LOGGER.info("================ sender: {} =========> generated token: {} ", senderMail, token);
         return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", 31 * 24 * 60 * 600);
     }
 
     public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {
+        LOGGER.info("================ verify validy confirmation code");
         String redisCode = redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail));
         if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
-            LOGGER.error("error code sender: =========> this code: {} is not validated for this sender mail {}", code, senderMail);
+            LOGGER.error("================ error code sender: =========> this code: {} is not validated for this sender mail {}", code, senderMail);
             throw new UploadExcption("error confirmation code");
         }
-        LOGGER.info("sender: {} =========> valid code: {} ", senderMail, code);
+        LOGGER.info("================ sender: {} =========> valid code: {} ", senderMail, code);
     }
 
 }

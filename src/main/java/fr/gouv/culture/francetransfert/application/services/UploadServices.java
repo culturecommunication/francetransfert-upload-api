@@ -7,6 +7,7 @@ import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
+import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.*;
@@ -52,17 +53,12 @@ public class UploadServices {
     private CookiesServices cookiesServices;
 
 
-    public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId, String token) throws Exception {
-
-        // enclo
-        if (uploadLimitSize < flowTotalSize) {
-            LOGGER.error("enclosure size > {}", uploadLimitSize);
-            throw new UploadExcption("enclosure size > " + uploadLimitSize);
-        }
+    public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId) throws Exception {
         if (ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
-            LOGGER.error("extension file no authorised");
-            throw new ExtensionNotFoundException("extension file no authorised");
+            LOGGER.error("================ extension file no authorised");
+            throw new ExtensionNotFoundException("================ extension file no authorised");
         }
+        LOGGER.info("================ extension file authorised");
 
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity
@@ -81,21 +77,22 @@ public class UploadServices {
         String keyUploadOsu = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
         String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
         String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
+        LOGGER.info("================ osu bucket name: {}", bucketName);
         PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), keyUploadOsu);
         String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
-        LOGGER.debug("=========> partETag added {} ", partETagToString);
+        LOGGER.debug("================ partETag added {} for: {}", partETagToString, hashFid);
         List<String> stringPartETags = RedisUtils.getPartEtagsString(redisManager, hashFid);
-        LOGGER.debug("=========> partETags  size {} ", stringPartETags.size());
+        LOGGER.debug("================ partETags  size {} ", stringPartETags.size());
         isUploaded = true;
         if (flowTotalChunks == stringPartETags.size()) {
             List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
             String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
             if (succesUpload != null) {
-                LOGGER.info("== finish upload File ==> {} ", fileNameWithPath);
+                LOGGER.info("================ finish upload File ==> {} ", fileNameWithPath);
                 redisManager.publishFT(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
                 if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == RedisUtils.getListOfSuccessfulUploadFiles(redisManager, enclosureId).size()) {
                     redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
-                    LOGGER.info("== finish upload enclosure ==> {} ",redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
+                    LOGGER.info("================ finish upload enclosure ==> {} ",redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
                 }
             }
         }
@@ -107,6 +104,7 @@ public class UploadServices {
     }
 
     public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, String token) throws Exception {
+        LOGGER.info("==============================> create metadata in redis with token validation");
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity and generate code if token is not valid
         if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())) {
@@ -122,62 +120,42 @@ public class UploadServices {
     }
 
     public EnclosureRepresentation senderInfoWithCodeValidation(FranceTransfertDataRepresentation metadata, String code) throws Exception {
+        LOGGER.info("==============================> create metadata in redis with code validation");
         RedisManager redisManager = RedisManager.getInstance();
         confirmationServices.validateCodeConfirmation(redisManager, metadata.getSenderEmail(), code);
         return createMetaDataEnclosureInRedis(metadata, redisManager);
     }
 
     private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata, RedisManager redisManager) throws Exception {
-        LOGGER.debug("================== create enclosure metadata in redis ===================");
+
+        if (uploadLimitSize < FileUtils.getEnclosureTotalSize(metadata)) {
+            LOGGER.error("================ enclosure size > upload limit size: {}", uploadLimitSize);
+            throw new UploadExcption("enclosure size > " + uploadLimitSize);
+        }
+        LOGGER.info("================ limit enclosure size is < upload limit size: {}", uploadLimitSize);
+
         if (!StringUtils.isEmpty(metadata.getPassword())) {    // set pasword hashed if password not empty and not-null
             String passwordHashed = passwordHasherServices.calculatePasswordHashed(metadata.getPassword());
             metadata.setPassword(passwordHashed);
-            LOGGER.debug("================== calculate pasword hashed ******");
+            LOGGER.info("================== calculate pasword hashed ******");
         }
+        LOGGER.info("================== create enclosure metadata in redis ===================");
         String enclosureId = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
-        LOGGER.debug("================" + enclosureId);
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.TIMESTAMP.getKey()));
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.MESSAGE.getKey()));
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),EnclosureKeysEnum.PASSWORD.getKey()));
-        LOGGER.debug("=========================================================================");
+        LOGGER.info("================== update list date-enclosure in redis ===================");
         RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
-        /*redisManager.smembersString(RedisKeysEnum.FT_ENCLOSURE_DATES.getKey("")).forEach(d-> {
-            LOGGER.debug(d);
-        });*/
+        LOGGER.info("===================== create sender metadata in redis ====================");
         String senderId = RedisForUploadUtils.createHashSender(redisManager, metadata, enclosureId);
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_SENDER.getKey(enclosureId), SenderKeysEnum.EMAIL.getKey()));
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_SENDER.getKey(enclosureId), SenderKeysEnum.ID.getKey()));
-        LOGGER.debug(redisManager.getHgetString(RedisKeysEnum.FT_SENDER.getKey(enclosureId), SenderKeysEnum.IS_NEW.getKey()));
-        LOGGER.debug("=========================================================================");
-
-
-
+        LOGGER.info("===================== create all recipients metadata in redis ====================");
         RedisForUploadUtils.createAllRecipient(redisManager, metadata, enclosureId);
+        LOGGER.info("===================== create root-files metadata in redis ====================");
         RedisForUploadUtils.createRootFiles(redisManager, metadata, enclosureId);
-        redisManager.lrange(RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId),0,-1).forEach(f-> {
-            LOGGER.debug("root files to upload:"+f);
-        });
+        LOGGER.info("===================== create root-dirs metadata in redis ====================");
         RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
-        redisManager.lrange(RedisKeysEnum.FT_ROOT_DIRS.getKey(enclosureId),0,-1).forEach(f-> {
-            LOGGER.debug("root dirs to upload:"+f);
-        });
-
+        LOGGER.info("===================== create contents-files-ids metadata in redis ====================");
         RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId, bucketPrefix);
-        /*redisManager.lrange(RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),0,-1).forEach(f-> {
-            //TODO: delete at the end of dev upload api
-            LOGGER.debug("files ids:"+f);
-            try {
-                LOGGER.debug("=========================================================================");
-                LOGGER.debug(f+ "===========>"+redisManager.getHgetString(RedisKeysEnum.FT_FILE.getKey(f), FileKeysEnum.REL_OBJ_KEY.getKey() ));
-                LOGGER.debug(f+ "===========>"+redisManager.getHgetString(RedisKeysEnum.FT_FILE.getKey(f), FileKeysEnum.SIZE.getKey() ));
-                LOGGER.debug(f+ "===========>"+redisManager.getHgetString(RedisKeysEnum.FT_FILE.getKey(f), FileKeysEnum.MUL_ID.getKey() ));
-                LOGGER.debug("=========================================================================");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });*/
         RedisUtils.createListOfSuccessfulUploadFiles(redisManager, enclosureId);
         LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
+
         return EnclosureRepresentation.builder()
                 .enclosureId(enclosureId)
                 .senderId(senderId)
@@ -190,33 +168,35 @@ public class UploadServices {
             Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
             boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
             if (!tokenExistInRedis) {
-                LOGGER.error("=============================================> invalid token: token does not exist in redis ");
+                LOGGER.error("==============================> invalid token: token does not exist in redis ");
                 throw new UploadExcption("invalid token: token does not exist in redis ");
             }
         } else {
-            LOGGER.error("=============================================> invalid token ");
+            LOGGER.error("==============================> invalid token ");
             throw new UploadExcption("invalid token");
         }
-        LOGGER.info("=============================================> valid token for sender mail {}", senderMail);
+        LOGGER.info("==============================> valid token for sender mail {}", senderMail);
     }
 
     private boolean generateCode(RedisManager redisManager, String senderMail, String token) throws Exception{
         boolean result = false;
         // verify token in redis
         if (!StringUtils.isEmpty(token)) {
+            LOGGER.info("==============================> verify token in redis");
             Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+            LOGGER.info("==============================> extract all Token sender from redis");
             boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
             if (!tokenExistInRedis) {
                 confirmationServices.generateCodeConfirmation(senderMail);
                 result = true;
-                LOGGER.info("=============================================> generate confirmation code ");
+                LOGGER.info("==============================> generate confirmation code for sender mail {}", senderMail);
             }
         } else {
+            LOGGER.info("==============================> token does not exist");
             confirmationServices.generateCodeConfirmation(senderMail);
             result = true;
-            LOGGER.info("=============================================> generate confirmation code ");
+            LOGGER.info("==============================> generate confirmation code for sender mail {}", senderMail);
         }
-        LOGGER.info("=============================================> generate confirmation code for sender mail {}", senderMail);
         return result;
     }
 }

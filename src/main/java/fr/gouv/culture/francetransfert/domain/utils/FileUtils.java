@@ -76,4 +76,16 @@ public class FileUtils {
             }
         }
     }
+
+    public static int getEnclosureTotalSize(FranceTransfertDataRepresentation metadata) {
+        int size = 0;
+        for (DirectoryRepresentation rootDir : metadata.getRootDirs()) {
+            size = size + rootDir.getTotalSize();
+        }
+
+        for (FileRepresentation rootFile : metadata.getRootFiles()) {
+            size = size + rootFile.getSize();
+        }
+        return size;
+    }
 }
