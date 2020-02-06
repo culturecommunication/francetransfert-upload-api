@@ -72,7 +72,7 @@ public class UploadServices {
             return true; // multipart is uploaded
         }
         Boolean isUploaded = false;
-        StorageManager storageManager = new StorageManager();
+        StorageManager storageManager = StorageManager.getInstance();
         Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
         String keyUploadOsu = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
         String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());

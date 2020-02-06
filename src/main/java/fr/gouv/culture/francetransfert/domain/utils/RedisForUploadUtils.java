@@ -129,7 +129,7 @@ public class RedisForUploadUtils {
                 RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),
                 files.stream().map(file -> RedisUtils.generateHashsha1(enclosureId + ":" + file.getFid())).collect(Collectors.toList())
         );
-        StorageManager storageManager = new StorageManager();
+        StorageManager storageManager = StorageManager.getInstance();
         String bucketName = RedisUtils.getBucketName(redisManager, null, bucketPrefix);
         for (FileDomain currentfile : files) {
             LOGGER.debug("================ current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
