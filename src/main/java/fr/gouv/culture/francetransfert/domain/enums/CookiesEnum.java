@@ -3,7 +3,7 @@ package fr.gouv.culture.francetransfert.domain.enums;
 public enum CookiesEnum {
     SENDER_ID("sender-id"),
     SENDER_TOKEN("sender-token"),
-    IS_CONSENTED("IS_CONSENTED");
+    IS_CONSENTED("HAS_CONSENTED");
 
     private String value;
 
