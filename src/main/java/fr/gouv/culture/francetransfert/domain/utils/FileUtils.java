@@ -77,8 +77,8 @@ public class FileUtils {
         }
     }
 
-    public static int getEnclosureTotalSize(FranceTransfertDataRepresentation metadata) {
-        int size = 0;
+    public static long getEnclosureTotalSize(FranceTransfertDataRepresentation metadata) {
+        long size = 0;
         for (DirectoryRepresentation rootDir : metadata.getRootDirs()) {
             size = size + rootDir.getTotalSize();
         }

@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 public class DirectoryRepresentation extends DataRepresentation {
 
-    private int totalSize;
+    private long totalSize;
 
     @Valid
     private List<FileRepresentation> files;

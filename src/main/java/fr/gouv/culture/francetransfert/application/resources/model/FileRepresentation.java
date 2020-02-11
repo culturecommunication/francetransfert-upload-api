@@ -16,5 +16,5 @@ public class FileRepresentation extends DataRepresentation {
     private String fid;
 
     @Min(1)
-    private int size;
+    private long size;
 }
