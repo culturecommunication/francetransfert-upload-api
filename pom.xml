@@ -6,7 +6,7 @@
 
     <groupId>fr.gouv.culture.francetransfert</groupId>
     <artifactId>FTR-upload-api</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0-SNAPSHOT</version>
     <description>France Transfert Upload API</description>
     <packaging>jar</packaging>
 
@@ -181,12 +181,12 @@
         <dependency>
             <groupId>fr.gouv.culture.francetransfert</groupId>
             <artifactId>FTR-metaload-api</artifactId>
-            <version>0.2.0</version>
+            <version>0.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>fr.gouv.culture.francetransfert</groupId>
             <artifactId>FTR-storage-api</artifactId>
-            <version>0.2.0</version>
+            <version>0.3.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>
