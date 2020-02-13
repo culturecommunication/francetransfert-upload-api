@@ -53,10 +53,21 @@ public class CookiesServices {
         String token = "";
         boolean isConsented = isConsented(request.getCookies());
         if (isConsented) {
-            token = extractCookie(request.getCookies(), CookiesEnum.SENDER_TOKEN.name());
+            token = extractCookie(request.getCookies(), CookiesEnum.SENDER_TOKEN.getValue());
         }
         LOGGER.info("==============================> sender-token is : {} ", StringUtils.isEmpty(token) ?  "empty" : token);
         return token;
+    }
+
+    public String getSenderId(HttpServletRequest request) throws Exception {
+        //extract senderId from cookies if exist
+        String senderId = "";
+        boolean isConsented = isConsented(request.getCookies());
+        if (isConsented) {
+            senderId = extractCookie(request.getCookies(), CookiesEnum.SENDER_ID.getValue());
+        }
+        LOGGER.info("==============================> sender-id is : {} ", StringUtils.isEmpty(senderId) ?  "empty" : senderId);
+        return senderId;
     }
 
 
