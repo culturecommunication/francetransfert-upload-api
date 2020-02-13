@@ -60,7 +60,7 @@ public class ConfirmationServices {
         String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
         redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
         LOGGER.info("================ sender: {} =========> generated token: {} ", senderMail, token);
-        return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", 31 * 24 * 60 * 600);
+        return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", 31 * 24 * 60 * 60);
     }
 
     public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {

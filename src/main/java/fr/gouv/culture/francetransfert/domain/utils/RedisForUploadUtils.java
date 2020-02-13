@@ -55,7 +55,7 @@ public class RedisForUploadUtils {
         	if (null == metadata.getSenderEmail()) {
         		throw new Exception();
         	}
-        	boolean isNewSender = (null == metadata.getConfirmedSenderId() || "".equals(metadata.getConfirmedSenderId()));
+        	boolean isNewSender = StringUtils.isEmpty(metadata.getConfirmedSenderId());
         	if (isNewSender) {
         		metadata.setConfirmedSenderId(RedisUtils.generateGUID());
         	}

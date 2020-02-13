@@ -91,10 +91,11 @@ public class UploadResources {
         LOGGER.info("=============================================== start upload enclosure ===============================================");
         LOGGER.info("======================================================================================================================");
         String token = cookiesServices.getToken(request);
+        metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
         EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
         if (enclosureRepresentation != null) {
             LOGGER.info("==============================> add cookie sender-id " );
-            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 600));
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
         }
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
@@ -113,9 +114,11 @@ public class UploadResources {
             EnclosureRepresentation enclosureRepresentation = null;
             if (cookiesServices.isConsented(request.getCookies())) {
                 LOGGER.debug("===========================> with IS-CONSENTED");
-                Cookie cookie = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
-                enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookie.getValue());
-                response.addCookie(cookie);
+                Cookie cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
+                metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
+                enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken.getValue());
+                response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
+                response.addCookie(cookieTocken);
             } else {
                 LOGGER.debug("===========================> without IS-CONSENTED");
                 enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
