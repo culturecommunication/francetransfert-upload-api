@@ -93,7 +93,7 @@ public class UploadResources {
         String token = cookiesServices.getToken(request);
         metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
         EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
-        if (enclosureRepresentation != null) {
+        if (enclosureRepresentation != null && cookiesServices.isConsented(request.getCookies())) {
             LOGGER.info("==============================> add cookie sender-id " );
             response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
         }
