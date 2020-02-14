@@ -1,5 +1,6 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -143,6 +144,9 @@ public class StringUtils {
 
     public static boolean isGouvEmail(String email) {
         return isValidRegex(regex_gouv_email, email);
+    }
+    public static boolean isAllGouvEmail(List<String> emails) {
+        return emails.stream().allMatch(email -> isValidRegex(regex_gouv_email, email));
     }
 
     public static boolean isValidEmail(String email) {
