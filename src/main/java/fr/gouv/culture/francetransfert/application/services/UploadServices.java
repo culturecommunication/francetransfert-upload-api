@@ -107,7 +107,8 @@ public class UploadServices {
         LOGGER.info("==============================> create metadata in redis with token validation");
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity and generate code if token is not valid
-        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())) {
+        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())
+                && !fr.gouv.culture.francetransfert.domain.utils.StringUtils.isAllGouvEmail(metadata.getRecipientEmails())) {
             if (StringUtils.isEmpty(token)) {
                 boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
                 if (isRequiredToGeneratedCode) {
