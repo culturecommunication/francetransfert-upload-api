@@ -9,6 +9,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
+import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.*;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
@@ -38,6 +39,9 @@ public class UploadServices {
 
     @Value("${upload.limit}")
     private long uploadLimitSize;
+
+    @Value("${regex.gouv.mail}")
+    private String regexGouvMail;
 
 
     @Autowired
@@ -107,8 +111,8 @@ public class UploadServices {
         LOGGER.info("==============================> create metadata in redis with token validation");
         RedisManager redisManager = RedisManager.getInstance();
         //verify token validity and generate code if token is not valid
-        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(metadata.getSenderEmail())
-                && !fr.gouv.culture.francetransfert.domain.utils.StringUtils.isAllGouvEmail(metadata.getRecipientEmails())) {
+        if (StringUploadUtils.isGouvEmail(metadata.getSenderEmail(), regexGouvMail)
+                && !StringUploadUtils.isAllGouvEmail(metadata.getRecipientEmails(), regexGouvMail)) {
             if (StringUtils.isEmpty(token)) {
                 boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
                 if (isRequiredToGeneratedCode) {
