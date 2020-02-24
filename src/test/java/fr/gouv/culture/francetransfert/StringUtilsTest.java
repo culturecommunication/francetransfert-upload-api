@@ -1,6 +1,6 @@
 package fr.gouv.culture.francetransfert;
 
-import fr.gouv.culture.francetransfert.domain.utils.StringUtils;
+import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -10,34 +10,34 @@ public class StringUtilsTest {
 
     @Test
     public void testIsEmpty() {
-        assertTrue(StringUtils.isEmpty(null));
-        assertTrue(StringUtils.isEmpty(""));
-        assertFalse(StringUtils.isEmpty(" "));
-        assertFalse(StringUtils.isEmpty("foo"));
-        assertFalse(StringUtils.isEmpty("  foo  "));
+        assertTrue(StringUploadUtils.isEmpty(null));
+        assertTrue(StringUploadUtils.isEmpty(""));
+        assertFalse(StringUploadUtils.isEmpty(" "));
+        assertFalse(StringUploadUtils.isEmpty("foo"));
+        assertFalse(StringUploadUtils.isEmpty("  foo  "));
     }
 
     @Test
     public void testIsBlank() {
-        assertTrue(StringUtils.isBlank(null));
-        assertTrue(StringUtils.isBlank(""));
-        assertTrue(StringUtils.isBlank("   "));
-        assertFalse(StringUtils.isBlank("foo"));
-        assertFalse(StringUtils.isBlank("  foo  "));
+        assertTrue(StringUploadUtils.isBlank(null));
+        assertTrue(StringUploadUtils.isBlank(""));
+        assertTrue(StringUploadUtils.isBlank("   "));
+        assertFalse(StringUploadUtils.isBlank("foo"));
+        assertFalse(StringUploadUtils.isBlank("  foo  "));
     }
 
 
     @Test
     public void testTrim() {
-        assertEquals("foo", StringUtils.trim(" foo "));
-        assertNotEquals("  foo  ", StringUtils.trim("  foo  "));
+        assertEquals("foo", StringUploadUtils.trim(" foo "));
+        assertNotEquals("  foo  ", StringUploadUtils.trim("  foo  "));
     }
 
 
     @Test
     public void testRemove() {
-        assertEquals("qeed", StringUtils.remove("queued", 'u'));
-        assertNotEquals("qeed", StringUtils.remove("queued", 'z'));
+        assertEquals("qeed", StringUploadUtils.remove("queued", 'u'));
+        assertNotEquals("qeed", StringUploadUtils.remove("queued", 'z'));
     }
 
 }

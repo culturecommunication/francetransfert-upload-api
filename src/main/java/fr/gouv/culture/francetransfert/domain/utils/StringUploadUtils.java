@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
  * StringUtils class
  * Utily class to manipulate Strings
  */
-public class StringUtils {
+public class StringUploadUtils {
 
     private static final int INDEX_NOT_FOUND = -1;
 
@@ -16,7 +16,7 @@ public class StringUtils {
 
     private final static String regex_gouv_email ="^\\w+([\\.-]\\w+)*(\\+\\w+)?@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$";
 
-    private StringUtils() {
+    private StringUploadUtils() {
         // private constructor
     }
 
@@ -142,11 +142,19 @@ public class StringUtils {
         return result;
     }
 
-    public static boolean isGouvEmail(String email) {
-        return isValidRegex(regex_gouv_email, email);
+    public static boolean isGouvEmail(String email, String regexGouvMail) {
+        if (regexGouvMail != null) {
+            return isValidRegex(regexGouvMail, email);
+        } else {
+            return isValidRegex(regex_gouv_email, email);
+        }
     }
-    public static boolean isAllGouvEmail(List<String> emails) {
-        return emails.stream().allMatch(email -> isValidRegex(regex_gouv_email, email));
+    public static boolean isAllGouvEmail(List<String> emails, String regexGouvMail) {
+        if (regexGouvMail != null) {
+            return emails.stream().allMatch(email -> isValidRegex(regexGouvMail, email));
+        } else {
+            return emails.stream().allMatch(email -> isValidRegex(regex_gouv_email, email));
+        }
     }
 
     public static boolean isValidEmail(String email) {
