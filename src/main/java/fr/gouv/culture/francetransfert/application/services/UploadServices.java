@@ -86,16 +86,16 @@ public class UploadServices {
         PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), keyUploadOsu);
         String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
         LOGGER.debug("================ partETag added {} for: {}", partETagToString, hashFid);
-        List<String> stringPartETags = RedisUtils.getPartEtagsString(redisManager, hashFid);
-        LOGGER.debug("================ partETags  size {} ", stringPartETags.size());
         isUploaded = true;
-        if (flowTotalChunks == stringPartETags.size()) {
+        LOGGER.debug("================ flowChuncksCounter in redis {}", redisManager.getString(RedisKeysEnum.FT_FLOW_CHUNCKS_COUNTER.getKey(hashFid)));
+        if (flowTotalChunks ==  Integer.parseInt(redisManager.getString(RedisKeysEnum.FT_FLOW_CHUNCKS_COUNTER.getKey(hashFid)))) {
             List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
             String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
             if (succesUpload != null) {
                 LOGGER.info("================ finish upload File ==> {} ", fileNameWithPath);
-                redisManager.publishFT(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
-                if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == RedisUtils.getListOfSuccessfulUploadFiles(redisManager, enclosureId).size()) {
+                long successfulUploadFilesCounter = redisManager.incr(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD_FILES_COUNTER.getKey(enclosureId));
+                LOGGER.info("================ counter of successful upload files : {} ", successfulUploadFilesCounter);
+                if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == Integer.parseInt(redisManager.getString(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD_FILES_COUNTER.getKey(enclosureId)))) {
                     redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
                     LOGGER.info("================ finish upload enclosure ==> {} ",redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
                 }
@@ -157,7 +157,6 @@ public class UploadServices {
         RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
         LOGGER.info("===================== create contents-files-ids metadata in redis ====================");
         RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId, bucketPrefix);
-        RedisUtils.createListOfSuccessfulUploadFiles(redisManager, enclosureId);
         LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 
         return EnclosureRepresentation.builder()
