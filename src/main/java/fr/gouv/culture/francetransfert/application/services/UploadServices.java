@@ -6,10 +6,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfe
 import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
-import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
-import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
-import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
+import fr.gouv.culture.francetransfert.domain.utils.*;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.*;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
@@ -22,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +37,9 @@ public class UploadServices {
 
     @Value("${upload.limit}")
     private long uploadLimitSize;
+
+    @Value("${expire.token.sender}")
+    private int daysToExpiretokenSender;
 
     @Value("${regex.gouv.mail}")
     private String regexGouvMail;
@@ -113,12 +114,10 @@ public class UploadServices {
         //verify token validity and generate code if token is not valid
         if (StringUploadUtils.isGouvEmail(metadata.getSenderEmail(), regexGouvMail)
                 && !StringUploadUtils.isAllGouvEmail(metadata.getRecipientEmails(), regexGouvMail)) {
-            if (StringUtils.isEmpty(token)) {
-                boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
-                if (isRequiredToGeneratedCode) {
-                    // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
-                    return null;
-                }
+            boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+            if (isRequiredToGeneratedCode) {
+                // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
+                return null;
             }
         }
         return createMetaDataEnclosureInRedis(metadata, redisManager);
@@ -190,7 +189,8 @@ public class UploadServices {
             LOGGER.info("==============================> verify token in redis");
             Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
             LOGGER.info("==============================> extract all Token sender from redis");
-            boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
+            boolean tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> LocalDate.now().minusDays(1).isBefore(UploadUtils.extractStartDateSenderToken(tokenRedis).plusDays(daysToExpiretokenSender))
+                    && tokenRedis.equals(token));
             if (!tokenExistInRedis) {
                 confirmationServices.generateCodeConfirmation(senderMail);
                 result = true;

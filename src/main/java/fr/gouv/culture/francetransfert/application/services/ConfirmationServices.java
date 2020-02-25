@@ -10,6 +10,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Cookie;
@@ -22,8 +23,13 @@ public class ConfirmationServices {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfirmationServices.class);
 
     private final static int lengthCode = 6;
-    private final static int secondsToExpireConfirmationCode = 5*60;
-    private final static int secondsToExpiretokenSender = 2678400; //31 days to exipre
+
+    @Value("${expire.confirmation.code}")
+    private int secondsToExpireConfirmationCode;
+
+    @Value("${expire.token.sender}")
+    private int daysToExpiretokenSender;
+
 
     @Autowired
     private CookiesServices cookiesServices;
@@ -60,7 +66,7 @@ public class ConfirmationServices {
         String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
         redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
         LOGGER.info("================ sender: {} =========> generated token: {} ", senderMail, token);
-        return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", 31 * 24 * 60 * 60);
+        return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", daysToExpiretokenSender * 24 * 60 * 60);
     }
 
     public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {
