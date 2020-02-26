@@ -66,11 +66,6 @@ public class UploadServices {
         LOGGER.info("================ extension file authorised");
 
         RedisManager redisManager = RedisManager.getInstance();
-        //verify token validity
-//        String senderMail = RedisUtils.getSenderEnclosure(redisManager, enclosureId);
-//        if (fr.gouv.culture.francetransfert.domain.utils.StringUtils.isGouvEmail(senderMail)) {
-//            validateToken(redisManager, senderMail, token);
-//        }
 
         String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
         if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
@@ -79,23 +74,24 @@ public class UploadServices {
         Boolean isUploaded = false;
         StorageManager storageManager = StorageManager.getInstance();
         Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
-        String keyUploadOsu = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
+        String uploadOsuId = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
         String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
         String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
         LOGGER.info("================ osu bucket name: {}", bucketName);
-        PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), keyUploadOsu);
+        PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
         String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
         LOGGER.debug("================ partETag added {} for: {}", partETagToString, hashFid);
-        List<String> stringPartETags = RedisUtils.getPartEtagsString(redisManager, hashFid);
-        LOGGER.debug("================ partETags  size {} ", stringPartETags.size());
+        long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
         isUploaded = true;
-        if (flowTotalChunks == stringPartETags.size()) {
+        LOGGER.debug("================ flowChuncksCounter in redis {}", flowChuncksCounter);
+        if (flowTotalChunks ==  flowChuncksCounter) {
             List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
-            String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, keyUploadOsu, partETags);
+            String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId, partETags);
             if (succesUpload != null) {
                 LOGGER.info("================ finish upload File ==> {} ", fileNameWithPath);
-                redisManager.publishFT(RedisKeysEnum.FT_SUCCESSFUL_UPLOAD.getKey(enclosureId), succesUpload);
-                if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == RedisUtils.getListOfSuccessfulUploadFiles(redisManager, enclosureId).size()) {
+                long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
+                LOGGER.info("================ counter of successful upload files : {} ", uploadFilesCounter);
+                if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
                     redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
                     LOGGER.info("================ finish upload enclosure ==> {} ",redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
                 }
@@ -157,7 +153,6 @@ public class UploadServices {
         RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
         LOGGER.info("===================== create contents-files-ids metadata in redis ====================");
         RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId, bucketPrefix);
-        RedisUtils.createListOfSuccessfulUploadFiles(redisManager, enclosureId);
         LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 
         return EnclosureRepresentation.builder()
