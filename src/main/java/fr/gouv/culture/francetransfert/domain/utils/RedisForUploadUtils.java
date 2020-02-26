@@ -209,7 +209,6 @@ public class RedisForUploadUtils {
         	String key = RedisKeysEnum.FT_PART_ETAGS.getKey(hashFid);
         	partEtagRedisForm = partETag.getPartNumber()+":"+partETag.getETag();
         	redisManager.rpush(key, partEtagRedisForm);
-			redisManager.incr(RedisKeysEnum.FT_FLOW_CHUNCKS_COUNTER.getKey(hashFid));
         	return partEtagRedisForm;
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
