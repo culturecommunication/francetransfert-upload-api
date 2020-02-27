@@ -56,6 +56,9 @@ public class UploadServices {
 
     @Autowired
     private CookiesServices cookiesServices;
+    
+    @Autowired
+    StorageManager storageManager;
 
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId) throws Exception {
@@ -72,7 +75,7 @@ public class UploadServices {
             return true; // multipart is uploaded
         }
         Boolean isUploaded = false;
-        StorageManager storageManager = StorageManager.getInstance();
+//        StorageManager storageManager = StorageManager.getInstance();
         Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
         String uploadOsuId = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
         String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
@@ -152,7 +155,7 @@ public class UploadServices {
         LOGGER.info("===================== create root-dirs metadata in redis ====================");
         RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
         LOGGER.info("===================== create contents-files-ids metadata in redis ====================");
-        RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId, bucketPrefix);
+        RedisForUploadUtils.createContentFilesIds(storageManager, redisManager, metadata, enclosureId, bucketPrefix);
         LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 
         return EnclosureRepresentation.builder()
