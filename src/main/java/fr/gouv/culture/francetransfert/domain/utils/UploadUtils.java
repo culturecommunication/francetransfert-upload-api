@@ -1,9 +1,11 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 public class UploadUtils {
@@ -27,7 +29,8 @@ public class UploadUtils {
 		if (2 == items.length) {
 			return items[part];
 		} else {
-			throw new UploadExcption("error of extraction value");
+			String uuid = UUID.randomUUID().toString();
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
 

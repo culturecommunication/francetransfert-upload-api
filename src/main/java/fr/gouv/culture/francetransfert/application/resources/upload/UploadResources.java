@@ -106,29 +106,24 @@ public class UploadResources {
     public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
                              @RequestParam("senderMail") String senderMail,
                              @RequestParam("code") String code,
-                            @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws UploadExcption {
-        try {
-            LOGGER.info("================================================================================================================================");
-            LOGGER.info("=============================================== start validate confirmation code ===============================================");
-            LOGGER.info("================================================================================================================================");
-            EnclosureRepresentation enclosureRepresentation = null;
-            if (cookiesServices.isConsented(request.getCookies())) {
-                LOGGER.debug("===========================> with IS-CONSENTED");
-                Cookie cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
-                metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
-                enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken.getValue());
-                response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
-                response.addCookie(cookieTocken);
-            } else {
-                LOGGER.debug("===========================> without IS-CONSENTED");
-                enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
-            }
-            response.setStatus(HttpStatus.OK.value());
-            return enclosureRepresentation;
-        } catch (Exception e) {
-            LOGGER.error("validate confirmation code error ");
-            throw new UploadExcption("validate confirmation code error ");
+                            @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+        LOGGER.info("================================================================================================================================");
+        LOGGER.info("=============================================== start validate confirmation code ===============================================");
+        LOGGER.info("================================================================================================================================");
+        EnclosureRepresentation enclosureRepresentation = null;
+        if (cookiesServices.isConsented(request.getCookies())) {
+            LOGGER.debug("===========================> with IS-CONSENTED");
+            Cookie cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
+            metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
+            enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken.getValue());
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
+            response.addCookie(cookieTocken);
+        } else {
+            LOGGER.debug("===========================> without IS-CONSENTED");
+            enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
         }
+        response.setStatus(HttpStatus.OK.value());
+        return enclosureRepresentation;
     }
 
 

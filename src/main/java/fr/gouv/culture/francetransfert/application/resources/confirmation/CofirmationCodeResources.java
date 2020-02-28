@@ -1,6 +1,7 @@
 package fr.gouv.culture.francetransfert.application.resources.confirmation;
 
 
+import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import io.swagger.annotations.Api;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.util.UUID;
 
 @CrossOrigin
 @RestController
@@ -37,8 +39,9 @@ public class CofirmationCodeResources {
             confirmationServices.generateCodeConfirmation(senderMail);
             response.setStatus(HttpStatus.OK.value());
         } catch (Exception e) {
-            LOGGER.error("generate confirmation code error ");
-            throw new UploadExcption("generate confirmation code error ");
+            String uuid = UUID.randomUUID().toString();
+            LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+            throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
         }
     }
 }
