@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class UploadExcption extends RuntimeException {
+public class ConfirmationCodeException extends RuntimeException {
     private String type;
     private String id;
 }

@@ -14,31 +14,19 @@ import java.util.List;
  * @since 1.0.0
  */
 @Data
+@AllArgsConstructor
 public class ApiError {
     /**
      * Http Status Code
      */
     private int statusCode;
     /**
-     * Api Message Error
+     * TYPE ERROR
      */
-    private String message;
+    private String Type;
     /**
-     * Api list field Error
+     * ID ERROR
      */
-    private List<String> errors;
-
-    public ApiError(int statusCode, String message, List<String> errors) {
-        super();
-        this.statusCode = statusCode;
-        this.message = message;
-        this.errors = errors;
-    }
-
-    public ApiError(int statusCode, String message) {
-        super();
-        this.statusCode = statusCode;
-        this.message = message;
-    }
+    private String id;
 
 }

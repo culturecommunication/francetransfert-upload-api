@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.*;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +24,7 @@ import redis.clients.jedis.exceptions.JedisDataException;
 
 import javax.validation.ConstraintViolationException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +41,7 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
     protected ResponseEntity<Object> handleNoHandlerFoundException(
             NoHandlerFoundException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
 
-        return new ResponseEntity<>(new ApiError(status.value(), "NOT FOUND"), status);
+        return new ResponseEntity<>(new ApiError(status.value(), "NOT FOUND", "NOT_FOUND"), status);
     }
 
     @Override
@@ -50,84 +52,92 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
                 .stream()
                 .map(fieldError -> fieldError.getField() + ": " +fieldError.getDefaultMessage())
                 .collect(Collectors.toList());
-        ApiError apiError = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "erreurs de validation Field");
+        ApiError apiError = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), "erreurs de validation Field");
         return handleExceptionInternal(ex, apiError, headers, HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
 
     @ExceptionHandler(DomainNotFoundException.class)
     public ResponseEntity<Object>  handleDomainNotFoundException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.NOT_FOUND.value(),ex.getMessage()), HttpStatus.NOT_FOUND);
+        String errorId = RedisUtils.generateGUID();
+        LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), errorId, ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), errorId), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(BusinessDomainException.class)
     public ResponseEntity<Object>  handleBusinessDomainException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler(ExtensionNotFoundException.class)
     public ResponseEntity<Object>  handleExtensionNotFoundException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler(FlowChunkNotExistException.class)
     public ResponseEntity<Object>  handleFlowChunkNotExistException(Exception ex)  {
         LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.EXPECTATION_FAILED.value(),ex.getMessage()), HttpStatus.EXPECTATION_FAILED);
+        String errorId = RedisUtils.generateGUID();
+        LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), errorId, ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.EXPECTATION_FAILED.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), errorId), HttpStatus.EXPECTATION_FAILED);
     }
 
     @ExceptionHandler(UnauthorizedMailAddressException.class)
     public ResponseEntity<Object>  handleUnauthorizedMailAddressException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object>  handleValidationEmailException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler({AccessDeniedException.class,JWTDecodeException.class,JWTCreationException.class, })
     public ResponseEntity<Object>  handleUnauthorizedException(Exception ex)  {
         LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(),ex.getMessage()), HttpStatus.UNAUTHORIZED);
+        String errorId = RedisUtils.generateGUID();
+        LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), errorId, ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), errorId), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(JedisDataException.class)
     public ResponseEntity<Object>  handleRedisException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
 
     @ExceptionHandler(AmazonS3Exception.class)
     public ResponseEntity<Object>  handleAmazonS3Exception(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler(SdkClientException.class)
     public ResponseEntity<Object>  handleSdkClientException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
 
     @ExceptionHandler(AmazonServiceException.class)
     public ResponseEntity<Object>  handleAmazonServiceException(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
     }
 
     @ExceptionHandler(UploadExcption.class)
-    public ResponseEntity<Object>  handleUploadExcption(Exception ex)  {
-        LOGGER.error(ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<Object>  handleUploadExcption(UploadExcption ex)  {
+        LOGGER.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.OK.value(), ex.getType(), ex.getId()), HttpStatus.OK);
     }
 
+    @ExceptionHandler(ConfirmationCodeException.class)
+    public ResponseEntity<Object>  handleConfirmationCodeExcption(ConfirmationCodeException ex)  {
+        LOGGER.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.NOT_IMPLEMENTED.value(), ex.getType(), ex.getId()), HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    private ResponseEntity<Object> generateError(Exception ex, String errorType) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.error("Type: {} -- id: {} -- message: {}", errorType, errorId, ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.OK.value(), errorType, errorId), HttpStatus.OK);
+    }
 
 }
