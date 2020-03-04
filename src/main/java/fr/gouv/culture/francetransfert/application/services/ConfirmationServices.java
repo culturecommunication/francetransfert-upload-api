@@ -42,10 +42,10 @@ public class ConfirmationServices {
 //generate confirmation code
         //verify code exist in REDIS for this mail : if not exist -> generate confirmation code and insert in queue redis (send mail to the sender enclosure with code)
         RedisManager redisManager = RedisManager.getInstance();
-        if (null == redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail))) {
+        if (null == redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
             String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
             //insert confirmation code in REDIS
-            redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail), confirmationCode, secondsToExpireConfirmationCode);
+            redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)), confirmationCode, secondsToExpireConfirmationCode);
             LOGGER.info("================ sender: {} =========> generated confirmation code in redis", senderMail);
             // insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" ( insert in queue to: send mail to sender in worker module)
             redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
@@ -75,7 +75,7 @@ public class ConfirmationServices {
 
     public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {
         LOGGER.info("================ verify validy confirmation code");
-        String redisCode = redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail));
+        String redisCode = redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
         if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
             LOGGER.error("================ error code sender: =========> this code: {} is not validated for this sender mail {}", code, senderMail);
             throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null);
