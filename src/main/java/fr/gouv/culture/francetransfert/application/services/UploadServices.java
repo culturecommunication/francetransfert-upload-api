@@ -46,6 +46,8 @@ public class UploadServices {
     @Value("${regex.gouv.mail}")
     private String regexGouvMail;
 
+    @Autowired
+    RedisManager redisManager;
 
     @Autowired
     private ExtensionProperties extensionProp;
@@ -71,7 +73,7 @@ public class UploadServices {
             }
             LOGGER.info("================ extension file authorised");
 
-            RedisManager redisManager = RedisManager.getInstance();
+//            RedisManager redisManager = RedisManager.getInstance();
 
             String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
             if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
@@ -125,7 +127,7 @@ public class UploadServices {
     public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         try {
             LOGGER.info("==============================> create metadata in redis with token validation");
-            RedisManager redisManager = RedisManager.getInstance();
+//            RedisManager redisManager = RedisManager.getInstance();
             //verify token validity and generate code if token is not valid
             if (StringUploadUtils.isGouvEmail(metadata.getSenderEmail(), regexGouvMail)
                     && !StringUploadUtils.isAllGouvEmail(metadata.getRecipientEmails(), regexGouvMail)) {
@@ -145,7 +147,7 @@ public class UploadServices {
 
     public EnclosureRepresentation senderInfoWithCodeValidation(FranceTransfertDataRepresentation metadata, String code) throws Exception {
         LOGGER.info("==============================> create metadata in redis with code validation");
-        RedisManager redisManager = RedisManager.getInstance();
+//        RedisManager redisManager = RedisManager.getInstance();
         confirmationServices.validateCodeConfirmation(redisManager, metadata.getSenderEmail(), code);
         return createMetaDataEnclosureInRedis(metadata, redisManager);
     }

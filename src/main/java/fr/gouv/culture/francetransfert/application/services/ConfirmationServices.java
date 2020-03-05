@@ -36,12 +36,15 @@ public class ConfirmationServices {
 
     @Autowired
     private CookiesServices cookiesServices;
+    
+    @Autowired
+    private RedisManager redisManager;
 
 
     public void generateCodeConfirmation(String senderMail) throws Exception {
 //generate confirmation code
         //verify code exist in REDIS for this mail : if not exist -> generate confirmation code and insert in queue redis (send mail to the sender enclosure with code)
-        RedisManager redisManager = RedisManager.getInstance();
+//        RedisManager redisManager = RedisManager.getInstance();
         if (null == redisManager.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
             String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
             //insert confirmation code in REDIS
@@ -56,7 +59,7 @@ public class ConfirmationServices {
     }
 
     public Cookie validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
-        RedisManager redisManager = RedisManager.getInstance();
+//        RedisManager redisManager = RedisManager.getInstance();
         // validate confirmation code
         validateCodeConfirmation(redisManager, senderMail, code);
         try {

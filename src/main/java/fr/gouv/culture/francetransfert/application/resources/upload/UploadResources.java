@@ -49,6 +49,9 @@ public class UploadResources {
 
     @Autowired
     private CookiesServices cookiesServices;
+    
+    @Autowired
+    RedisManager redisManager;
 
     @GetMapping("/upload")
     @ApiOperation(httpMethod = "GET", value = "Upload  ")
@@ -63,7 +66,7 @@ public class UploadResources {
                             @RequestParam("flowTotalChunks") int flowTotalChunks,
                             @RequestParam("enclosureId") String enclosureId) throws Exception {
         String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-        uploadServices.chunkExists(RedisManager.getInstance(), flowChunkNumber, hashFid);
+        uploadServices.chunkExists(redisManager, flowChunkNumber, hashFid);
         response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
     }
 
