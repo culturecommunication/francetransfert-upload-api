@@ -113,6 +113,9 @@ public class UploadResources {
         LOGGER.info("================================================================================================================================");
         LOGGER.info("=============================================== start validate confirmation code ===============================================");
         LOGGER.info("================================================================================================================================");
+        LOGGER.info("===============================================CODE " + code + " Before Trim ===============================================");
+        code = code.trim();
+        LOGGER.info("CODE " + code + " AFTER Trim");
         EnclosureRepresentation enclosureRepresentation = null;
         if (cookiesServices.isConsented(request.getCookies())) {
             LOGGER.debug("===========================> with IS-CONSENTED");

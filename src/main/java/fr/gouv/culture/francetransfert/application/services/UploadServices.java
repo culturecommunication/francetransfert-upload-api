@@ -66,25 +66,38 @@ public class UploadServices {
 
 
     public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize, String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId) throws Exception {
-        try {
+        
+    	
+    	try {
             if (ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile, flowFilename)) { // Test authorized file to upload.
                 LOGGER.error("================ extension file no authorised");
                 throw new ExtensionNotFoundException("================ extension file no authorised");
             }
             LOGGER.info("================ extension file authorised");
-
-//            RedisManager redisManager = RedisManager.getInstance();
-
+            
             String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
             if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
                 return true; // multipart is uploaded
             }
-            Boolean isUploaded = false;
-//        StorageManager storageManager = StorageManager.getInstance();
-            Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
-            String uploadOsuId = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
-            String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
             String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
+            
+            if (RedisUtils.incrementCounterOfIdIterator(redisManager, hashFid) == 1){
+            	String uploadID = storageManager.generateUploadIdOsu(bucketName, flowFilename);
+            	RedisForUploadUtils.addToIdContainer(redisManager, uploadID, hashFid);
+            }
+            String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
+            String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
+            
+            if(uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
+            	String uuid = UUID.randomUUID().toString();
+                LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+                throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+            }
+            
+            Boolean isUploaded = false;
+            Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
+//            String uploadOsuId = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
+            String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
             LOGGER.info("================ osu bucket name: {}", bucketName);
             PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
             String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);

@@ -158,20 +158,20 @@ public class RedisForUploadUtils {
         	for (FileDomain currentfile : files) {
         		LOGGER.debug("================ current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
         		String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());
-        		String uploadID = storageManager.generateUploadIdOsu(bucketName, currentfile.getPath());
+//        		String uploadID = storageManager.generateUploadIdOsu(bucketName, currentfile.getPath());
         		
         		//create list part-etags for each file in Redis =  file:SHA1(GUID_pli:fid):mul:part-etags =>List [etag1.getPartNumber()+":"+etag1.getETag(), etag2.getPartNumber()+":"+etag2.getETag(), ...]
         		LOGGER.debug("================ create list part-etags in redis ================");
         		RedisUtils.createListPartEtags(redisManager, shaFid);
-        		
+        		RedisUtils.createListIdContainer(redisManager, shaFid);
         		//  ================ set HASH file info in redis================
         		Map<String, String> map = new HashMap<>();
         		map.put(FileKeysEnum.REL_OBJ_KEY.getKey(), currentfile.getPath());
         		LOGGER.debug("================ current file path : {} ", currentfile.getPath());
         		map.put(FileKeysEnum.SIZE.getKey(), currentfile.getSize());
         		LOGGER.debug("================ current file size : {} ", currentfile.getSize());
-        		map.put(FileKeysEnum.MUL_ID.getKey(), uploadID);
-        		LOGGER.debug("================ current file multipart-upload-id : {} ", uploadID);
+//        		map.put(FileKeysEnum.MUL_ID.getKey(), uploadID);
+//        		LOGGER.debug("================ current file multipart-upload-id : {} ", uploadID);
         		redisManager.insertHASH(          //file:SHA1(GUID_pli:fid) => HASH { rel-obj-key: "Façade.jpg", size: "2", mul-id: "..." }
         				RedisKeysEnum.FT_FILE.getKey(shaFid),
         				map
@@ -214,5 +214,16 @@ public class RedisForUploadUtils {
 			LOGGER.error(e.getMessage(), e);
 		}
     	return partEtagRedisForm;
+    }
+    
+    public static String addToIdContainer(RedisManager redisManager, String uploadId, String hashFid) throws Exception {
+    	try {
+        	String key = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
+        	redisManager.lpush(key, uploadId);
+        	return uploadId;
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage(), e);
+		}
+    	return uploadId;
     }
 }
