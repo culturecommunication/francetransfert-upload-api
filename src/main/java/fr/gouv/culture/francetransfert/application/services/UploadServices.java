@@ -81,22 +81,15 @@ public class UploadServices {
             }
             String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
             
-            if (RedisUtils.incrementCounterOfIdIterator(redisManager, hashFid) == 1){
+            if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1){
             	String uploadID = storageManager.generateUploadIdOsu(bucketName, flowFilename);
-            	RedisForUploadUtils.addToIdContainer(redisManager, uploadID, hashFid);
+            	RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
             }
-            String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
-            String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
             
-            if(uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
-            	String uuid = UUID.randomUUID().toString();
-                LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-                throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-            }
+            String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
             
             Boolean isUploaded = false;
             Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
-//            String uploadOsuId = redisFileInfo.get(FileKeysEnum.MUL_ID.getKey());
             String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
             LOGGER.info("================ osu bucket name: {}", bucketName);
             PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
@@ -124,7 +117,6 @@ public class UploadServices {
             LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
             throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
         }
-
     }
 
     public boolean chunkExists(RedisManager redisManager, int flowChunkNumber, String hashFid) throws Exception {
@@ -140,7 +132,6 @@ public class UploadServices {
     public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         try {
             LOGGER.info("==============================> create metadata in redis with token validation");
-//            RedisManager redisManager = RedisManager.getInstance();
             //verify token validity and generate code if token is not valid
             if (StringUploadUtils.isGouvEmail(metadata.getSenderEmail(), regexGouvMail)
                     && !StringUploadUtils.isAllGouvEmail(metadata.getRecipientEmails(), regexGouvMail)) {
@@ -160,7 +151,6 @@ public class UploadServices {
 
     public EnclosureRepresentation senderInfoWithCodeValidation(FranceTransfertDataRepresentation metadata, String code) throws Exception {
         LOGGER.info("==============================> create metadata in redis with code validation");
-//        RedisManager redisManager = RedisManager.getInstance();
         confirmationServices.validateCodeConfirmation(redisManager, metadata.getSenderEmail(), code);
         return createMetaDataEnclosureInRedis(metadata, redisManager);
     }

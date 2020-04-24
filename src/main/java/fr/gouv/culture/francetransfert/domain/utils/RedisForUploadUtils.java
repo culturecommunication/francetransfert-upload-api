@@ -1,7 +1,10 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
 import com.amazonaws.services.s3.model.PartETag;
+
+import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.*;
@@ -153,12 +156,10 @@ public class RedisForUploadUtils {
         			RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),
         			files.stream().map(file -> RedisUtils.generateHashsha1(enclosureId + ":" + file.getFid())).collect(Collectors.toList())
         			);
-//        	StorageManager storageManager = StorageManager.getInstance();
         	String bucketName = RedisUtils.getBucketName(redisManager, null, bucketPrefix);
         	for (FileDomain currentfile : files) {
         		LOGGER.debug("================ current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
         		String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());
-//        		String uploadID = storageManager.generateUploadIdOsu(bucketName, currentfile.getPath());
         		
         		//create list part-etags for each file in Redis =  file:SHA1(GUID_pli:fid):mul:part-etags =>List [etag1.getPartNumber()+":"+etag1.getETag(), etag2.getPartNumber()+":"+etag2.getETag(), ...]
         		LOGGER.debug("================ create list part-etags in redis ================");
@@ -170,8 +171,6 @@ public class RedisForUploadUtils {
         		LOGGER.debug("================ current file path : {} ", currentfile.getPath());
         		map.put(FileKeysEnum.SIZE.getKey(), currentfile.getSize());
         		LOGGER.debug("================ current file size : {} ", currentfile.getSize());
-//        		map.put(FileKeysEnum.MUL_ID.getKey(), uploadID);
-//        		LOGGER.debug("================ current file multipart-upload-id : {} ", uploadID);
         		redisManager.insertHASH(          //file:SHA1(GUID_pli:fid) => HASH { rel-obj-key: "Façade.jpg", size: "2", mul-id: "..." }
         				RedisKeysEnum.FT_FILE.getKey(shaFid),
         				map
@@ -216,7 +215,7 @@ public class RedisForUploadUtils {
     	return partEtagRedisForm;
     }
     
-    public static String addToIdContainer(RedisManager redisManager, String uploadId, String hashFid) throws Exception {
+    public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId, String hashFid) throws Exception {
     	try {
         	String key = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
         	redisManager.lpush(key, uploadId);
@@ -226,4 +225,16 @@ public class RedisForUploadUtils {
 		}
     	return uploadId;
     }
+
+	public static String getUploadIdBlocking(RedisManager redisManager, String hashFid) throws Exception {
+		String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
+        String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
+        
+        if(uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
+        	String uuid = UUID.randomUUID().toString();
+            LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+            throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+        }
+		return uploadOsuId; 
+	}
 }
