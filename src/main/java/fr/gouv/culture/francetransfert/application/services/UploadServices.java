@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -169,7 +170,10 @@ public class UploadServices {
                 LOGGER.info("================== calculate pasword hashed ******");
             }
             LOGGER.info("================== create enclosure metadata in redis ===================");
-            String enclosureId = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
+            HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata, expiredays);
+            LOGGER.info("================== get expiration date and enclosure id back ===================");
+            String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.EnclosureHashGUIDKey);
+            String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.EnclosureHashExpirationDateKey);
             LOGGER.info("================== update list date-enclosure in redis ===================");
             RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
             LOGGER.info("===================== create sender metadata in redis ====================");
@@ -187,6 +191,7 @@ public class UploadServices {
             return EnclosureRepresentation.builder()
                     .enclosureId(enclosureId)
                     .senderId(senderId)
+                    .expireDate(expireDate)
                     .build();
         } catch (Exception e) {
             String uuid = UUID.randomUUID().toString();

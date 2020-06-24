@@ -24,9 +24,12 @@ import java.util.stream.Collectors;
 public class RedisForUploadUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisForUploadUtils.class);
-
-    public static String createHashEnclosure(RedisManager redisManager, FranceTransfertDataRepresentation metadata, int expiredays) {
+    public final static String EnclosureHashGUIDKey = "guidEnclosure";
+    public final static String EnclosureHashExpirationDateKey = "expirationDate";
+    
+    public static HashMap<String, String> createHashEnclosure(RedisManager redisManager, FranceTransfertDataRepresentation metadata, int expiredays) {
     	//  ================ set enclosure info in redis ================
+    	HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
     	String guidEnclosure = "";
     	try {
         	guidEnclosure = RedisUtils.generateGUID();
@@ -45,11 +48,13 @@ public class RedisForUploadUtils {
         	map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
         	
         	redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
-        	return guidEnclosure;
+        	hashEnclosureInfo.put(EnclosureHashGUIDKey, guidEnclosure);
+        	hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
+        	return hashEnclosureInfo;
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
 		}
-		return guidEnclosure;
+		return hashEnclosureInfo;
     }
 
     public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata, String enclosureId) throws Exception {
