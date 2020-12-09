@@ -38,8 +38,7 @@ sbapi:sonar:
   dependencies:
     - sbapi:build
   only:
-    refs:
-      - develop
+    - develop
   script:
     - >
       mvn sonar:sonar
@@ -55,8 +54,7 @@ sbapi:sonar:master:
   dependencies:
     - sbapi:build
   only:
-    refs:
-      - master
+    - master
   script:
     - >
       mvn sonar:sonar
@@ -68,6 +66,9 @@ sbapi:sonar:master:
 docker-build:
   image: docker:stable
   stage: docker-build
+  only:
+    - develop
+    - sp4d
   services:
     - docker:18-dind
   script:
