@@ -235,7 +235,7 @@ public class RedisForUploadUtils {
 		String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
         String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
         
-        if(uploadOsuId == null /*|| uploadOsuId.isBlank()*/ || uploadOsuId.isEmpty()) {
+        if(uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
         	String uuid = UUID.randomUUID().toString();
             LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
             throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
