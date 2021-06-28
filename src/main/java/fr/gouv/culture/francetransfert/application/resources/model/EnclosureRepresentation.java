@@ -11,4 +11,5 @@ public class EnclosureRepresentation {
     private String enclosureId;
     private String senderId;
     private String expireDate;
+    private Boolean canUpload = Boolean.TRUE;
 }

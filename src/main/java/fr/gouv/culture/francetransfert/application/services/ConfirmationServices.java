@@ -53,7 +53,7 @@ public class ConfirmationServices {
             // insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" ( insert in queue to: send mail to sender in worker module)
             redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
             redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(), Arrays.asList(senderMail+":"+confirmationCode));
-            LOGGER.info("================ sender: {} =========> insert in queue rdis to send mail with confirmation code", senderMail);
+            LOGGER.info("================ sender: {} =========> insert in queue rdis to send mail with confirmation code {} ", senderMail, confirmationCode);
         }
 
     }

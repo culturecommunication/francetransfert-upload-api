@@ -17,15 +17,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class UploadServices {
@@ -130,19 +127,39 @@ public class UploadServices {
         }
     }
 
+    /**
+     *
+     * @param metadata
+     * @param token
+     * @return
+     * @throws Exception
+     */
     public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata, String token) throws Exception {
         try {
-            LOGGER.info("==============================> create metadata in redis with token validation");
-            //verify token validity and generate code if token is not valid
-            if (StringUploadUtils.isGouvEmail(metadata.getSenderEmail(), regexGouvMail)
-                    && !StringUploadUtils.isAllGouvEmail(metadata.getRecipientEmails(), regexGouvMail)) {
-                boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
-                if (isRequiredToGeneratedCode) {
-                    // return enclosureRepresentation => null : if the confirmation code is generated and it is sent by email
-                    return null;
+            LOGGER.info("==============================> create metadata in redis with token validation {} / {} ", metadata.getSenderEmail(), token);
+            /** Si l’expéditeur communique une adresse existante dans ignimission, l’envoi peut se faire sur une adresse externe ou en @email_valide_ignimission (Pas de règle nécessaire)
+             Si l’expéditeur communique une adresse inexistante dans ignimission, l’envoi doit se faire exclusivement sur une adresse en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur  s’affiche.
+             **/
+
+            boolean validSender = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
+            boolean validRecipients = true;
+            if(!CollectionUtils.isEmpty(metadata.getRecipientEmails())){
+                Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
+                while (domainIter.hasNext() && validRecipients){
+                    validRecipients = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(domainIter.next()));
                 }
             }
-            return createMetaDataEnclosureInRedis(metadata, redisManager);
+
+            LOGGER.debug("==============================> Can Upload ==> sender {} / recipients {}  ", validSender , validRecipients);
+            if(validSender || validRecipients){
+                generateCode(redisManager, metadata.getSenderEmail(), token);
+            }else{
+                return EnclosureRepresentation.builder()
+                        .canUpload(false)
+                        .build();
+            }
+
+            return null;
         } catch (Exception e) {
             String uuid = UUID.randomUUID().toString();
             LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);

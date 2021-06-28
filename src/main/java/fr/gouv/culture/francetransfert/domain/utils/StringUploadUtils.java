@@ -1,6 +1,7 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -178,5 +179,15 @@ public class StringUploadUtils {
             throw new Exception();
         }
         return result;
+    }
+
+    /**
+     *
+     * @param emailAddress
+     * @return
+     */
+    public static String getEmailDomain(String emailAddress) {
+            return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1))
+                    .orElse(null);
     }
 }
