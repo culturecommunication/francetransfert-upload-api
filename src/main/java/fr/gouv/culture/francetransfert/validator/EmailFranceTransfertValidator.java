@@ -15,9 +15,6 @@ import java.util.Objects;
 
 public class EmailFranceTransfertValidator implements ConstraintValidator<EmailsFranceTransfert, FranceTransfertDataRepresentation> {
 
-    @Value("${regex.gouv.mail}")
-    private String regexGouvMail;
-
     @Autowired
     private RedisManager redisManager;
 

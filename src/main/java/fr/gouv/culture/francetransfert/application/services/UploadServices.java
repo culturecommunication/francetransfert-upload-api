@@ -41,9 +41,6 @@ public class UploadServices {
     @Value("${expire.token.sender}")
     private int daysToExpiretokenSender;
 
-    @Value("${regex.gouv.mail}")
-    private String regexGouvMail;
-
     @Autowired
     RedisManager redisManager;
 
