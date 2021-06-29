@@ -89,7 +89,7 @@ public class UploadResources {
     @PostMapping("/sender-info")
     @ApiOperation(httpMethod = "POST", value = "sender Info  ")
     public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
-                                              @Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+                                              @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
         LOGGER.info("======================================================================================================================");
         LOGGER.info("=============================================== start upload enclosure ===============================================");
         LOGGER.info("======================================================================================================================");

@@ -1,6 +1,6 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,8 +13,6 @@ public class StringUploadUtils {
     private static final int INDEX_NOT_FOUND = -1;
 
     private final static String regex_valid_email = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
-
-    private final static String regex_gouv_email ="^\\w+([\\.-]\\w+)*(\\+\\w+)?@(\\w+([\\.-]\\w+)*\\.)?gouv\\.fr$";
 
     private StringUploadUtils() {
         // private constructor
@@ -142,21 +140,6 @@ public class StringUploadUtils {
         return result;
     }
 
-    public static boolean isGouvEmail(String email, String regexGouvMail) {
-        if (regexGouvMail != null) {
-            return isValidRegex(regexGouvMail, email);
-        } else {
-            return isValidRegex(regex_gouv_email, email);
-        }
-    }
-    public static boolean isAllGouvEmail(List<String> emails, String regexGouvMail) {
-        if (regexGouvMail != null) {
-            return emails.stream().allMatch(email -> isValidRegex(regexGouvMail, email));
-        } else {
-            return emails.stream().allMatch(email -> isValidRegex(regex_gouv_email, email));
-        }
-    }
-
     public static boolean isValidEmail(String email) {
         return isValidRegex(regex_valid_email, email);
     }
@@ -173,10 +156,19 @@ public class StringUploadUtils {
         Pattern r = Pattern.compile(pattern); // Create a Pattern object
         Matcher m = r.matcher(line);  // Now create matcher object.
         if (m.find()) {
-           result = m.group(0);
+            result = m.group(0);
         } else {
             throw new Exception();
         }
         return result;
+    }
+
+    /**
+     * @param emailAddress
+     * @return
+     */
+    public static String getEmailDomain(String emailAddress) {
+        return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1))
+                .orElse(null);
     }
 }
