@@ -18,6 +18,7 @@ import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -52,6 +53,9 @@ public class UploadResources {
     
     @Autowired
     RedisManager redisManager;
+
+    @Value("${application.cookie.domain}")
+    private String applicationCookiesDomain;
 
     @GetMapping("/upload")
     @ApiOperation(httpMethod = "GET", value = "Upload  ")
@@ -98,7 +102,7 @@ public class UploadResources {
         EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, token);
         if (enclosureRepresentation != null && cookiesServices.isConsented(request.getCookies())) {
             LOGGER.info("==============================> add cookie sender-id " );
-            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", applicationCookiesDomain, 396 * 24 * 60 * 60));
         }
         response.setStatus(HttpStatus.OK.value());
         return enclosureRepresentation;
@@ -122,7 +126,7 @@ public class UploadResources {
             Cookie cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
             metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
             enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken.getValue());
-            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", "localhost", 396 * 24 * 60 * 60));
+            response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(), enclosureRepresentation.getSenderId(), true, "/", applicationCookiesDomain, 396 * 24 * 60 * 60));
             response.addCookie(cookieTocken);
         } else {
             LOGGER.debug("===========================> without IS-CONSENTED");

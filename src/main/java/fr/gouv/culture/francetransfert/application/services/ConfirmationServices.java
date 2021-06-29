@@ -33,6 +33,8 @@ public class ConfirmationServices {
     @Value("${expire.token.sender}")
     private int daysToExpiretokenSender;
 
+    @Value("${application.cookie.domain}")
+    private String applicationCookiesDomain;
 
     @Autowired
     private CookiesServices cookiesServices;
@@ -68,7 +70,7 @@ public class ConfirmationServices {
             String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
             redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
             LOGGER.info("================ sender: {} =========> generated token: {} ", senderMail, token);
-            return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", "localhost", daysToExpiretokenSender * 24 * 60 * 60);
+            return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", applicationCookiesDomain, daysToExpiretokenSender * 24 * 60 * 60);
         } catch (Exception e) {
             String uuid = UUID.randomUUID().toString();
             LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
