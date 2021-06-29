@@ -54,7 +54,7 @@ public class UploadResources {
     @Autowired
     RedisManager redisManager;
 
-    @Value("${application.cookie.domain}")
+    @Value("${application.cookies.domain}")
     private String applicationCookiesDomain;
 
     @GetMapping("/upload")
