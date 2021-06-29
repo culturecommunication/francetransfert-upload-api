@@ -149,7 +149,10 @@ public class UploadServices {
 
             LOGGER.debug("==============================> Can Upload ==> sender {} / recipients {}  ", validSender , validRecipients);
             if(validSender || validRecipients){
-                generateCode(redisManager, metadata.getSenderEmail(), token);
+                boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+                if(!isRequiredToGeneratedCode){
+                    return createMetaDataEnclosureInRedis(metadata, redisManager);
+                }
             }else{
                 return EnclosureRepresentation.builder()
                         .canUpload(false)
