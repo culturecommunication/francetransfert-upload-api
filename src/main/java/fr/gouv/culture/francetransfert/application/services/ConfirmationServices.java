@@ -33,7 +33,7 @@ public class ConfirmationServices {
     @Value("${expire.token.sender}")
     private int daysToExpiretokenSender;
 
-    @Value("${application.cookie.domain}")
+    @Value("${application.cookies.domain}")
     private String applicationCookiesDomain;
 
     @Autowired
