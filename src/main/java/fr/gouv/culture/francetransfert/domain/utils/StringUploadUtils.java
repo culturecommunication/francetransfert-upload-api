@@ -168,7 +168,7 @@ public class StringUploadUtils {
      * @return
      */
     public static String getEmailDomain(String emailAddress) {
-        return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1))
+        return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1).toLowerCase())
                 .orElse(null);
     }
 }
