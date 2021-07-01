@@ -26,6 +26,7 @@ sbapi:build:
   script:
     - sed -i "s/storage.access.key=~/storage.access.key=${OSU_ACCESS_KEY}/g" src/main/resources/application-dev.properties
     - sed -i "s/storage.secret.key=~/storage.secret.key=${OSU_SECRET_KEY}/g" src/main/resources/application-dev.properties
+    - sh ./mvnw clean
     - sh ./mvnw $MAVEN_CLI_OPTS -U package
   stage: build
   artifacts:
