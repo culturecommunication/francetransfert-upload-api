@@ -41,7 +41,9 @@ public class EmailFranceTransfertValidator implements ConstraintValidator<Emails
                     boolean canUpload = true;
                     Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
                     while (domainIter.hasNext() && canUpload) {
-                        canUpload = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(domainIter.next()));
+                    	//TODO REMOVE COMMENT TO CHECK MAIL
+                        //canUpload = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(domainIter.next()));
+                    	canUpload = true;
                     }
                     isValid = canUpload;
                 }

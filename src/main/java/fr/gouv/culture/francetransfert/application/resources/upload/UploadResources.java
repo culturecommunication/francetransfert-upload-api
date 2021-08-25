@@ -1,9 +1,29 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.rate.RateRepresentation;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.CookiesServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
@@ -12,22 +32,10 @@ import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.model.RateRepresentation;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
 
 
 @CrossOrigin
@@ -140,7 +148,7 @@ public class UploadResources {
     @RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
     @ApiOperation(httpMethod = "POST", value = "Rates the app on a scvale of 1 to 4")
     public void createSatisfactionFT(HttpServletResponse response,
-                             @Valid @RequestBody RateRepresentation rateRepresentation) throws UploadExcption {
+			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadExcption {
         rateServices.createSatisfactionFT(rateRepresentation);
     }
 }

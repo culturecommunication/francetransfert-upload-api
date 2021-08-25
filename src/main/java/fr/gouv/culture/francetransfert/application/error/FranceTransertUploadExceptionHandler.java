@@ -125,7 +125,7 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
     @ExceptionHandler(UploadExcption.class)
     public ResponseEntity<Object>  handleUploadExcption(UploadExcption ex)  {
         LOGGER.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.OK.value(), ex.getType(), ex.getId()), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), ex.getType(), ex.getId()), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ConfirmationCodeException.class)
@@ -137,7 +137,7 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
     private ResponseEntity<Object> generateError(Exception ex, String errorType) {
         String errorId = UUID.randomUUID().toString();
         LOGGER.error("Type: {} -- id: {} -- message: {}", errorType, errorId, ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.OK.value(), errorType, errorId), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), errorType, errorId), HttpStatus.BAD_REQUEST);
     }
 
 }
