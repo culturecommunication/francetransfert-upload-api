@@ -2,11 +2,13 @@ package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
+import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
@@ -161,26 +164,22 @@ public class UploadServices {
 			 * s’affiche.
 			 **/
 			// TODO uncomment contrôle mail sender-info
-			// boolean validSender =
-			// redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
-			// StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
-			boolean validSender = true;
+			boolean validSender = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
+					StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
 			boolean validRecipients = true;
-			/*
-			 * if(!CollectionUtils.isEmpty(metadata.getRecipientEmails())){ Iterator<String>
-			 * domainIter = metadata.getRecipientEmails().iterator(); while
-			 * (domainIter.hasNext() && validRecipients){ validRecipients =
-			 * redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
-			 * StringUploadUtils.getEmailDomain(domainIter.next())); } }
-			 */
+
+			if (!CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+				Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
+				while (domainIter.hasNext() && validRecipients) {
+					validRecipients = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
+							StringUploadUtils.getEmailDomain(domainIter.next()));
+				}
+			}
 
 			LOGGER.debug("==============================> Can Upload ==> sender {} / recipients {}  ", validSender,
 					validRecipients);
 			if (validSender || validRecipients) {
-				// TODO UNCOMMENT TO ACTIVATE CODE
-				// boolean isRequiredToGeneratedCode = generateCode(redisManager,
-				// metadata.getSenderEmail(), token);
-				boolean isRequiredToGeneratedCode = false;
+				boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
 				if (!isRequiredToGeneratedCode) {
 					return createMetaDataEnclosureInRedis(metadata, redisManager);
 				}
