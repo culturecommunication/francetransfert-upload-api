@@ -32,18 +32,26 @@ public class EmailFranceTransfertValidator implements ConstraintValidator<Emails
      */
     public boolean isValid(FranceTransfertDataRepresentation metadata, ConstraintValidatorContext constraintValidatorContext) {
         boolean isValid = false;
-        if (Objects.nonNull(metadata) && !CollectionUtils.isEmpty(metadata.getRecipientEmails()) && Objects.nonNull(metadata.getSenderEmail())) {
-            if (StringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
-                isValid = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
-                if (!isValid && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-                    // sender Public Mail
-                    //   All the Receivers Email must be Gouv Mail else request rejected.
-                    boolean canUpload = true;
-                    Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
-                    while (domainIter.hasNext() && canUpload) {
-                        canUpload = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(domainIter.next()));
+        if(metadata.getPublicLink()){
+            if (Objects.nonNull(metadata) && Objects.nonNull(metadata.getSenderEmail())) {
+                if (StringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
+                    isValid = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
+                }
+            }
+        }else {
+            if (Objects.nonNull(metadata) && !CollectionUtils.isEmpty(metadata.getRecipientEmails()) && Objects.nonNull(metadata.getSenderEmail())) {
+                if (StringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
+                    isValid = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
+                    if (!isValid && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+                        // sender Public Mail
+                        //   All the Receivers Email must be Gouv Mail else request rejected.
+                        boolean canUpload = true;
+                        Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
+                        while (domainIter.hasNext() && canUpload) {
+                            canUpload = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), StringUploadUtils.getEmailDomain(domainIter.next()));
+                        }
+                        isValid = canUpload;
                     }
-                    isValid = canUpload;
                 }
             }
         }

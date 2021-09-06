@@ -2,7 +2,7 @@ package fr.gouv.culture.francetransfert.application.resources.model;
 
 import lombok.*;
 
-import javax.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -10,16 +10,12 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FranceTransfertDataRepresentation {
-    private String confirmedSenderId;
+public class FileInfoRepresentation {
+    private LocalDate validUntilDate;
     private String senderEmail;
-    private List<String> recipientEmails;
-    private String password;
     private String message;
-    private Boolean publicLink;
-    private int expireDelay;
-    @Valid
+    private String timestamp;
     private List<FileRepresentation> rootFiles;
-    @Valid
     private List<DirectoryRepresentation> rootDirs;
+    private boolean withPassword;
 }

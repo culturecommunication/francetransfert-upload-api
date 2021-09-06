@@ -46,7 +46,10 @@ public class RedisForUploadUtils {
         	map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
         	LOGGER.debug("================ message: {}", StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
         	map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
-        	
+			LOGGER.debug("================ Public Link : {}", metadata.getPublicLink());
+        	map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
+			LOGGER.debug("================ Create Public Link Download Count");
+			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
         	redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
         	hashEnclosureInfo.put(EnclosureHashGUIDKey, guidEnclosure);
         	hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
@@ -84,9 +87,11 @@ public class RedisForUploadUtils {
 
     public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata, String enclosureId) throws Exception {
         try {
-        	if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-        		throw new Exception();
-        	}
+			if(!metadata.getPublicLink()) {
+				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+					throw new Exception();
+				}
+			}
         	Map<String, String> mapRecipients = new HashMap<>();
         	metadata.getRecipientEmails().forEach(recipientMail -> {
         		String guidRecipient = RedisUtils.generateGUID();
@@ -128,6 +133,16 @@ public class RedisForUploadUtils {
 			LOGGER.error(e.getMessage(), e);
 		}
     }
+
+    public static void createDeleteToken(RedisManager redisManager,String enclosureId){
+    	try {
+    		Map<String, String> mapToken = new HashMap<>();
+			mapToken.put("token", UUID.randomUUID().toString());
+    		redisManager.insertHASH(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId),mapToken);
+		}catch (Exception e){
+    		LOGGER.error(e.getMessage(), e);
+		}
+	}
 
     public static void createRootDirs(RedisManager redisManager, FranceTransfertDataRepresentation metadata, String enclosureId) throws Exception {
         try {
