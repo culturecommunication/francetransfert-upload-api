@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,8 +23,12 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import redis.clients.jedis.exceptions.JedisDataException;
 
+import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import javax.validation.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,14 +51,24 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-        List<String> errorList = ex
-                .getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> fieldError.getField() + ": " +fieldError.getDefaultMessage())
-                .collect(Collectors.toList());
-        ApiError apiError = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), "erreurs de validation Field");
-        return handleExceptionInternal(ex, apiError, headers, HttpStatus.INTERNAL_SERVER_ERROR, request);
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        ApiErrorFranceTransfert apiError = new ApiErrorFranceTransfert(HttpStatus.BAD_REQUEST, "MethodArgumentNotValidException", errors);
+        return new ResponseEntity<Object>(
+                apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    protected ResponseEntity<Object> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("token", "Invalid Token");
+        ApiErrorFranceTransfert apiError = new ApiErrorFranceTransfert(HttpStatus.UNAUTHORIZED, "UnauthorizedAccessException", errors);
+        return new ResponseEntity<Object>(
+                apiError, new HttpHeaders(), apiError.getStatus());
     }
 
 
@@ -88,8 +103,26 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Object>  handleValidationEmailException(Exception ex)  {
-        return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
+    public ResponseEntity<Object>  handleValidationEmailException(ConstraintViolationException ex, WebRequest request)  {
+        Map<String,String> errors = new HashMap<>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            String field = null;
+            for (Path.Node node : violation.getPropertyPath()) {
+                field = node.getName();
+            }
+            errors.put(field,violation.getMessage());
+        }
+        ApiErrorFranceTransfert apiError = new ApiErrorFranceTransfert(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors);
+        return new ResponseEntity<Object>(
+                apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
+    @ExceptionHandler(DateUpdateException.class)
+    public ResponseEntity<Object>  handleValidationEmailException(DateUpdateException ex, WebRequest request)  {
+        System.out.println(ex.getMessage());
+        ApiErrorFranceTransfert apiError = new ApiErrorFranceTransfert(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), null);
+        return new ResponseEntity<Object>(
+                apiError, new HttpHeaders(), apiError.getStatus());
     }
 
     @ExceptionHandler({AccessDeniedException.class,JWTDecodeException.class,JWTCreationException.class, })
