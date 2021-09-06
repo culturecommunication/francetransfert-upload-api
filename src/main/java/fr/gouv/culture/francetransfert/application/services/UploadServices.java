@@ -9,14 +9,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.model.PartETag;
@@ -347,9 +347,14 @@ public class UploadServices {
 			Map<String, String> enclosureMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey((enclosureId)));
 			String timestamp = enclosureMap.get(EnclosureKeysEnum.TIMESTAMP.getKey());
+			int downloadCount = 0;
+			String downString = getNumberOfDownloadPublic(enclosureId);
+			if (StringUtils.isNotBlank(downString)) {
+				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
+			}
 			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail)
 					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
-					.withPassword(!StringUtils.isEmpty(passwordRedis)).build();
+					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
@@ -405,8 +410,8 @@ public class UploadServices {
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 			EnclosureRepresentation encloWithTime = insertExpiredTimeStamp(enclosureId, metadata.getExpireDelay());
 
-			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(encloWithTime.getExpireDate())
-					.build();
+			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId)
+					.expireDate(encloWithTime.getExpireDate()).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
@@ -547,5 +552,17 @@ public class UploadServices {
 			throw new Exception("Vous ne pouvez plus accéder à ces fichiers");
 		}
 		return expirationDate;
+	}
+
+	private String getNumberOfDownloadPublic(String enclosureId) throws Exception {
+		Map<String, String> enclosureMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
+		if (enclosureMap != null) {
+			return enclosureMap.get(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey());
+		} else {
+			String uuid = UUID.randomUUID().toString();
+			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
+					"Invalid Token");
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId);
+		}
 	}
 }
