@@ -403,9 +403,9 @@ public class UploadServices {
 					bucketPrefix);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
-			insertExpiredTimeStamp(enclosureId, metadata.getExpireDelay());
+			EnclosureRepresentation encloWithTime = insertExpiredTimeStamp(enclosureId, metadata.getExpireDelay());
 
-			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(expireDate)
+			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(encloWithTime.getExpireDate())
 					.build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
