@@ -323,7 +323,6 @@ public class UploadServices {
 			} else {
 				return EnclosureRepresentation.builder().canUpload(false).build();
 			}
-
 			return null;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
@@ -411,7 +410,7 @@ public class UploadServices {
 			EnclosureRepresentation encloWithTime = insertExpiredTimeStamp(enclosureId, metadata.getExpireDelay());
 
 			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId)
-					.expireDate(encloWithTime.getExpireDate()).build();
+					.expireDate(encloWithTime.getExpireDate()).canUpload(Boolean.TRUE).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
