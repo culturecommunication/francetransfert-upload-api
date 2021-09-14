@@ -63,6 +63,9 @@ public class UploadServices {
 	@Value("${upload.limit}")
 	private long uploadLimitSize;
 
+	@Value("${upload.file.limit}")
+	private long uploadFileLimitSize;
+
 	@Value("${expire.token.sender}")
 	private int daysToExpiretokenSender;
 
@@ -359,7 +362,8 @@ public class UploadServices {
 
 	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata,
 			RedisManager redisManager) throws Exception {
-		if (uploadLimitSize < FileUtils.getEnclosureTotalSize(metadata)) {
+		if (FileUtils.getEnclosureTotalSize(metadata) > uploadLimitSize
+				|| FileUtils.getSizeFileOver(metadata, uploadFileLimitSize)) {
 			LOGGER.error("enclosure size > upload limit size: {}", uploadLimitSize);
 			throw new UploadExcption(ErrorEnum.LIMT_SIZE_ERROR.getValue(), null);
 		}
