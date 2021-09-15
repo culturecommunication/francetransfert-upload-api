@@ -1,6 +1,5 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -9,7 +8,6 @@ import javax.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +29,8 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
-import fr.gouv.culture.francetransfert.application.services.CookiesServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.domain.enums.CookiesEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
@@ -64,11 +60,6 @@ public class UploadResources {
 	@Autowired
 	private ConfirmationServices confirmationServices;
 
-	@Autowired
-	private CookiesServices cookiesServices;
-	@Value("${application.cookies.domain}")
-	private String applicationCookiesDomain;
-
 	@GetMapping("/upload")
 	@ApiOperation(httpMethod = "GET", value = "Upload  ")
 	public void chunkExists(HttpServletResponse response, @RequestParam("flowChunkNumber") int flowChunkNumber,
@@ -91,9 +82,7 @@ public class UploadResources {
 			@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
 			@RequestParam("enclosureId") String enclosureId) throws Exception {
-		LOGGER.info(
-				"upload chunk number: {}/{} ",
-				flowChunkNumber, flowTotalChunks);
+		LOGGER.info("upload chunk number: {}/{} ", flowChunkNumber, flowTotalChunks);
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier,
 				flowFilename, file, enclosureId);
 		response.setStatus(HttpStatus.OK.value());
@@ -103,17 +92,11 @@ public class UploadResources {
 	@ApiOperation(httpMethod = "POST", value = "sender Info  ")
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
 			@RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-		LOGGER.info(
-				"start upload enclosure ");
-		String token = cookiesServices.getToken(request);
-		metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
+		LOGGER.info("start upload enclosure ");
+		String token = metadata.getSenderToken();
+		metadata.setConfirmedSenderId(metadata.getSenderId());
 		EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata,
 				token);
-		if (enclosureRepresentation != null && cookiesServices.isConsented(request.getCookies())) {
-			LOGGER.info("add cookie sender-id ");
-			response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(),
-					enclosureRepresentation.getSenderId(), true, "/", applicationCookiesDomain, 396 * 24 * 60 * 60));
-		}
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
@@ -122,8 +105,7 @@ public class UploadResources {
 	@ApiOperation(httpMethod = "GET", value = "Generate delete URL ")
 	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws Exception {
-		LOGGER.info(
-				"start delete file ");
+		LOGGER.info("start delete file ");
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(enclosureId, token);
 		response.setStatus(deleteRepresentation.getStatus());
 		return deleteRepresentation;
@@ -153,24 +135,15 @@ public class UploadResources {
 	public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code,
 			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-		LOGGER.info(
-				"start validate confirmation code : " + code);
+		LOGGER.info("start validate confirmation code : " + code);
 		code = code.trim();
 		LOGGER.info("CODE " + code + " AFTER Trim");
 		EnclosureRepresentation enclosureRepresentation = null;
-		if (cookiesServices.isConsented(request.getCookies())) {
-			LOGGER.debug("with IS-CONSENTED");
-			Cookie cookieTocken = confirmationServices
-					.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
-			metadata.setConfirmedSenderId(cookiesServices.getSenderId(request));
-			enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken.getValue());
-			response.addCookie(cookiesServices.createCookie(CookiesEnum.SENDER_ID.getValue(),
-					enclosureRepresentation.getSenderId(), true, "/", applicationCookiesDomain, 396 * 24 * 60 * 60));
-			response.addCookie(cookieTocken);
-		} else {
-			LOGGER.debug("without IS-CONSENTED");
-			enclosureRepresentation = uploadServices.senderInfoWithCodeValidation(metadata, code);
-		}
+		String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
+				code);
+		metadata.setConfirmedSenderId(metadata.getSenderId());
+		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
+		enclosureRepresentation.setSenderToken(cookieTocken);
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
