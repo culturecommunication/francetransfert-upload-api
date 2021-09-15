@@ -33,22 +33,22 @@ public class RedisForUploadUtils {
     	String guidEnclosure = "";
     	try {
         	guidEnclosure = RedisUtils.generateGUID();
-        	LOGGER.debug("================ enclosure id : {}", guidEnclosure);
+        	LOGGER.debug("enclosure id : {}", guidEnclosure);
         	
         	Map<String, String> map = new HashMap<>();
         	LocalDateTime startDate = LocalDateTime.now();
-        	LOGGER.debug("================ enclosure creation date: {}", startDate);
+        	LOGGER.debug("enclosure creation date: {}", startDate);
         	map.put(EnclosureKeysEnum.TIMESTAMP.getKey(), startDate.toString());
         	LocalDateTime expiredDate = startDate.plusDays(expiredays);
-        	LOGGER.debug("================ enclosure expire date: {}", expiredDate);
+        	LOGGER.debug("enclosure expire date: {}", expiredDate);
         	map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
-        	LOGGER.debug("================ password: *******");
+        	LOGGER.debug("password: *******");
         	map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
-        	LOGGER.debug("================ message: {}", StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
+        	LOGGER.debug("message: {}", StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
         	map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
-			LOGGER.debug("================ Public Link : {}", metadata.getPublicLink());
+			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
         	map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
-			LOGGER.debug("================ Create Public Link Download Count");
+			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
         	redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
         	hashEnclosureInfo.put(EnclosureHashGUIDKey, guidEnclosure);
@@ -72,11 +72,11 @@ public class RedisForUploadUtils {
         	}
         	Map<String, String> map = new HashMap<>();
         	map.put(SenderKeysEnum.EMAIL.getKey(), metadata.getSenderEmail());
-        	LOGGER.debug("================ sender mail: {}", metadata.getSenderEmail());
+        	LOGGER.debug("sender mail: {}", metadata.getSenderEmail());
         	map.put(SenderKeysEnum.IS_NEW.getKey(), isNewSender ? "0" : "1");
-        	LOGGER.debug("================ is new sender: {}", isNewSender ? "0" : "1");
+        	LOGGER.debug("is new sender: {}", isNewSender ? "0" : "1");
         	map.put(SenderKeysEnum.ID.getKey(),  metadata.getConfirmedSenderId());
-        	LOGGER.debug("================ sender id: {}", metadata.getConfirmedSenderId());
+        	LOGGER.debug("sender id: {}", metadata.getConfirmedSenderId());
         	redisManager.insertHASH(RedisKeysEnum.FT_SENDER.getKey(enclosureId), map);
         	return metadata.getConfirmedSenderId();
 		} catch (Exception e) {
@@ -101,7 +101,7 @@ public class RedisForUploadUtils {
         		Map<String, String> mapRecipient = new HashMap<>();
         		mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
         		redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
-        		LOGGER.debug("================ mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
+        		LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
         	});
         	// enclosure:enclosureId:recipients:emails-ids  => HASH <mail_recepient, idRecepient>
         	redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
@@ -123,7 +123,7 @@ public class RedisForUploadUtils {
         		//  ================ set HASH root-file info in redis================
         		Map<String, String> map = new HashMap<>();
         		map.put(RootFileKeysEnum.SIZE.getKey(), currentFile.getValue());
-        		LOGGER.debug("================ root file: {} => size {}", currentFile.getKey(), currentFile.getValue());
+        		LOGGER.debug(" root file: {} => size {}", currentFile.getKey(), currentFile.getValue());
         		redisManager.insertHASH(
         				RedisKeysEnum.FT_ROOT_FILE.getKey(RedisUtils.generateHashsha1(enclosureId + ":" + currentFile.getKey())),
         				map
@@ -157,7 +157,7 @@ public class RedisForUploadUtils {
         		//  ================ set HASH root-dir info in redis================
         		Map<String, String> map = new HashMap<>();
         		map.put(RootDirKeysEnum.TOTAL_SIZE.getKey(), currentDir.getValue());
-        		LOGGER.debug("================ root dir: {} => total size {}", currentDir.getKey(), currentDir.getValue());
+        		LOGGER.debug(" root dir: {} => total size {}", currentDir.getKey(), currentDir.getValue());
         		redisManager.insertHASH(
         				RedisKeysEnum.FT_ROOT_DIR.getKey(RedisUtils.generateHashsha1(enclosureId + ":" + currentDir.getKey())),
         				map
@@ -178,19 +178,19 @@ public class RedisForUploadUtils {
         			);
         	String bucketName = RedisUtils.getBucketName(redisManager, null, bucketPrefix);
         	for (FileDomain currentfile : files) {
-        		LOGGER.debug("================ current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
+        		LOGGER.debug(" current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
         		String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());
         		
         		//create list part-etags for each file in Redis =  file:SHA1(GUID_pli:fid):mul:part-etags =>List [etag1.getPartNumber()+":"+etag1.getETag(), etag2.getPartNumber()+":"+etag2.getETag(), ...]
-        		LOGGER.debug("================ create list part-etags in redis ================");
+        		LOGGER.debug(" create list part-etags in redis ");
         		RedisUtils.createListPartEtags(redisManager, shaFid);
         		RedisUtils.createListIdContainer(redisManager, shaFid);
         		//  ================ set HASH file info in redis================
         		Map<String, String> map = new HashMap<>();
         		map.put(FileKeysEnum.REL_OBJ_KEY.getKey(), currentfile.getPath());
-        		LOGGER.debug("================ current file path : {} ", currentfile.getPath());
+        		LOGGER.debug(" current file path : {} ", currentfile.getPath());
         		map.put(FileKeysEnum.SIZE.getKey(), currentfile.getSize());
-        		LOGGER.debug("================ current file size : {} ", currentfile.getSize());
+        		LOGGER.debug(" current file size : {} ", currentfile.getSize());
         		redisManager.insertHASH(          //file:SHA1(GUID_pli:fid) => HASH { rel-obj-key: "Façade.jpg", size: "2", mul-id: "..." }
         				RedisKeysEnum.FT_FILE.getKey(shaFid),
         				map
