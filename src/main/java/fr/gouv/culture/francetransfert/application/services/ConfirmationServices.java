@@ -35,9 +35,6 @@ public class ConfirmationServices {
 
     @Value("${application.cookies.domain}")
     private String applicationCookiesDomain;
-
-    @Autowired
-    private CookiesServices cookiesServices;
     
     @Autowired
     private RedisManager redisManager;
@@ -60,7 +57,7 @@ public class ConfirmationServices {
 
     }
 
-    public Cookie validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
+    public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
 //        RedisManager redisManager = RedisManager.getInstance();
         // validate confirmation code
         validateCodeConfirmation(redisManager, senderMail, code);
@@ -70,7 +67,7 @@ public class ConfirmationServices {
             String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
             redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
             LOGGER.info("sender: {} generated token: {} ", senderMail, token);
-            return cookiesServices.createCookie(CookiesEnum.SENDER_TOKEN.getValue(), token, true, "/", applicationCookiesDomain, daysToExpiretokenSender * 24 * 60 * 60);
+            return token;
         } catch (Exception e) {
             String uuid = UUID.randomUUID().toString();
             LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(), e);

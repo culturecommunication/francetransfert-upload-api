@@ -18,6 +18,8 @@ public class FranceTransfertDataRepresentation {
     private String message;
     private Boolean publicLink;
     private int expireDelay;
+    private String senderId;
+    private String senderToken;
     @Valid
     private List<FileRepresentation> rootFiles;
     @Valid
