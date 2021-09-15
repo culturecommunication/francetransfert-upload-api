@@ -281,7 +281,7 @@ public class UploadServices {
 	public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata,
 			String token) throws Exception {
 		try {
-			LOGGER.info("==============================> create metadata in redis with token validation {} / {} ",
+			LOGGER.info("create metadata in redis with token validation {} / {} ",
 					metadata.getSenderEmail(), token);
 			/**
 			 * Si l’expéditeur communique une adresse existante dans ignimission, l’envoi

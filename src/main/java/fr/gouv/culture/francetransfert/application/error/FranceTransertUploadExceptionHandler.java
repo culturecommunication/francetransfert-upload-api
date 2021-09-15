@@ -119,7 +119,7 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 
     @ExceptionHandler(DateUpdateException.class)
     public ResponseEntity<Object>  handleValidationEmailException(DateUpdateException ex, WebRequest request)  {
-        System.out.println(ex.getMessage());
+        LOGGER.error("Exception handler DateUpdateException" + ex.getMessage(), ex);
         ApiErrorFranceTransfert apiError = new ApiErrorFranceTransfert(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), null);
         return new ResponseEntity<Object>(
                 apiError, new HttpHeaders(), apiError.getStatus());
