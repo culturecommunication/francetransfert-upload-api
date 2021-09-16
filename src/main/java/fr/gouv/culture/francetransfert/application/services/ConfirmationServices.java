@@ -44,21 +44,17 @@ public class ConfirmationServices {
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
 //        RedisManager redisManager = RedisManager.getInstance();
-		if (null == redisManager
-				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
-			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
-			// insert confirmation code in REDIS
-			redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
-					confirmationCode, secondsToExpireConfirmationCode);
-			LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
-			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
-			// insert in queue to: send mail to sender in worker module)
-			redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
-			redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
-					Arrays.asList(senderMail + ":" + confirmationCode));
-			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
-		}
-
+		String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
+		// insert confirmation code in REDIS
+		redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
+				confirmationCode, secondsToExpireConfirmationCode);
+		LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
+		// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
+		// insert in queue to: send mail to sender in worker module)
+		redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
+		redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
+				Arrays.asList(senderMail + ":" + confirmationCode));
+		LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
 	}
 
 	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {

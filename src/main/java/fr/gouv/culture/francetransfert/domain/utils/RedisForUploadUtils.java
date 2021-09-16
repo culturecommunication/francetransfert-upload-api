@@ -118,23 +118,23 @@ public class RedisForUploadUtils {
 		try {
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-					throw new Exception();
+					throw new Exception("Empty recipient");
 				}
-			}
-			Map<String, String> mapRecipients = new HashMap<>();
-			metadata.getRecipientEmails().forEach(recipientMail -> {
-				String guidRecipient = RedisUtils.generateGUID();
-				mapRecipients.put(recipientMail, guidRecipient);
+				Map<String, String> mapRecipients = new HashMap<>();
+				metadata.getRecipientEmails().forEach(recipientMail -> {
+					String guidRecipient = RedisUtils.generateGUID();
+					mapRecipients.put(recipientMail, guidRecipient);
 
-				// idRecepient => HASH { nbDl: "0" }
-				Map<String, String> mapRecipient = new HashMap<>();
-				mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
-				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
-				LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
-			});
-			// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
-			// idRecepient>
-			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
+					// idRecepient => HASH { nbDl: "0" }
+					Map<String, String> mapRecipient = new HashMap<>();
+					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
+					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
+					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
+				});
+				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
+				// idRecepient>
+				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
+			}
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
 		}
