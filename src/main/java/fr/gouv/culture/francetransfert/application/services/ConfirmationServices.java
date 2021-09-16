@@ -1,7 +1,6 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.UUID;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -44,17 +43,21 @@ public class ConfirmationServices {
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
 //        RedisManager redisManager = RedisManager.getInstance();
-		String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
-		// insert confirmation code in REDIS
-		redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
-				confirmationCode, secondsToExpireConfirmationCode);
-		LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
-		// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
-		// insert in queue to: send mail to sender in worker module)
-		redisManager.deleteKey(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue());
-		redisManager.insertList(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
-				Arrays.asList(senderMail + ":" + confirmationCode));
-		LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
+		if (null == redisManager
+				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
+			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
+			// insert confirmation code in REDIS
+			redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
+					confirmationCode, secondsToExpireConfirmationCode);
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail));
+			LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
+			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
+			// insert in queue to: send mail to sender in worker module)
+			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
+					senderMail + ":" + confirmationCode);
+			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
+		}
+
 	}
 
 	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
@@ -70,6 +73,8 @@ public class ConfirmationServices {
 			 * [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]
 			 */
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
+			redisManager.deleteKey(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
 			LOGGER.info("sender: {} generated token: {} ", senderMail, token);
 			return token;

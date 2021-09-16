@@ -341,13 +341,6 @@ public class UploadServices {
 		}
 	}
 
-	public EnclosureRepresentation senderInfoWithCodeValidation(FranceTransfertDataRepresentation metadata, String code)
-			throws Exception {
-		LOGGER.info("create metadata in redis with code validation");
-		confirmationServices.validateCodeConfirmation(redisManager, metadata.getSenderEmail(), code);
-		return createMetaDataEnclosureInRedis(metadata, redisManager);
-	}
-
 	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata,
 			RedisManager redisManager) throws Exception {
 		if (FileUtils.getEnclosureTotalSize(metadata) > uploadLimitSize
