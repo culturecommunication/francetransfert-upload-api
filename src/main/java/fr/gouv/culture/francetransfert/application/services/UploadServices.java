@@ -359,11 +359,14 @@ public class UploadServices {
 			LOGGER.info("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
 			if (base64CryptoService.validatePassword(metadata.getPassword())) {
+				LOGGER.info("Hashing password");
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword());
 				metadata.setPassword(passwordHashed);
 				LOGGER.info("calculate pasword hashed ******");
 			} else {
+				LOGGER.info("No password generating new one");
 				String generatedPassword = base64CryptoService.generatePassword();
+				LOGGER.info("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword);
 				metadata.setPassword(passwordHashed);
 			}
