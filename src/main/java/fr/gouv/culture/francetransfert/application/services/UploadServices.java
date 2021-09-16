@@ -371,6 +371,9 @@ public class UploadServices {
 				LOGGER.info("calculate pasword hashed ******");
 			} else {
 				LOGGER.info("No password generating new one");
+				if (base64CryptoService == null) {
+					LOGGER.error("Crypto is null");
+				}
 				String generatedPassword = base64CryptoService.generatePassword();
 				LOGGER.info("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword);
