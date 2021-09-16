@@ -374,7 +374,7 @@ public class UploadServices {
 				if (base64CryptoService == null) {
 					LOGGER.error("Crypto is null");
 				}
-				String generatedPassword = base64CryptoService.generatePassword();
+				String generatedPassword = base64CryptoService.generatePassword(0);
 				LOGGER.info("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword);
 				metadata.setPassword(passwordHashed);
