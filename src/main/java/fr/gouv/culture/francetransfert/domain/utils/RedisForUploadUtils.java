@@ -70,6 +70,8 @@ public class RedisForUploadUtils {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
 				map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
+			} else {
+				map.put(EnclosureKeysEnum.MESSAGE.getKey(), "");
 			}
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
