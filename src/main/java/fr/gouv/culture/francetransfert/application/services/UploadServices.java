@@ -268,8 +268,7 @@ public class UploadServices {
 	public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata,
 			String token) throws Exception {
 		try {
-			LOGGER.info("create metadata in redis with token validation {} / {} ",
-					metadata.getSenderEmail(), token);
+			LOGGER.info("create metadata in redis with token validation {} / {} ", metadata.getSenderEmail(), token);
 			/**
 			 * Si l’expéditeur communique une adresse existante dans ignimission, l’envoi
 			 * peut se faire sur une adresse externe ou en @email_valide_ignimission (Pas de
@@ -304,8 +303,9 @@ public class UploadServices {
 			return null;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
+			LOGGER.error("CODE Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
+			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
 			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
@@ -390,8 +390,8 @@ public class UploadServices {
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
 			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId)
-					.expireDate(hashEnclosureInfo.get(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey())).canUpload(Boolean.TRUE)
-					.build();
+					.expireDate(hashEnclosureInfo.get(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()))
+					.canUpload(Boolean.TRUE).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
