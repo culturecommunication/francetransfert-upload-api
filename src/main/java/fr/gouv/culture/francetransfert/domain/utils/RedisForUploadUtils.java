@@ -9,13 +9,13 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.redisson.client.RedisTryAgainException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import com.amazonaws.services.s3.model.PartETag;
 
@@ -66,7 +66,7 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
-			if (!StringUtils.isEmpty(metadata.getMessage())) {
+			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
 				map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
