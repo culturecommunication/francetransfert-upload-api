@@ -358,6 +358,12 @@ public class UploadServices {
 		try {
 			LOGGER.info("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
+			if (metadata == null) {
+				LOGGER.info("Metadata is null");
+			}
+			if (metadata.getPassword() == null) {
+				LOGGER.info("password is null");
+			}
 			if (base64CryptoService.validatePassword(metadata.getPassword())) {
 				LOGGER.info("Hashing password");
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword());
