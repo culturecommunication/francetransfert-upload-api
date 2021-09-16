@@ -396,6 +396,7 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
+			LOGGER.error("Error Generate metadata: " + e.getMessage(), e);
 			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
