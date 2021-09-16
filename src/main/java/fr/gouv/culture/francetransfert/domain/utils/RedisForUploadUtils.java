@@ -49,7 +49,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static HashMap<String, String> createHashEnclosure(RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, int expiredays) {
+			FranceTransfertDataRepresentation metadata, int expiredays) throws Exception {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
@@ -66,9 +66,11 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
-			LOGGER.debug("message: {}",
-					StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
-			map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
+			if (!StringUtils.isEmpty(metadata.getMessage())) {
+				LOGGER.debug("message: {}",
+						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
+				map.put(EnclosureKeysEnum.MESSAGE.getKey(), metadata.getMessage());
+			}
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");
@@ -78,9 +80,9 @@ public class RedisForUploadUtils {
 			hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			LOGGER.error("Error lors de l'insertion des metadata : " + e.getMessage(), e);
+			throw e;
 		}
-		return hashEnclosureInfo;
 	}
 
 	public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
