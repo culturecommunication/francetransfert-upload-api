@@ -8,4 +8,5 @@ import lombok.Getter;
 public class ConfirmationCodeException extends RuntimeException {
     private String type;
     private String id;
+    private int count;
 }

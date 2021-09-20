@@ -128,6 +128,7 @@ public class RedisForUploadUtils {
 					// idRecepient => HASH { nbDl: "0" }
 					Map<String, String> mapRecipient = new HashMap<>();
 					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
+					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
 				});

@@ -1,8 +1,12 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.UUID;
 
+import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
+import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +38,9 @@ public class ConfirmationServices {
 	@Value("${application.cookies.domain}")
 	private String applicationCookiesDomain;
 
+	@Value("${enclosure.max.password.try}")
+	private int maxTryCodeCount;
+
 	@Autowired
 	private RedisManager redisManager;
 
@@ -50,6 +57,7 @@ public class ConfirmationServices {
 			redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
 					confirmationCode, secondsToExpireConfirmationCode);
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(senderMail));
+			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)),"0");
 			LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
 			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
 			// insert in queue to: send mail to sender in worker module)
@@ -75,6 +83,7 @@ public class ConfirmationServices {
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
 			redisManager.deleteKey(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
 			LOGGER.info("sender: {} generated token: {} ", senderMail, token);
 			return token;
@@ -91,11 +100,26 @@ public class ConfirmationServices {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
-		if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
-			LOGGER.error("error code sender: this code: {} is not validated for this sender mail {}", code, senderMail);
-			throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null);
+		int tryCount = 0;
+		try {
+			tryCount = Integer.parseInt(redisManager
+					.getString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail))));
+		}catch (Exception e){
+			throw new DomainNotFoundException(senderMail.getClass(),null);
 		}
-		LOGGER.info("sender: {} valid code: {} ", senderMail, code);
+		if(tryCount++ < maxTryCodeCount) {
+			if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
+				LOGGER.error("error code sender: this code: {} is not validated for this sender mail {}", code, senderMail);
+				redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), Integer.toString(tryCount));
+				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null, tryCount);
+			}
+			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
+			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
+		}else{
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
+			throw new MaxTryException("Unauthorized");
+		}
 	}
 
 }

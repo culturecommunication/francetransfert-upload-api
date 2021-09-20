@@ -135,16 +135,21 @@ public class UploadResources {
 	public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code,
 			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
-		LOGGER.info("start validate confirmation code : " + code);
-		code = code.trim();
-		LOGGER.info("CODE " + code + " AFTER Trim");
 		EnclosureRepresentation enclosureRepresentation = null;
-		String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
-				code);
-		metadata.setConfirmedSenderId(metadata.getSenderId());
-		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
-		enclosureRepresentation.setSenderToken(cookieTocken);
-		response.setStatus(HttpStatus.OK.value());
+		try {
+			LOGGER.info("start validate confirmation code : " + code);
+			code = code.trim();
+			LOGGER.info("CODE " + code + " AFTER Trim");
+			String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
+					code);
+			metadata.setConfirmedSenderId(metadata.getSenderId());
+			enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
+			enclosureRepresentation.setSenderToken(cookieTocken);
+			response.setStatus(HttpStatus.OK.value());
+		}catch (Exception e){
+			LOGGER.debug("Validation code exception", e);
+			throw e;
+		}
 		return enclosureRepresentation;
 	}
 
