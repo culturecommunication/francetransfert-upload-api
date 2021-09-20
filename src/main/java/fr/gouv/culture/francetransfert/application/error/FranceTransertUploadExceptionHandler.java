@@ -164,7 +164,13 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
     @ExceptionHandler(ConfirmationCodeException.class)
     public ResponseEntity<Object>  handleConfirmationCodeExcption(ConfirmationCodeException ex)  {
         LOGGER.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage());
-        return new ResponseEntity<>(new ApiError(HttpStatus.NOT_IMPLEMENTED.value(), ex.getType(), ex.getId()), HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(new WrongCodeError(HttpStatus.UNAUTHORIZED.value(), ex.getCount(),ex.getMessage()), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(MaxTryException.class)
+    public ResponseEntity<Object>  handleMaxTryException(MaxTryException ex)  {
+        LOGGER.error("message: {}",ex.getMessage());
+        return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), "", ex.getMessage()), HttpStatus.UNAUTHORIZED);
     }
 
     private ResponseEntity<Object> generateError(Exception ex, String errorType) {
