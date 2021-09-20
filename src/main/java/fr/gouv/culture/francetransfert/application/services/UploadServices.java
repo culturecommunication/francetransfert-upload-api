@@ -131,7 +131,7 @@ public class UploadServices {
 			if (tokenMap != null) {
 				Map<String, String> enclosureMap = redisManager
 						.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
-				enclosureMap.replace(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
+				enclosureMap.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
 				redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
 				return EnclosureRepresentation.builder().enclosureId(enclosureId).expireDate(newDate.toString())
 						.build();
@@ -153,7 +153,7 @@ public class UploadServices {
 			if (tokenMap != null) {
 				Map<String, String> enclosureMap = redisManager
 						.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
-				enclosureMap.replace(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
+				enclosureMap.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
 				redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
 				return EnclosureRepresentation.builder().enclosureId(enclosureId).expireDate(newDate.toString())
 						.build();
