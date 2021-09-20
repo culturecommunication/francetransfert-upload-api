@@ -395,7 +395,7 @@ public class UploadServices {
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
 			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId)
-					.expireDate(hashEnclosureInfo.get(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()))
+					.expireDate(expireDate)
 					.canUpload(Boolean.TRUE).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
