@@ -1,5 +1,8 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -140,13 +143,13 @@ public class UploadResources {
 			LOGGER.info("start validate confirmation code : " + code);
 			code = code.trim();
 			LOGGER.info("CODE " + code + " AFTER Trim");
-			String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
-					code);
+			String cookieTocken = confirmationServices
+					.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
 			metadata.setConfirmedSenderId(metadata.getSenderId());
 			enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
 			enclosureRepresentation.setSenderToken(cookieTocken);
 			response.setStatus(HttpStatus.OK.value());
-		}catch (Exception e){
+		} catch (Exception e) {
 			LOGGER.debug("Validation code exception : " + e.getMessage(), e);
 			throw e;
 		}
@@ -168,5 +171,19 @@ public class UploadResources {
 	public void createSatisfactionFT(HttpServletResponse response,
 			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadExcption {
 		rateServices.createSatisfactionFT(rateRepresentation);
+	}
+
+	@RequestMapping(value = "/validate-mail", method = RequestMethod.GET)
+	@ApiOperation(httpMethod = "GET", value = "Validate mail")
+	public Boolean validateMailDomain(@RequestParam("mail") String mail) throws UploadExcption {
+		ArrayList<String> list = new ArrayList();
+		list.add(mail);
+		return uploadServices.validateMailDomain(list);
+	}
+
+	@RequestMapping(value = "/validate-mail", method = RequestMethod.POST)
+	@ApiOperation(httpMethod = "POST", value = "Validate mail")
+	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadExcption {
+		return uploadServices.validateMailDomain(mails);
 	}
 }

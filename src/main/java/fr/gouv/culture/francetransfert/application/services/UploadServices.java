@@ -394,8 +394,7 @@ public class UploadServices {
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
-			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId)
-					.expireDate(expireDate)
+			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(expireDate)
 					.canUpload(Boolean.TRUE).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
@@ -479,6 +478,18 @@ public class UploadServices {
 					"Invalid Token");
 			throw new UnauthorizedAccessException("Invalid Token");
 		}
+	}
+
+	public Boolean validateMailDomain(List<String> mails) {
+		Boolean isValid = false;
+		isValid = mails.stream().allMatch(mail -> {
+			if (StringUploadUtils.isValidEmail(mail)) {
+				return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
+						StringUploadUtils.getEmailDomain(mail));
+			}
+			return false;
+		});
+		return isValid;
 	}
 
 	private List<FileRepresentation> getRootFiles(RedisManager redisManager, String enclosureId) throws Exception {
