@@ -147,7 +147,7 @@ public class UploadResources {
 			enclosureRepresentation.setSenderToken(cookieTocken);
 			response.setStatus(HttpStatus.OK.value());
 		}catch (Exception e){
-			LOGGER.debug("Validation code exception", e);
+			LOGGER.debug("Validation code exception : " + e.getMessage(), e);
 			throw e;
 		}
 		return enclosureRepresentation;
