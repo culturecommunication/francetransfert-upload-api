@@ -87,6 +87,9 @@ public class UploadServices {
 	@Autowired
 	private Base64CryptoService base64CryptoService;
 
+	@Autowired
+	private StringUploadUtils stringUploadUtils;
+
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
 		try {
@@ -278,15 +281,13 @@ public class UploadServices {
 			 * s’affiche.
 			 **/
 			// TODO uncomment contrôle mail sender-info
-			boolean validSender = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
-					StringUploadUtils.getEmailDomain(metadata.getSenderEmail()));
+			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
 			boolean validRecipients = true;
 			if (!metadata.getPublicLink()) {
 				if (!CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 					Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
 					while (domainIter.hasNext() && validRecipients) {
-						validRecipients = redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
-								StringUploadUtils.getEmailDomain(domainIter.next()));
+						validRecipients = stringUploadUtils.isValidEmailIgni(domainIter.next());
 					}
 				}
 			}
@@ -483,9 +484,8 @@ public class UploadServices {
 	public Boolean validateMailDomain(List<String> mails) {
 		Boolean isValid = false;
 		isValid = mails.stream().allMatch(mail -> {
-			if (StringUploadUtils.isValidEmail(mail)) {
-				return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
-						StringUploadUtils.getEmailDomain(mail));
+			if (stringUploadUtils.isValidEmail(mail)) {
+				return stringUploadUtils.isValidEmailIgni(mail);
 			}
 			return false;
 		});
