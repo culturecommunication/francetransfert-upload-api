@@ -359,7 +359,7 @@ public class UploadServices {
 			}
 			if (base64CryptoService.validatePassword(metadata.getPassword())) {
 				LOGGER.info("Hashing password");
-				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword());
+				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword().trim());
 				metadata.setPassword(passwordHashed);
 				LOGGER.info("calculate pasword hashed ******");
 			} else {
@@ -369,7 +369,7 @@ public class UploadServices {
 				}
 				String generatedPassword = base64CryptoService.generatePassword(0);
 				LOGGER.info("Hashing generated password");
-				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword);
+				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
 			}
 			LOGGER.info("create enclosure metadata in redis ");
