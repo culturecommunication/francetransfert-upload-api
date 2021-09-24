@@ -357,7 +357,7 @@ public class UploadServices {
 			if (metadata.getPassword() == null) {
 				LOGGER.info("password is null");
 			}
-			if (base64CryptoService.validatePassword(metadata.getPassword())) {
+			if (base64CryptoService.validatePassword(metadata.getPassword().trim())) {
 				LOGGER.info("Hashing password");
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword().trim());
 				metadata.setPassword(passwordHashed);
