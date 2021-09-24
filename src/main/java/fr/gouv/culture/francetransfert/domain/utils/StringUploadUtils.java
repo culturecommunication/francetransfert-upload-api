@@ -159,7 +159,7 @@ public class StringUploadUtils {
 	public String extractDomainNameFromEmailAddress(String str) {
 		String result = "";
 		if (str != null && !str.isEmpty()) {
-			result = str.substring(str.indexOf("@") + 1);
+			result = str.substring(str.indexOf("@") + 1).toLowerCase();
 		}
 		return result;
 	}
@@ -172,13 +172,14 @@ public class StringUploadUtils {
 		if (isValidRegex(regex_valid_email, email)) {
 			String domainEmail = extractDomainNameFromEmailAddress(email);
 			if (domaineList != null && domaineList.size() > 0) {
-				if (domaineList.contains(domainEmail)) {
-					return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), domainEmail);
+				if (domaineList.contains(domainEmail.toLowerCase())) {
+					return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""),
+							domainEmail.toLowerCase());
 				} else {
 					return false;
 				}
 			} else {
-				return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), domainEmail);
+				return redisManager.sexists(RedisKeysEnum.FT_DOMAINS_MAILS_MAILS.getKey(""), domainEmail.toLowerCase());
 			}
 		}
 		return false;
