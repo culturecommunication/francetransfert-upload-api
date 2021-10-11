@@ -36,6 +36,7 @@ node {
     {
     	stage('dependencyCheck') {
 		    dependencyCheck additionalArguments: '--out="target"', odcInstallation: 'DepCheck'
+		    dependencyCheck additionalArguments: '--out="target"  --format="HTML"', odcInstallation: 'DepCheck'
 		    dependencyCheckPublisher pattern: ''
 	    }
     }
