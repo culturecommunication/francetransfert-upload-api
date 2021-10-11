@@ -32,6 +32,14 @@ node {
         }
     }
     
+    gitlabCommitStatus('dependencyCheck')
+    {
+    	stage('dependencyCheck') {
+		    dependencyCheck additionalArguments: '', odcInstallation: 'DepCheck'
+		    dependencyCheckPublisher pattern: ''
+	    }
+    }
+    
     gitlabCommitStatus('Quality')
     {
     	stage('SonarQube') {
