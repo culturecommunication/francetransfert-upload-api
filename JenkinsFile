@@ -21,7 +21,7 @@ node {
     gitlabCommitStatus('Build')
     {
         stage('Build') {
-            sh 'mvn clean compile -Dmaven.test.skip=true'
+            sh 'mvn clean compile package -Dmaven.test.skip=true'
         }
     }
     
@@ -56,9 +56,9 @@ node {
             pom = readMavenPom file: 'pom.xml'
             //Maven Package
             if(!pom.version.contains("-SNAPSHOT")) {
-                sh 'mvn package deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-release/'
+                sh 'mvn deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-release/'
             } else {
-                sh 'mvn package deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-snapshot/'
+                sh 'mvn deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-snapshot/'
             }
         }
     }
