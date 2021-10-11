@@ -35,7 +35,7 @@ node {
     gitlabCommitStatus('dependencyCheck')
     {
     	stage('dependencyCheck') {
-		    dependencyCheck additionalArguments: '', odcInstallation: 'DepCheck'
+		    dependencyCheck additionalArguments: '--out="target"', odcInstallation: 'DepCheck'
 		    dependencyCheckPublisher pattern: ''
 	    }
     }
