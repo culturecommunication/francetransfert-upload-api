@@ -21,7 +21,7 @@ node {
     gitlabCommitStatus('Build')
     {
         stage('Build') {
-            sh 'mvn clean compile -Dmaven.test.skip=true'
+            sh 'mvn clean compile package -Dmaven.test.skip=true'
         }
     }
     
@@ -32,6 +32,22 @@ node {
         }
     }
     
+    gitlabCommitStatus('dependencyCheck')
+    {
+    	stage('dependencyCheck') {
+		    dependencyCheck additionalArguments: '--out="target" --scan="target" --format="HTML"', odcInstallation: 'DepCheck'
+	    }
+    }
+    
+    gitlabCommitStatus('Quality')
+    {
+    	stage('SonarQube') {
+		    withSonarQubeEnv() {
+		    	sh "mvn sonar:sonar"
+		    }
+	    }
+    }
+    
     // = Package
     gitlabCommitStatus('Package')
     {
@@ -39,9 +55,9 @@ node {
             pom = readMavenPom file: 'pom.xml'
             //Maven Package
             if(!pom.version.contains("-SNAPSHOT")) {
-                sh 'mvn package deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-release/'
+                sh 'mvn deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-release/'
             } else {
-                sh 'mvn package deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-snapshot/'
+                sh 'mvn deploy -Dmaven.test.skip=true  -DaltDeploymentRepository=culture::default::https://pic-culture.actontechnology.com/nexus/repository/culture-snapshot/'
             }
         }
     }
@@ -53,6 +69,9 @@ node {
             pom = readMavenPom file: 'pom.xml'
             if(env.BRANCH_NAME.startsWith('develop')){
                 Version.updateVersionGit('app_upload_api_version',pom.version,'recette')
+            }
+            if(env.BRANCH_NAME.startsWith('demo')){
+                Version.updateVersionGit('app_upload_api_version',pom.version,'test')
             }
             if(env.BRANCH_NAME.startsWith('master')){
                 Version.updateVersionGit('app_upload_api_version',pom.version,'production')
@@ -66,6 +85,15 @@ node {
                 build job: 'deployement',wait:false, parameters: [
                 booleanParam(name: 'INFRA', value: false),
                 string(name: 'ENVIRONNEMENT', value: "recette"),
+                string(name: 'GROUP', value: "back"),
+                ]
+            }
+
+            if(env.BRANCH_NAME.startsWith('demo')){
+                build job: 'deployement',wait:false, parameters: [
+                booleanParam(name: 'INFRA', value: false),
+                string(name: 'ENVIRONNEMENT', value: "test"),
+                string(name: 'GROUP', value: "back"),
                 ]
             }
 
@@ -73,6 +101,7 @@ node {
                 build job: 'deployement',wait:false, parameters: [
                 booleanParam(name: 'INFRA', value: false),
                 string(name: 'ENVIRONNEMENT', value: "production"),
+                string(name: 'GROUP', value: "back"),
                 ]
             }
         }
