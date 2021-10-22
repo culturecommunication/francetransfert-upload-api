@@ -25,7 +25,8 @@ public class ConfirmationServices {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfirmationServices.class);
 
-	private final static int lengthCode = 8;
+	@Value("${expire.confirmation.code.length}")
+	private int lengthCode;
 
 	@Value("${expire.confirmation.code}")
 	private int secondsToExpireConfirmationCode;
@@ -107,8 +108,17 @@ public class ConfirmationServices {
 		} catch (Exception e) {
 			throw new DomainNotFoundException(senderMail.getClass(), null);
 		}
-		if (tryCount < maxTryCodeCount) {
-			if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
+
+		// Si try > au maxTry on delete le code de confirmation
+		if (tryCount >= maxTryCodeCount) {
+			deleteConfirmationCode(redisManager, senderMail);
+		}
+
+		// Si le code est invalide on incr/delete si superieur au max try et throw
+		if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
+			if ((tryCount + 1) >= maxTryCodeCount) {
+				deleteConfirmationCode(redisManager, senderMail);
+			} else {
 				tryCount++;
 				LOGGER.error("error code sender: this code: {} is not validated for this sender mail {}", code,
 						senderMail);
@@ -116,13 +126,17 @@ public class ConfirmationServices {
 						Integer.toString(tryCount));
 				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null, tryCount);
 			}
+			// Si le code est valide et try < au max on valide
+		} else if (tryCount <= maxTryCodeCount) {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
-		} else {
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
-			throw new MaxTryException("Unauthorized");
 		}
+	}
+
+	private void deleteConfirmationCode(RedisManager redisManager, String senderMail) {
+		redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+		redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
+		throw new MaxTryException("Unauthorized");
 	}
 
 }
