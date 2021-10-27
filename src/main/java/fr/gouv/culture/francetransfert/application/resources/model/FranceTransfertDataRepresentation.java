@@ -16,6 +16,11 @@ public class FranceTransfertDataRepresentation {
     private List<String> recipientEmails;
     private String password;
     private String message;
+    private Boolean publicLink;
+    private int passwordTryCount;
+    private int expireDelay;
+    private String senderId;
+    private String senderToken;
     @Valid
     private List<FileRepresentation> rootFiles;
     @Valid
