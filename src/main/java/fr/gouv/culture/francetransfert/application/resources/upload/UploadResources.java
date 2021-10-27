@@ -26,11 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
+import fr.gouv.culture.francetransfert.application.resources.model.ConfigRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DateUpdateRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
@@ -53,6 +55,9 @@ public class UploadResources {
 
 	@Autowired
 	private UploadServices uploadServices;
+
+	@Autowired
+	private ConfigService configService;
 
 	@Autowired
 	private RateServices rateServices;
@@ -84,10 +89,11 @@ public class UploadResources {
 			@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("flowChunkSize") long flowChunkSize,
 			@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
-			@RequestParam("enclosureId") String enclosureId) throws Exception {
+			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
+			@RequestParam("senderToken") String senderToken) throws Exception {
 		LOGGER.info("upload chunk number: {}/{} ", flowChunkNumber, flowTotalChunks);
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier,
-				flowFilename, file, enclosureId);
+				flowFilename, file, enclosureId, senderId, senderToken);
 		response.setStatus(HttpStatus.OK.value());
 	}
 
@@ -119,7 +125,7 @@ public class UploadResources {
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
 			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException, Exception {
 		EnclosureRepresentation enclosureRepresentation = new EnclosureRepresentation();
-		uploadServices.validateToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken());
+		uploadServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken());
 		enclosureRepresentation = uploadServices.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(),
 				dateUpdateRequest.getToken(), dateUpdateRequest.getNewDate());
 		return new ResponseEntity<Object>(enclosureRepresentation, new HttpHeaders(), HttpStatus.OK);
@@ -129,7 +135,7 @@ public class UploadResources {
 	public ResponseEntity<Object> validateToken(
 			@RequestParam @NotBlank(message = "Token must not be null") String token,
 			@RequestParam @NotBlank(message = "EnclosureId must not be null") String enclosureId) {
-		uploadServices.validateToken(enclosureId, token);
+		uploadServices.validateAdminToken(enclosureId, token);
 		return new ResponseEntity<Object>(true, new HttpHeaders(), HttpStatus.OK);
 	}
 
@@ -142,7 +148,6 @@ public class UploadResources {
 		try {
 			LOGGER.info("start validate confirmation code : " + code);
 			code = code.trim();
-			LOGGER.info("CODE " + code + " AFTER Trim");
 			String cookieTocken = confirmationServices
 					.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
 			metadata.setConfirmedSenderId(metadata.getSenderId());
@@ -160,7 +165,7 @@ public class UploadResources {
 	@ApiOperation(httpMethod = "GET", value = "Download Info without URL ")
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, Exception {
-		uploadServices.validateToken(enclosureId, token);
+		uploadServices.validateAdminToken(enclosureId, token);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
@@ -186,4 +191,11 @@ public class UploadResources {
 	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadExcption {
 		return uploadServices.validateMailDomain(mails);
 	}
+
+	@RequestMapping(value = "/config", method = RequestMethod.GET)
+	@ApiOperation(httpMethod = "GET", value = "Get Config")
+	public ConfigRepresentation getConfig() {
+		return configService.getConfig();
+	}
+
 }

@@ -29,14 +29,13 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.configuration.ExtensionProperties;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.domain.utils.ExtensionFileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.MimeService;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
@@ -76,9 +75,6 @@ public class UploadServices {
 	private int maxUpdateDate;
 
 	@Autowired
-	private ExtensionProperties extensionProp;
-
-	@Autowired
 	private ConfirmationServices confirmationServices;
 
 	@Autowired
@@ -89,6 +85,9 @@ public class UploadServices {
 
 	@Autowired
 	private StringUploadUtils stringUploadUtils;
+
+	@Autowired
+	private MimeService mimeService;
 
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
@@ -190,13 +189,16 @@ public class UploadServices {
 	}
 
 	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize,
-			String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId)
-			throws Exception {
+			String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId,
+			String senderId, String senderToken) throws Exception {
 
 		try {
-			if (ExtensionFileUtils.isAuthorisedToUpload(extensionProp.getExtensionValue(), multipartFile,
-					flowFilename)) { // Test authorized file to upload.
+
+			validateToken(senderId, senderToken);
+
+			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
 				LOGGER.error("Extension file no authorised");
+				cleanEnclosure(enclosureId);
 				throw new ExtensionNotFoundException("Extension file no authorised");
 			}
 			LOGGER.info("Extension file authorised");
@@ -246,6 +248,7 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- error : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(),
 					e);
+			cleanEnclosure(enclosureId);
 			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
@@ -406,14 +409,18 @@ public class UploadServices {
 		}
 	}
 
-	private void validateToken(RedisManager redisManager, String senderMail, String token) throws Exception {
+	private void validateToken(String senderMail, String token) throws Exception {
 		// verify token in redis
 		if (token != null && !token.equalsIgnoreCase("unknown")) {
 			boolean tokenExistInRedis;
 			try {
 				Set<String> setTokenInRedis = redisManager
 						.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-				tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> tokenRedis.equals(token));
+				tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> {
+					return LocalDate.now().isBefore(
+							UploadUtils.extractStartDateSenderToken(tokenRedis).plusDays(daysToExpiretokenSender))
+							&& tokenRedis.equals(token);
+				});
 			} catch (Exception e) {
 				String uuid = UUID.randomUUID().toString();
 				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
@@ -464,7 +471,7 @@ public class UploadServices {
 		}
 	}
 
-	public void validateToken(String enclosureId, String token) {
+	public void validateAdminToken(String enclosureId, String token) {
 		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 		if (tokenMap != null) {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
@@ -564,5 +571,10 @@ public class UploadServices {
 					"Invalid Token");
 			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId);
 		}
+	}
+
+	private void cleanEnclosure(String prefix) throws Exception {
+		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
+		storageManager.deleteFilesWithPrefix(bucketName, prefix);
 	}
 }
