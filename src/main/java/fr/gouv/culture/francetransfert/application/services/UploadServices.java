@@ -46,6 +46,7 @@ import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFi
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.DateUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
 import fr.gouv.culture.francetransfert.utils.Base64CryptoService;
 
 @Service
@@ -244,12 +245,12 @@ public class UploadServices {
 				}
 			}
 			return isUploaded;
-		} catch (Exception e) {
+		} catch (StorageException | Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- error : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(),
 					e);
 			cleanEnclosure(enclosureId);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -260,7 +261,7 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -310,7 +311,7 @@ public class UploadServices {
 			LOGGER.error("CODE Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
 			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -341,7 +342,7 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -405,7 +406,7 @@ public class UploadServices {
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
 			LOGGER.error("Error Generate metadata: " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -425,7 +426,7 @@ public class UploadServices {
 				String uuid = UUID.randomUUID().toString();
 				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 			}
 			if (!tokenExistInRedis) {
 				LOGGER.error("invalid token: token does not exist in redis ");
@@ -467,7 +468,7 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 	}
 
@@ -512,7 +513,7 @@ public class UploadServices {
 				String uuid = UUID.randomUUID().toString();
 				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 			}
 			FileRepresentation rootFile = new FileRepresentation();
 			rootFile.setName(rootFileName);
@@ -535,7 +536,7 @@ public class UploadServices {
 				String uuid = UUID.randomUUID().toString();
 				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 			}
 			DirectoryRepresentation rootDir = new DirectoryRepresentation();
 			rootDir.setName(rootDirName);
