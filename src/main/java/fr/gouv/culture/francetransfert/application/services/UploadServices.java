@@ -46,7 +46,6 @@ import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFi
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.DateUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
 import fr.gouv.culture.francetransfert.utils.Base64CryptoService;
 
 @Service
@@ -245,7 +244,7 @@ public class UploadServices {
 				}
 			}
 			return isUploaded;
-		} catch (StorageException | Exception e) {
+		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- error : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(),
 					e);
