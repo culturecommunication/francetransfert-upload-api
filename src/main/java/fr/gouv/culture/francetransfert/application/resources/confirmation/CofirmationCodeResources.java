@@ -19,7 +19,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.util.UUID;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/api-private/confirmation-module")
 @Api(value = "Confirmation code resources")
