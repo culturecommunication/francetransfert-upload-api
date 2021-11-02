@@ -1,5 +1,6 @@
 package fr.gouv.culture.francetransfert;
 
+import java.util.ArrayList;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +15,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-
-import com.google.common.collect.Lists;
 
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -79,7 +78,7 @@ public class FranceTransfertUploadStarter extends WebSecurityConfigurerAdapter {
 						env.getProperty("tool.swagger.api.contact.url"),
 						env.getProperty("tool.swagger.api.contact.email")),
 				env.getProperty("tool.swagger.api.contact.licence"),
-				env.getProperty("tool.swagger.api.contact.licence.url"), Lists.newArrayList());
+				env.getProperty("tool.swagger.api.contact.licence.url"), new ArrayList());
 	}
 
 }
