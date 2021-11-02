@@ -23,7 +23,7 @@
 		<jersey-version>2.35</jersey-version>
 		<jodatime-version>2.7</jodatime-version>
 		<build-helper-maven-plugin.version>1.12</build-helper-maven-plugin.version>
-		<java.jwt.version>3.7.0</java.jwt.version>
+		<java.jwt.version>3.18.2</java.jwt.version>
 		<!-- java version -->
 		<java.source.version>11</java.source.version>
 		<java.target.version>11</java.target.version>
