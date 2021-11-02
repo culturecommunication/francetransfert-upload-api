@@ -25,8 +25,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.auth0.jwt.exceptions.JWTCreationException;
-import com.auth0.jwt.exceptions.JWTDecodeException;
 
 import fr.gouv.culture.francetransfert.domain.exceptions.BusinessDomainException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
@@ -150,9 +148,9 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
 	}
 
-	@ExceptionHandler({ AccessDeniedException.class, JWTDecodeException.class, JWTCreationException.class, })
+	@ExceptionHandler({ AccessDeniedException.class })
 	public ResponseEntity<Object> handleUnauthorizedException(Exception ex) {
-		LOGGER.error("Handle error AccessDeniedException, JWTDecodeException or JWTCreationException : " + ex.getMessage(), ex);
+		LOGGER.error("Handle error AccessDeniedException : " + ex.getMessage(), ex);
 		String errorId = RedisUtils.generateGUID();
 		LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), errorId,
 				ex.getMessage(), ex);

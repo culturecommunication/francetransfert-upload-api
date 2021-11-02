@@ -25,7 +25,6 @@
 		<jersey-version>2.35</jersey-version>
 		<jodatime-version>2.10.13</jodatime-version>
 		<build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
-		<java.jwt.version>3.18.2</java.jwt.version>
 		<!-- java version -->
 		<java.source.version>11</java.source.version>
 		<java.target.version>11</java.target.version>
@@ -111,11 +110,6 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.auth0</groupId>
-			<artifactId>java-jwt</artifactId>
-			<version>${java.jwt.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>io.gatling.highcharts</groupId>
 			<artifactId>gatling-charts-highcharts</artifactId>
 			<version>3.6.1</version>
@@ -167,6 +161,11 @@
 			<artifactId>junit</artifactId>
 			<version>4.13.2</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.9.4</version>
 		</dependency>
 	</dependencies>
 	<build>
