@@ -2,9 +2,9 @@ package fr.gouv.culture.francetransfert.domain.utils;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ public class StringUploadUtils {
 
 	private static final int INDEX_NOT_FOUND = -1;
 
-	private final static String regex_valid_email = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
+	private final static String REGEX_VALID_EMAIL = "^\\w+([\\.-]\\w+)*(\\+\\w+)?@\\w+([\\.-]\\w+)*(\\.\\w+)+$";
 
 	@Value("${upload.domaine.list}")
 	private List<String> domaineList;
@@ -165,11 +165,11 @@ public class StringUploadUtils {
 	}
 
 	public boolean isValidEmail(String email) {
-		return isValidRegex(regex_valid_email, email);
+		return isValidRegex(REGEX_VALID_EMAIL, email);
 	}
 
 	public boolean isValidEmailIgni(String email) {
-		if (isValidRegex(regex_valid_email, email)) {
+		if (isValidRegex(REGEX_VALID_EMAIL, email)) {
 			String domainEmail = extractDomainNameFromEmailAddress(email);
 			if (domaineList != null && domaineList.size() > 0) {
 				if (domaineList.contains(domainEmail.toLowerCase())) {
@@ -186,7 +186,7 @@ public class StringUploadUtils {
 	}
 
 	public static boolean isValidRegex(String p, String str) {
-		if (null == str) {
+		if (StringUtils.isBlank(str)) {
 			return false;
 		}
 		return Pattern.matches(p, str);

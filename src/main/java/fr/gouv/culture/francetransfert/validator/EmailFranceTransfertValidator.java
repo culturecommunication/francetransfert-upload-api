@@ -6,8 +6,9 @@ import java.util.Objects;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
@@ -31,31 +32,29 @@ public class EmailFranceTransfertValidator
 
 		// Check public link
 		if (metadata.getPublicLink()) {
-			if (Objects.nonNull(metadata) && Objects.nonNull(metadata.getSenderEmail())) {
-				if (stringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
-					isValid = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
-				}
+			if (stringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
+				isValid = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
 			}
 			return isValid;
 		}
 
 		// Empty check recipients
-		if (Objects.isNull(metadata) || CollectionUtils.isEmpty(metadata.getRecipientEmails())
-				|| Objects.isNull(metadata.getSenderEmail())) {
+		if (CollectionUtils.isEmpty(metadata.getRecipientEmails()) || StringUtils.isBlank(metadata.getSenderEmail())) {
 			return isValid;
 		}
 
 		// Check sender/recipient validity
 		if (stringUploadUtils.isValidEmail(metadata.getSenderEmail())) {
 			isValid = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
-			if (!isValid && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-				// sender Public Mail
+			if (isValid) {
+				return isValid;
+			} else if (CollectionUtils.isNotEmpty(metadata.getRecipientEmails())) {
+				// Sender Public Mail
 				// All the Receivers Email must be Gouv Mail else request rejected.
-				boolean canUpload = true;
-				Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
-				while (domainIter.hasNext() && canUpload) {
-					canUpload = stringUploadUtils.isValidEmailIgni(domainIter.next());
-				}
+				boolean canUpload = false;
+				canUpload = metadata.getRecipientEmails().stream().noneMatch(x -> {
+					return !stringUploadUtils.isValidEmailIgni(x);
+				});
 				isValid = canUpload;
 			}
 		}

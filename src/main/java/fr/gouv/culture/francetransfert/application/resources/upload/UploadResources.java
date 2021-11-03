@@ -74,8 +74,7 @@ public class UploadResources {
 			@RequestParam("flowTotalSize") int flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
 			@RequestParam("flowFilename") String flowFilename,
 			@RequestParam("flowRelativePath") String flowRelativePath,
-			@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("enclosureId") String enclosureId)
-			throws Exception {
+			@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("enclosureId") String enclosureId) {
 		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
 		uploadServices.chunkExists(flowChunkNumber, hashFid);
 		response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
@@ -90,8 +89,8 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number: {}/{} ", flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier,
-				flowFilename, file, enclosureId, senderId, senderToken);
+		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
+				senderToken);
 		response.setStatus(HttpStatus.OK.value());
 	}
 
@@ -121,11 +120,10 @@ public class UploadResources {
 	@PostMapping("/update-expired-date")
 	@ApiOperation(httpMethod = "POST", value = "Update expired date")
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
-			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException, Exception {
-		EnclosureRepresentation enclosureRepresentation = new EnclosureRepresentation();
+			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException {
 		uploadServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken());
-		enclosureRepresentation = uploadServices.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(),
-				dateUpdateRequest.getToken(), dateUpdateRequest.getNewDate());
+		EnclosureRepresentation enclosureRepresentation = uploadServices
+				.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getNewDate());
 		return new ResponseEntity<Object>(enclosureRepresentation, new HttpHeaders(), HttpStatus.OK);
 	}
 
@@ -143,26 +141,21 @@ public class UploadResources {
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code,
 			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) {
 		EnclosureRepresentation enclosureRepresentation = null;
-		try {
-			LOGGER.info("start validate confirmation code : " + code);
-			code = code.trim();
-			String cookieTocken = confirmationServices
-					.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(), code);
-			metadata.setConfirmedSenderId(metadata.getSenderId());
-			enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
-			enclosureRepresentation.setSenderToken(cookieTocken);
-			response.setStatus(HttpStatus.OK.value());
-		} catch (Exception e) {
-			LOGGER.debug("Validation code exception : " + e.getMessage(), e);
-			throw e;
-		}
+		LOGGER.info("start validate confirmation code : " + code);
+		code = code.trim();
+		String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
+				code);
+		metadata.setConfirmedSenderId(metadata.getSenderId());
+		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
+		enclosureRepresentation.setSenderToken(cookieTocken);
+		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
 
 	@GetMapping("/file-info")
 	@ApiOperation(httpMethod = "GET", value = "Download Info without URL ")
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
-			@RequestParam("token") String token) throws UnauthorizedAccessException, Exception {
+			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(enclosureId, token);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
@@ -179,7 +172,7 @@ public class UploadResources {
 	@RequestMapping(value = "/validate-mail", method = RequestMethod.GET)
 	@ApiOperation(httpMethod = "GET", value = "Validate mail")
 	public Boolean validateMailDomain(@RequestParam("mail") String mail) throws UploadException {
-		ArrayList<String> list = new ArrayList();
+		ArrayList<String> list = new ArrayList<String>();
 		list.add(mail);
 		return uploadServices.validateMailDomain(list);
 	}

@@ -113,7 +113,7 @@ public class ConfirmationServices {
 		}
 
 		// Si le code est invalide on incr/delete si superieur au max try et throw
-		if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
+		if (!code.equals(redisCode)) {
 			if ((tryCount + 1) >= maxTryCodeCount) {
 				deleteConfirmationCode(senderMail);
 			} else {
@@ -125,7 +125,7 @@ public class ConfirmationServices {
 				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), tryCount);
 			}
 			// Si le code est valide et try < au max on valide
-		} else if (tryCount <= maxTryCodeCount) {
+		} else {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
 		}

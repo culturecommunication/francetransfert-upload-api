@@ -21,7 +21,6 @@ public class DateUpdateValidator implements ConstraintValidator<DateUpdateConstr
 	private RedisManager redisManager;
 
 	private String enclosureId;
-
 	private String newDate;
 
 	private static final String DATE_FIELD = "newDate";

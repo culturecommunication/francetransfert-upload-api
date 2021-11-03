@@ -193,8 +193,8 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static void createContentFilesIds(StorageManager storageManager, RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, String enclosureId, String bucketPrefix) {
+	public static void createContentFilesIds(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
+			String enclosureId, String bucketPrefix) {
 		try {
 			List<FileDomain> files = FileUtils.searchFiles(metadata, enclosureId);
 			// ================ set List files info in redis================
@@ -202,7 +202,6 @@ public class RedisForUploadUtils {
 					RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),
 					files.stream().map(file -> RedisUtils.generateHashsha1(enclosureId + ":" + file.getFid()))
 							.collect(Collectors.toList()));
-			String bucketName = RedisUtils.getBucketName(redisManager, null, bucketPrefix);
 			for (FileDomain currentfile : files) {
 				LOGGER.debug(" current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
 				String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());

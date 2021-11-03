@@ -3,7 +3,6 @@ package fr.gouv.culture.francetransfert.application.services;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,27 +124,6 @@ public class UploadServices {
 
 	}
 
-	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, String token, LocalDate newDate) {
-		try {
-			Map<String, String> tokenMap = redisManager
-					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-			if (tokenMap != null) {
-				Map<String, String> enclosureMap = redisManager
-						.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
-				enclosureMap.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
-				redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
-				return EnclosureRepresentation.builder().enclosureId(enclosureId).expireDate(newDate.toString())
-						.build();
-			} else {
-				throw new UploadException("tokenMap from Redis is null");
-			}
-		} catch (Exception e) {
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId,
-					e.getMessage(), e);
-			throw new UploadException(e);
-		}
-	}
-
 	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, LocalDate newDate) {
 		try {
 			Map<String, String> tokenMap = redisManager
@@ -165,9 +143,9 @@ public class UploadServices {
 		}
 	}
 
-	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize,
-			String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId,
-			String senderId, String senderToken) throws MetaloadException, StorageException {
+	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+			MultipartFile multipartFile, String enclosureId, String senderId, String senderToken)
+			throws MetaloadException, StorageException {
 
 		try {
 
@@ -254,16 +232,12 @@ public class UploadServices {
 			 * en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur
 			 * s’affiche.
 			 **/
-			// TODO uncomment contrôle mail sender-info
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
-			boolean validRecipients = true;
-			if (!metadata.getPublicLink()) {
-				if (!CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-					Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
-					while (domainIter.hasNext() && validRecipients) {
-						validRecipients = stringUploadUtils.isValidEmailIgni(domainIter.next());
-					}
-				}
+			boolean validRecipients = false;
+			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
+					return !stringUploadUtils.isValidEmailIgni(x);
+				});
 			}
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
@@ -350,7 +324,7 @@ public class UploadServices {
 			LOGGER.info("create root-dirs metadata in redis ");
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
 			LOGGER.info("create contents-files-ids metadata in redis ");
-			RedisForUploadUtils.createContentFilesIds(storageManager, redisManager, metadata, enclosureId,
+			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId,
 					bucketPrefix);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
@@ -377,8 +351,6 @@ public class UploadServices {
 				});
 			} catch (Exception e) {
 				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						e.getMessage(), e);
 				throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 			}
 			if (!tokenExistInRedis) {
