@@ -78,7 +78,6 @@ public class ConfirmationServices {
 			 * [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]
 			 */
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
-//			redisManager.deleteKey(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);

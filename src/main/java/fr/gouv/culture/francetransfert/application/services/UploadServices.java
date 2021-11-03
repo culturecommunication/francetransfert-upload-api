@@ -308,8 +308,7 @@ public class UploadServices {
 				metadata.setPassword(passwordHashed);
 			}
 			LOGGER.info("create enclosure metadata in redis ");
-			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata,
-					expiredays);
+			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
 			LOGGER.info("get expiration date and enclosure id back ");
 			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_GUID_KEY);
 			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_EXPIRATION_DATE_KEY);
@@ -324,8 +323,7 @@ public class UploadServices {
 			LOGGER.info("create root-dirs metadata in redis ");
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
 			LOGGER.info("create contents-files-ids metadata in redis ");
-			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId,
-					bucketPrefix);
+			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 

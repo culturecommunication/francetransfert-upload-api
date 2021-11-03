@@ -49,7 +49,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static HashMap<String, String> createHashEnclosure(RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, int expiredays) {
+			FranceTransfertDataRepresentation metadata) {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
@@ -82,8 +82,7 @@ public class RedisForUploadUtils {
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
-			LOGGER.error("Error lors de l insertion des metadata : " + e.getMessage(), e);
-			throw new UploadException(e);
+			throw new UploadException("Error inserting metadata", e);
 		}
 	}
 
@@ -92,7 +91,7 @@ public class RedisForUploadUtils {
 		// ================ set sender info in redis ================
 		try {
 			if (null == metadata.getSenderEmail()) {
-				throw new Exception();
+				throw new UploadException("Sender null", enclosureId);
 			}
 			boolean isNewSender = StringUtils.isEmpty(metadata.getConfirmedSenderId());
 			if (isNewSender) {
@@ -118,7 +117,7 @@ public class RedisForUploadUtils {
 		try {
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-					throw new Exception("Empty recipient");
+					throw new UploadException("Empty recipient", enclosureId);
 				}
 				Map<String, String> mapRecipients = new HashMap<>();
 				metadata.getRecipientEmails().forEach(recipientMail -> {
@@ -194,7 +193,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createContentFilesIds(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId, String bucketPrefix) {
+			String enclosureId) {
 		try {
 			List<FileDomain> files = FileUtils.searchFiles(metadata, enclosureId);
 			// ================ set List files info in redis================
@@ -258,8 +257,7 @@ public class RedisForUploadUtils {
 			redisManager.rpush(key, partEtagRedisForm);
 			return partEtagRedisForm;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
-			throw new UploadException(e);
+			throw new UploadException("Error adding Etag", e);
 		}
 	}
 
