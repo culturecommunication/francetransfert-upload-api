@@ -14,7 +14,7 @@ public class ConfigRepresentation implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	List<String> mimeType;
-	List<String> extension;
+	private List<String> mimeType;
+	private List<String> extension;
 
 }

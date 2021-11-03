@@ -35,8 +35,10 @@ import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
 import fr.gouv.culture.francetransfert.model.RateRepresentation;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.annotations.Api;
@@ -84,7 +86,7 @@ public class UploadResources {
 			@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
-			@RequestParam("senderToken") String senderToken) throws Exception {
+			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number: {}/{} ", flowChunkNumber, flowTotalChunks);
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowChunkSize, flowTotalSize, flowIdentifier,
 				flowFilename, file, enclosureId, senderId, senderToken);
@@ -94,7 +96,7 @@ public class UploadResources {
 	@PostMapping("/sender-info")
 	@ApiOperation(httpMethod = "POST", value = "sender Info  ")
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
-			@RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+			@RequestBody FranceTransfertDataRepresentation metadata) {
 		LOGGER.info("start upload enclosure ");
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
@@ -107,7 +109,7 @@ public class UploadResources {
 	@GetMapping("/delete-file")
 	@ApiOperation(httpMethod = "GET", value = "Generate delete URL ")
 	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
-			@RequestParam("token") String token) throws Exception {
+			@RequestParam("token") String token) {
 		LOGGER.info("start delete file ");
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(enclosureId, token);
 		response.setStatus(deleteRepresentation.getStatus());
@@ -137,7 +139,7 @@ public class UploadResources {
 	@ApiOperation(httpMethod = "POST", value = "Validate code  ")
 	public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code,
-			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) throws Exception {
+			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) {
 		EnclosureRepresentation enclosureRepresentation = null;
 		try {
 			LOGGER.info("start validate confirmation code : " + code);
@@ -168,13 +170,13 @@ public class UploadResources {
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@ApiOperation(httpMethod = "POST", value = "Rates the app on a scvale of 1 to 4")
 	public void createSatisfactionFT(HttpServletResponse response,
-			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadExcption {
+			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadException {
 		rateServices.createSatisfactionFT(rateRepresentation);
 	}
 
 	@RequestMapping(value = "/validate-mail", method = RequestMethod.GET)
 	@ApiOperation(httpMethod = "GET", value = "Validate mail")
-	public Boolean validateMailDomain(@RequestParam("mail") String mail) throws UploadExcption {
+	public Boolean validateMailDomain(@RequestParam("mail") String mail) throws UploadException {
 		ArrayList<String> list = new ArrayList();
 		list.add(mail);
 		return uploadServices.validateMailDomain(list);
@@ -182,7 +184,7 @@ public class UploadResources {
 
 	@RequestMapping(value = "/validate-mail", method = RequestMethod.POST)
 	@ApiOperation(httpMethod = "POST", value = "Validate mail")
-	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadExcption {
+	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadException {
 		return uploadServices.validateMailDomain(mails);
 	}
 

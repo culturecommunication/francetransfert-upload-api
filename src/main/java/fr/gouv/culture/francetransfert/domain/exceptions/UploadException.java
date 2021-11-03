@@ -1,0 +1,34 @@
+package fr.gouv.culture.francetransfert.domain.exceptions;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class UploadException extends RuntimeException {
+	private String type;
+	private String id;
+	private Throwable ex;
+
+	public UploadException(String type, String id) {
+		super(type);
+		this.type = type;
+		this.id = id;
+	}
+
+	public UploadException(String message) {
+		super(message);
+		this.type = message;
+	}
+
+	public UploadException(String message, Throwable ex) {
+		super(message, ex);
+		this.type = message;
+	}
+
+	public UploadException(Throwable ex) {
+		super(ex);
+		this.type = ex.getMessage();
+	}
+
+}

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.google.gson.Gson;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.enums.TypeStat;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
@@ -24,7 +24,7 @@ public class RateServices {
 	@Autowired
 	RedisManager redisManager;
 
-	public void createSatisfactionFT(RateRepresentation rateRepresentation) throws UploadExcption {
+	public void createSatisfactionFT(RateRepresentation rateRepresentation) throws UploadException {
 		try {
 			String domain = rateRepresentation.getMailAdress().split("@")[1];
 			rateRepresentation.setDate(LocalDate.now());
@@ -37,7 +37,7 @@ public class RateServices {
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
 }

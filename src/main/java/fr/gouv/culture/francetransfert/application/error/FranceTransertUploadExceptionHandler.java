@@ -33,7 +33,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundExcept
 import fr.gouv.culture.francetransfert.domain.exceptions.FlowChunkNotExistException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import redis.clients.jedis.exceptions.JedisDataException;
 
@@ -182,8 +182,8 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
 	}
 
-	@ExceptionHandler(UploadExcption.class)
-	public ResponseEntity<Object> handleUploadExcption(UploadExcption ex) {
+	@ExceptionHandler(UploadException.class)
+	public ResponseEntity<Object> handleUploadExcption(UploadException ex) {
 		LOG.error("Handle error type UploadExcption : " + ex.getMessage(), ex);
 		LOG.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage(), ex);
 		return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), ex.getType(), ex.getId()),

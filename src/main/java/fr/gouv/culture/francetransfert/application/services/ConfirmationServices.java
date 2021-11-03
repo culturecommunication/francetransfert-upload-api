@@ -14,7 +14,7 @@ import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
@@ -43,7 +43,7 @@ public class ConfirmationServices {
 	@Autowired
 	private RedisManager redisManager;
 
-	public void generateCodeConfirmation(String senderMail) throws Exception {
+	public void generateCodeConfirmation(String senderMail) {
 		// generate confirmation code
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
@@ -66,7 +66,7 @@ public class ConfirmationServices {
 
 	}
 
-	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
+	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) {
 		// validate confirmation code
 		validateCodeConfirmation(senderMail, code);
 		try {
@@ -91,11 +91,11 @@ public class ConfirmationServices {
 			LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
 					e.getMessage(), e);
 			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
 
-	public void validateCodeConfirmation(String senderMail, String code) throws Exception {
+	public void validateCodeConfirmation(String senderMail, String code) {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));

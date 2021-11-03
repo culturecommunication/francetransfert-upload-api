@@ -21,7 +21,7 @@ import com.amazonaws.services.s3.model.PartETag;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
@@ -49,7 +49,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static HashMap<String, String> createHashEnclosure(RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, int expiredays) throws Exception {
+			FranceTransfertDataRepresentation metadata, int expiredays) {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
@@ -83,12 +83,12 @@ public class RedisForUploadUtils {
 			return hashEnclosureInfo;
 		} catch (Exception e) {
 			LOGGER.error("Error lors de l insertion des metadata : " + e.getMessage(), e);
-			throw e;
+			throw new UploadException(e);
 		}
 	}
 
 	public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		// ================ set sender info in redis ================
 		try {
 			if (null == metadata.getSenderEmail()) {
@@ -114,7 +114,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
@@ -142,7 +142,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createRootFiles(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			Map<String, String> filesMap = FileUtils.searchRootFiles(metadata);
 			// ================ set List root-files info in redis================
@@ -173,7 +173,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createRootDirs(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			Map<String, String> dirsMap = FileUtils.searchRootDirs(metadata);
 			// ================ set List root-dirs info in redis================
@@ -194,7 +194,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createContentFilesIds(StorageManager storageManager, RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, String enclosureId, String bucketPrefix) throws Exception {
+			FranceTransfertDataRepresentation metadata, String enclosureId, String bucketPrefix) {
 		try {
 			List<FileDomain> files = FileUtils.searchFiles(metadata, enclosureId);
 			// ================ set List files info in redis================
@@ -229,7 +229,7 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static List<PartETag> getPartEtags(RedisManager redisManager, String hashFid) throws Exception {
+	public static List<PartETag> getPartEtags(RedisManager redisManager, String hashFid) {
 		List<PartETag> partETags = new ArrayList<>();
 		try {
 			Pattern pattern = Pattern.compile(":");
@@ -250,7 +250,8 @@ public class RedisForUploadUtils {
 		return partETags;
 	}
 
-	public static String addToPartEtags(RedisManager redisManager, PartETag partETag, String hashFid) throws Exception {
+	public static String addToPartEtags(RedisManager redisManager, PartETag partETag, String hashFid)
+			throws UploadException {
 		String partEtagRedisForm = "";
 		try {
 			String key = RedisKeysEnum.FT_PART_ETAGS.getKey(hashFid);
@@ -259,40 +260,39 @@ public class RedisForUploadUtils {
 			return partEtagRedisForm;
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage(), e);
+			throw new UploadException(e);
 		}
-		return partEtagRedisForm;
 	}
 
-	public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId, String hashFid)
-			throws Exception {
+	public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId,
+			String hashFid) {
 		try {
 			String key = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
 			redisManager.lpush(key, uploadId);
 			return uploadId;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw e;
 		}
-		return uploadId;
 	}
 
-	public static String getUploadIdBlocking(RedisManager redisManager, String hashFid) throws Exception {
+	public static String getUploadIdBlocking(RedisManager redisManager, String hashFid) throws UploadException {
 		String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
 		String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
 
 		if (uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
 			String uuid = UUID.randomUUID().toString();
 			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 		return uploadOsuId;
 	}
 
-	private static LocalDateTime getExpiredTimeStamp(int expireDelay) throws Exception {
+	private static LocalDateTime getExpiredTimeStamp(int expireDelay) throws UploadException {
 		LocalDateTime date = LocalDateTime.now();
 		LocalDateTime dateInsert = date.plusDays(expireDelay);
 		LocalDateTime maxDate = date.plusDays(maxUpdateDate);
 		if (dateInsert.isAfter(maxDate)) {
-			throw new Exception("Date invalide, veuillez sélectionner une date inférieure à " + maxUpdateDate
+			throw new UploadException("Date invalide, veuillez sélectionner une date inférieure à " + maxUpdateDate
 					+ " jours depuis la création du pli");
 		}
 		return dateInsert;

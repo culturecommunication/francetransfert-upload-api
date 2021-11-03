@@ -192,18 +192,6 @@ public class StringUploadUtils {
 		return Pattern.matches(p, str);
 	}
 
-	public static String extractValueUsingRegex(String line, String pattern) throws Exception {
-		String result = "";
-		Pattern r = Pattern.compile(pattern); // Create a Pattern object
-		Matcher m = r.matcher(line); // Now create matcher object.
-		if (m.find()) {
-			result = m.group(0);
-		} else {
-			throw new Exception();
-		}
-		return result;
-	}
-
 	/**
 	 * @param emailAddress
 	 * @return
