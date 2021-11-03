@@ -204,7 +204,7 @@ public class UploadServices {
 			LOGGER.info("Extension file authorised");
 
 			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-			if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
+			if (chunkExists(flowChunkNumber, hashFid)) {
 				return true; // multipart is uploaded
 			}
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
@@ -253,7 +253,7 @@ public class UploadServices {
 		}
 	}
 
-	public boolean chunkExists(RedisManager redisManager, int flowChunkNumber, String hashFid) throws Exception {
+	public boolean chunkExists(int flowChunkNumber, String hashFid) throws Exception {
 		try {
 			return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
 		} catch (Exception e) {
@@ -297,9 +297,9 @@ public class UploadServices {
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
-				boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token);
 				if (!isRequiredToGeneratedCode) {
-					return createMetaDataEnclosureInRedis(metadata, redisManager);
+					return createMetaDataEnclosureInRedis(metadata);
 				}
 			} else {
 				return EnclosureRepresentation.builder().canUpload(false).build();
@@ -315,17 +315,16 @@ public class UploadServices {
 	}
 
 	public FileInfoRepresentation getInfoPlis(String enclosureId) throws Exception {
-		// RedisManager redisManager = RedisManager.getInstance();
 		// validate Enclosure download right
-		LocalDate expirationDate = validateDownloadAuthorizationPublic(redisManager, enclosureId);
+		LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
 		try {
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.PASSWORD.getKey());
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-			List<FileRepresentation> rootFiles = getRootFiles(redisManager, enclosureId);
-			List<DirectoryRepresentation> rootDirs = getRootDirs(redisManager, enclosureId);
+			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
+			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
 			Map<String, String> enclosureMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey((enclosureId)));
 			String timestamp = enclosureMap.get(EnclosureKeysEnum.TIMESTAMP.getKey());
@@ -345,8 +344,8 @@ public class UploadServices {
 		}
 	}
 
-	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata,
-			RedisManager redisManager) throws Exception {
+	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata)
+			throws Exception {
 		if (FileUtils.getEnclosureTotalSize(metadata) > uploadLimitSize
 				|| FileUtils.getSizeFileOver(metadata, uploadFileLimitSize)) {
 			LOGGER.error("enclosure size > upload limit size: {}", uploadLimitSize);
@@ -438,7 +437,7 @@ public class UploadServices {
 		LOGGER.info("valid token for sender mail {}", senderMail);
 	}
 
-	private boolean generateCode(RedisManager redisManager, String senderMail, String token) throws Exception {
+	private boolean generateCode(String senderMail, String token) throws Exception {
 		try {
 			boolean result = false;
 			// verify token in redis
@@ -499,7 +498,7 @@ public class UploadServices {
 		return isValid;
 	}
 
-	private List<FileRepresentation> getRootFiles(RedisManager redisManager, String enclosureId) throws Exception {
+	private List<FileRepresentation> getRootFiles(String enclosureId) throws Exception {
 		List<FileRepresentation> rootFiles = new ArrayList<>();
 		List<DirectoryRepresentation> rootDirs = new ArrayList<>();
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId), 0, -1).forEach(rootFileName -> {
@@ -523,7 +522,7 @@ public class UploadServices {
 		return rootFiles;
 	}
 
-	private List<DirectoryRepresentation> getRootDirs(RedisManager redisManager, String enclosureId) throws Exception {
+	private List<DirectoryRepresentation> getRootDirs(String enclosureId) throws Exception {
 		List<DirectoryRepresentation> rootDirs = new ArrayList<>();
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_DIRS.getKey(enclosureId), 0, -1).forEach(rootDirName -> {
 			String size = "";
@@ -546,13 +545,12 @@ public class UploadServices {
 		return rootDirs;
 	}
 
-	private LocalDate validateDownloadAuthorizationPublic(RedisManager redisManager, String enclosureId)
-			throws Exception {
-		LocalDate expirationDate = validateExpirationDate(redisManager, enclosureId);
+	private LocalDate validateDownloadAuthorizationPublic(String enclosureId) throws Exception {
+		LocalDate expirationDate = validateExpirationDate(enclosureId);
 		return expirationDate;
 	}
 
-	private LocalDate validateExpirationDate(RedisManager redisManager, String enclosureId) throws Exception {
+	private LocalDate validateExpirationDate(String enclosureId) throws Exception {
 		LocalDate expirationDate = DateUtils.convertStringToLocalDate(
 				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()));
 		if (LocalDate.now().isAfter(expirationDate)) {

@@ -36,7 +36,6 @@ import fr.gouv.culture.francetransfert.application.services.ConfirmationServices
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.model.RateRepresentation;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
@@ -61,9 +60,6 @@ public class UploadResources {
 	private RateServices rateServices;
 
 	@Autowired
-	private RedisManager redisManager;
-
-	@Autowired
 	private ConfirmationServices confirmationServices;
 
 	@GetMapping("/upload")
@@ -77,7 +73,7 @@ public class UploadResources {
 			@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("enclosureId") String enclosureId)
 			throws Exception {
 		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		uploadServices.chunkExists(redisManager, flowChunkNumber, hashFid);
+		uploadServices.chunkExists(flowChunkNumber, hashFid);
 		response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
 	}
 

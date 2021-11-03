@@ -82,7 +82,7 @@ public class RedisForUploadUtils {
 			hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
-			LOGGER.error("Error lors de l'insertion des metadata : " + e.getMessage(), e);
+			LOGGER.error("Error lors de l insertion des metadata : " + e.getMessage(), e);
 			throw e;
 		}
 	}

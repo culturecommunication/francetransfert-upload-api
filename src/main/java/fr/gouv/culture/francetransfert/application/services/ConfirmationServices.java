@@ -44,11 +44,10 @@ public class ConfirmationServices {
 	private RedisManager redisManager;
 
 	public void generateCodeConfirmation(String senderMail) throws Exception {
-//generate confirmation code
+		// generate confirmation code
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
-//        RedisManager redisManager = RedisManager.getInstance();
 		if (null == redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
@@ -68,9 +67,8 @@ public class ConfirmationServices {
 	}
 
 	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
-//        RedisManager redisManager = RedisManager.getInstance();
 		// validate confirmation code
-		validateCodeConfirmation(redisManager, senderMail, code);
+		validateCodeConfirmation(senderMail, code);
 		try {
 			/*
 			 * genarate and insert in REDIS :(GUID && timpStamp cokies) per sender by
@@ -97,7 +95,7 @@ public class ConfirmationServices {
 		}
 	}
 
-	public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {
+	public void validateCodeConfirmation(String senderMail, String code) throws Exception {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
@@ -111,13 +109,13 @@ public class ConfirmationServices {
 
 		// Si try > au maxTry on delete le code de confirmation
 		if (tryCount >= maxTryCodeCount) {
-			deleteConfirmationCode(redisManager, senderMail);
+			deleteConfirmationCode(senderMail);
 		}
 
 		// Si le code est invalide on incr/delete si superieur au max try et throw
 		if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
 			if ((tryCount + 1) >= maxTryCodeCount) {
-				deleteConfirmationCode(redisManager, senderMail);
+				deleteConfirmationCode(senderMail);
 			} else {
 				tryCount++;
 				LOGGER.error("error code sender: this code: {} is not validated for this sender mail {}", code,
@@ -133,7 +131,7 @@ public class ConfirmationServices {
 		}
 	}
 
-	private void deleteConfirmationCode(RedisManager redisManager, String senderMail) {
+	private void deleteConfirmationCode(String senderMail) {
 		redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 		redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
 		throw new MaxTryException("Unauthorized");
