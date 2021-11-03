@@ -193,7 +193,7 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 	@ExceptionHandler(ConfirmationCodeException.class)
 	public ResponseEntity<Object> handleConfirmationCodeExcption(ConfirmationCodeException ex) {
 		LOG.error("Handle error type ConfirmationCodeException : " + ex.getMessage(), ex);
-		LOG.error("Type: {} -- id: {} -- message: {}", ex.getType(), ex.getId(), ex.getMessage());
+		LOG.error("Type: {} -- message: {}", ex.getType(), ex.getMessage());
 		return new ResponseEntity<>(new WrongCodeError(HttpStatus.UNAUTHORIZED.value(), ex.getCount(), ex.getMessage()),
 				HttpStatus.UNAUTHORIZED);
 	}

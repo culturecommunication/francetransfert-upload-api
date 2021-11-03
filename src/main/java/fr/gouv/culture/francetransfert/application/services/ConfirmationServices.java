@@ -122,7 +122,7 @@ public class ConfirmationServices {
 						senderMail);
 				redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)),
 						Integer.toString(tryCount));
-				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null, tryCount);
+				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), tryCount);
 			}
 			// Si le code est valide et try < au max on valide
 		} else if (tryCount <= maxTryCodeCount) {

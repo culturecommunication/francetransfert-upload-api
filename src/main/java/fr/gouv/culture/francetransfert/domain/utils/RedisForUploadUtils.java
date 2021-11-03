@@ -38,8 +38,8 @@ import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManage
 public class RedisForUploadUtils {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RedisForUploadUtils.class);
-	public final static String EnclosureHashGUIDKey = "guidEnclosure";
-	public final static String EnclosureHashExpirationDateKey = "expirationDate";
+	public final static String ENCLOSURE_HASH_GUID_KEY = "guidEnclosure";
+	public final static String ENCLOSURE_HASH_EXPIRATION_DATE_KEY = "expirationDate";
 
 	private static int maxUpdateDate;
 
@@ -78,8 +78,8 @@ public class RedisForUploadUtils {
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
-			hashEnclosureInfo.put(EnclosureHashGUIDKey, guidEnclosure);
-			hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
+			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
+			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
 			LOGGER.error("Error lors de l insertion des metadata : " + e.getMessage(), e);

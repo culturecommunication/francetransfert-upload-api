@@ -1,9 +1,7 @@
 package fr.gouv.culture.francetransfert.domain.exceptions;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-@AllArgsConstructor
 @Getter
 public class UploadException extends RuntimeException {
 	private String type;
@@ -23,6 +21,12 @@ public class UploadException extends RuntimeException {
 
 	public UploadException(String message, Throwable ex) {
 		super(message, ex);
+		this.type = message;
+	}
+
+	public UploadException(String message, String id, Throwable ex) {
+		super(message, ex);
+		this.id = id;
 		this.type = message;
 	}
 
