@@ -1,7 +1,6 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +34,9 @@ public class RateServices {
 			String jsonInString = new Gson().toJson(rateRepresentation);
 			redisManager.publishFT(RedisQueueEnum.SATISFACTION_QUEUE.getValue(), jsonInString);
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(), e);
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while create satisfaction : " + e.getMessage(),
+					rateRepresentation.getPlis(), e);
 		}
 	}
 }

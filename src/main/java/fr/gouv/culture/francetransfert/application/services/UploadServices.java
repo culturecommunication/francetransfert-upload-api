@@ -201,7 +201,8 @@ public class UploadServices {
 			return isUploaded;
 		} catch (Exception e) {
 			cleanEnclosure(enclosureId);
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId, e);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
+					enclosureId, e);
 		}
 	}
 
@@ -210,7 +211,7 @@ public class UploadServices {
 			return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+			throw new UploadException("Chunk doest not exist : " + e.getMessage(), uuid, e);
 		}
 	}
 
@@ -252,7 +253,9 @@ public class UploadServices {
 			return null;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while checking mail creating meta : " + e.getMessage(),
+					uuid, e);
 		}
 	}
 
@@ -279,7 +282,9 @@ public class UploadServices {
 					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
 					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId, e);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while getting plisInfo : " + e.getMessage(), enclosureId,
+					e);
 		}
 	}
 
@@ -349,7 +354,8 @@ public class UploadServices {
 				});
 			} catch (Exception e) {
 				String uuid = UUID.randomUUID().toString();
-				throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+				throw new UploadException(
+						ErrorEnum.TECHNICAL_ERROR.getValue() + " validating token : " + e.getMessage(), uuid, e);
 			}
 			if (!tokenExistInRedis) {
 				throw new UploadException("Invalid token: token does not exist in redis");
@@ -387,7 +393,8 @@ public class UploadServices {
 			return result;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " generating code : " + e.getMessage(),
+					uuid, e);
 		}
 	}
 
@@ -422,7 +429,7 @@ public class UploadServices {
 				size = redisManager.getHgetString(RedisKeysEnum.FT_ROOT_FILE.getKey(hashRootFile),
 						RootFileKeysEnum.SIZE.getKey());
 			} catch (Exception e) {
-				throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId, e);
+				throw new UploadException("Cannot get RootFiles : " + e.getMessage(), enclosureId, e);
 			}
 			FileRepresentation rootFile = new FileRepresentation();
 			rootFile.setName(rootFileName);
@@ -442,7 +449,7 @@ public class UploadServices {
 				size = redisManager.getHgetString(RedisKeysEnum.FT_ROOT_DIR.getKey(hashRootDir),
 						RootDirKeysEnum.TOTAL_SIZE.getKey());
 			} catch (Exception e) {
-				throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId, e);
+				throw new UploadException("Cannot get RootDirs : " + e.getMessage(), enclosureId, e);
 			}
 			DirectoryRepresentation rootDir = new DirectoryRepresentation();
 			rootDir.setName(rootDirName);
@@ -472,7 +479,7 @@ public class UploadServices {
 		if (enclosureMap != null) {
 			return enclosureMap.get(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey());
 		} else {
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId);
+			throw new UploadException("Error getting public donwload count", enclosureId);
 		}
 	}
 

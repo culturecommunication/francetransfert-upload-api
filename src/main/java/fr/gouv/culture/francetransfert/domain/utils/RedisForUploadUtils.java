@@ -19,7 +19,6 @@ import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.services.s3.model.PartETag;
 
-import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
@@ -32,7 +31,6 @@ import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDi
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
 
 @Service
 public class RedisForUploadUtils {
@@ -82,7 +80,7 @@ public class RedisForUploadUtils {
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
-			throw new UploadException("Error inserting metadata", e);
+			throw new UploadException("Error inserting metadata : " + e.getMessage(), e);
 		}
 	}
 
@@ -107,9 +105,8 @@ public class RedisForUploadUtils {
 			redisManager.insertHASH(RedisKeysEnum.FT_SENDER.getKey(enclosureId), map);
 			return metadata.getConfirmedSenderId();
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw new UploadException("Error creating sender : " + e.getMessage(), enclosureId, e);
 		}
-		return metadata.getConfirmedSenderId();
 	}
 
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
@@ -136,7 +133,7 @@ public class RedisForUploadUtils {
 				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
 			}
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw new UploadException("Error creating recipient : " + e.getMessage(), enclosureId, e);
 		}
 	}
 
@@ -257,7 +254,7 @@ public class RedisForUploadUtils {
 			redisManager.rpush(key, partEtagRedisForm);
 			return partEtagRedisForm;
 		} catch (Exception e) {
-			throw new UploadException("Error adding Etag", e);
+			throw new UploadException("Error adding Etag : " + e.getMessage(), e);
 		}
 	}
 
@@ -278,8 +275,7 @@ public class RedisForUploadUtils {
 
 		if (uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException("Error getting uploadOsuId for hash : " + hashFid, uuid);
 		}
 		return uploadOsuId;
 	}

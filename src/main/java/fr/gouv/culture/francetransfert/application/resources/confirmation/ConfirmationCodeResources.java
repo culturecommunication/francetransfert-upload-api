@@ -42,8 +42,8 @@ public class ConfirmationCodeResources {
 			response.setStatus(HttpStatus.OK.value());
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " generating code : " + e.getMessage(),
+					uuid, e);
 		}
 	}
 }

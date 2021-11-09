@@ -87,10 +87,8 @@ public class ConfirmationServices {
 			return token;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + "during code validation : " + e.getMessage(), uuid, e);
 		}
 	}
 
