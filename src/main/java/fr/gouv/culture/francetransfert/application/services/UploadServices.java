@@ -3,7 +3,6 @@ package fr.gouv.culture.francetransfert.application.services;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +29,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepre
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
@@ -43,9 +42,11 @@ import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisK
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDirKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.francetransfert_metaload_api.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.DateUtils;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
+import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
 import fr.gouv.culture.francetransfert.utils.Base64CryptoService;
 
 @Service
@@ -105,19 +106,17 @@ public class UploadServices {
 				deleteRepresentation.setStatus(HttpStatus.OK.value());
 				return deleteRepresentation;
 			} else {
-				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						"Invalid Token");
+				LOGGER.error("Type: {} -- enclosureId: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(),
+						enclosureId, "Invalid Token");
 				deleteRepresentation.setMessage("Invalid Token");
 				deleteRepresentation.setSuccess(false);
 				deleteRepresentation.setStatus(HttpStatus.NOT_FOUND.value());
 				return deleteRepresentation;
 			}
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			deleteRepresentation.setMessage("Internal error, uuid: " + uuid);
+			LOGGER.error("Type: {} -- enclosureId: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(),
+					enclosureId, e.getMessage(), e);
+			deleteRepresentation.setMessage("Internal error, uuid: " + enclosureId);
 			deleteRepresentation.setSuccess(false);
 			deleteRepresentation.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 			return deleteRepresentation;
@@ -125,8 +124,7 @@ public class UploadServices {
 
 	}
 
-	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, String token, LocalDate newDate)
-			throws Exception {
+	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, LocalDate newDate) {
 		try {
 			Map<String, String> tokenMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
@@ -138,59 +136,16 @@ public class UploadServices {
 				return EnclosureRepresentation.builder().enclosureId(enclosureId).expireDate(newDate.toString())
 						.build();
 			} else {
-				throw new Exception("tokenMap from Redis is null");
+				throw new UploadException("tokenMap from Redis is null", enclosureId);
 			}
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw e;
+			throw new UploadException("Unable to update timestamp", enclosureId, e);
 		}
 	}
 
-	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, LocalDate newDate) throws Exception {
-		try {
-			Map<String, String> tokenMap = redisManager
-					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-			if (tokenMap != null) {
-				Map<String, String> enclosureMap = redisManager
-						.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
-				enclosureMap.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), newDate.atStartOfDay().toString());
-				redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
-				return EnclosureRepresentation.builder().enclosureId(enclosureId).expireDate(newDate.toString())
-						.build();
-			} else {
-				throw new Exception("tokenMap from Redis is null");
-			}
-		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw e;
-		}
-	}
-
-	public String insertExpiredTimeStamp(String enclosureId, int expireDelay) throws Exception {
-		try {
-			LocalDate date = LocalDate.now();
-			LocalDate dateInsert = date.plusDays(expireDelay);
-			LocalDate maxDate = date.plusDays(maxUpdateDate);
-			if (dateInsert.isAfter(maxDate)) {
-				throw new Exception("Date invalide, veuillez sélectionner une date inférieure à " + maxUpdateDate
-						+ " jours depuis la création du pli");
-			}
-			return dateInsert.atStartOfDay().toString();
-		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw e;
-		}
-	}
-
-	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, long flowChunkSize, long flowTotalSize,
-			String flowIdentifier, String flowFilename, MultipartFile multipartFile, String enclosureId,
-			String senderId, String senderToken) throws Exception {
+	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+			MultipartFile multipartFile, String enclosureId, String senderId, String senderToken)
+			throws MetaloadException, StorageException {
 
 		try {
 
@@ -204,7 +159,7 @@ public class UploadServices {
 			LOGGER.info("Extension file authorised");
 
 			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-			if (chunkExists(redisManager, flowChunkNumber, hashFid)) {
+			if (chunkExists(flowChunkNumber, hashFid)) {
 				return true; // multipart is uploaded
 			}
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
@@ -245,22 +200,18 @@ public class UploadServices {
 			}
 			return isUploaded;
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- error : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e.getMessage(),
-					e);
 			cleanEnclosure(enclosureId);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
+					enclosureId, e);
 		}
 	}
 
-	public boolean chunkExists(RedisManager redisManager, int flowChunkNumber, String hashFid) throws Exception {
+	public boolean chunkExists(int flowChunkNumber, String hashFid) {
 		try {
 			return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException("Chunk doest not exist : " + e.getMessage(), uuid, e);
 		}
 	}
 
@@ -269,10 +220,9 @@ public class UploadServices {
 	 * @param metadata
 	 * @param token
 	 * @return
-	 * @throws Exception
 	 */
 	public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata,
-			String token) throws Exception {
+			String token) {
 		try {
 			LOGGER.info("create metadata in redis with token validation {} / {} ", metadata.getSenderEmail(), token);
 			/**
@@ -283,23 +233,19 @@ public class UploadServices {
 			 * en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur
 			 * s’affiche.
 			 **/
-			// TODO uncomment contrôle mail sender-info
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
-			boolean validRecipients = true;
-			if (!metadata.getPublicLink()) {
-				if (!CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-					Iterator<String> domainIter = metadata.getRecipientEmails().iterator();
-					while (domainIter.hasNext() && validRecipients) {
-						validRecipients = stringUploadUtils.isValidEmailIgni(domainIter.next());
-					}
-				}
+			boolean validRecipients = false;
+			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
+					return !stringUploadUtils.isValidEmailIgni(x);
+				});
 			}
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
-				boolean isRequiredToGeneratedCode = generateCode(redisManager, metadata.getSenderEmail(), token);
+				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token);
 				if (!isRequiredToGeneratedCode) {
-					return createMetaDataEnclosureInRedis(metadata, redisManager);
+					return createMetaDataEnclosureInRedis(metadata);
 				}
 			} else {
 				return EnclosureRepresentation.builder().canUpload(false).build();
@@ -307,25 +253,23 @@ public class UploadServices {
 			return null;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("CODE Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while checking mail creating meta : " + e.getMessage(),
+					uuid, e);
 		}
 	}
 
-	public FileInfoRepresentation getInfoPlis(String enclosureId) throws Exception {
-		// RedisManager redisManager = RedisManager.getInstance();
+	public FileInfoRepresentation getInfoPlis(String enclosureId) throws MetaloadException {
 		// validate Enclosure download right
-		LocalDate expirationDate = validateDownloadAuthorizationPublic(redisManager, enclosureId);
+		LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
 		try {
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.PASSWORD.getKey());
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-			List<FileRepresentation> rootFiles = getRootFiles(redisManager, enclosureId);
-			List<DirectoryRepresentation> rootDirs = getRootDirs(redisManager, enclosureId);
+			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
+			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
 			Map<String, String> enclosureMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey((enclosureId)));
 			String timestamp = enclosureMap.get(EnclosureKeysEnum.TIMESTAMP.getKey());
@@ -338,26 +282,21 @@ public class UploadServices {
 					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
 					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while getting plisInfo : " + e.getMessage(), enclosureId,
+					e);
 		}
 	}
 
-	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata,
-			RedisManager redisManager) throws Exception {
+	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata) {
 		if (FileUtils.getEnclosureTotalSize(metadata) > uploadLimitSize
 				|| FileUtils.getSizeFileOver(metadata, uploadFileLimitSize)) {
 			LOGGER.error("enclosure size > upload limit size: {}", uploadLimitSize);
-			throw new UploadExcption(ErrorEnum.LIMT_SIZE_ERROR.getValue(), null);
+			throw new UploadException(ErrorEnum.LIMT_SIZE_ERROR.getValue());
 		}
 		try {
 			LOGGER.info("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
-			if (metadata == null) {
-				LOGGER.info("Metadata is null");
-			}
 			if (metadata.getPassword() == null) {
 				LOGGER.info("password is null");
 			}
@@ -368,20 +307,16 @@ public class UploadServices {
 				LOGGER.info("calculate pasword hashed ******");
 			} else {
 				LOGGER.info("No password generating new one");
-				if (base64CryptoService == null) {
-					LOGGER.error("Crypto is null");
-				}
 				String generatedPassword = base64CryptoService.generatePassword(0);
 				LOGGER.info("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
 			}
 			LOGGER.info("create enclosure metadata in redis ");
-			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata,
-					expiredays);
+			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
 			LOGGER.info("get expiration date and enclosure id back ");
-			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.EnclosureHashGUIDKey);
-			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.EnclosureHashExpirationDateKey);
+			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_GUID_KEY);
+			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_EXPIRATION_DATE_KEY);
 			LOGGER.info("update list date-enclosure in redis ");
 			RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
 			LOGGER.info("create sender metadata in redis");
@@ -393,8 +328,7 @@ public class UploadServices {
 			LOGGER.info("create root-dirs metadata in redis ");
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
 			LOGGER.info("create contents-files-ids metadata in redis ");
-			RedisForUploadUtils.createContentFilesIds(storageManager, redisManager, metadata, enclosureId,
-					bucketPrefix);
+			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
@@ -402,14 +336,11 @@ public class UploadServices {
 					.canUpload(Boolean.TRUE).build();
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			LOGGER.error("Error Generate metadata: " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException("Error generating Metadata", uuid, e);
 		}
 	}
 
-	private void validateToken(String senderMail, String token) throws Exception {
+	private void validateToken(String senderMail, String token) {
 		// verify token in redis
 		if (token != null && !token.equalsIgnoreCase("unknown")) {
 			boolean tokenExistInRedis;
@@ -423,22 +354,19 @@ public class UploadServices {
 				});
 			} catch (Exception e) {
 				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadException(
+						ErrorEnum.TECHNICAL_ERROR.getValue() + " validating token : " + e.getMessage(), uuid, e);
 			}
 			if (!tokenExistInRedis) {
-				LOGGER.error("invalid token: token does not exist in redis ");
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), null);
+				throw new UploadException("Invalid token: token does not exist in redis");
 			}
 		} else {
-			LOGGER.error("invalid token ");
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), null);
+			throw new UploadException("Invalid token");
 		}
-		LOGGER.info("valid token for sender mail {}", senderMail);
+		LOGGER.info("Valid token for sender mail {}", senderMail);
 	}
 
-	private boolean generateCode(RedisManager redisManager, String senderMail, String token) throws Exception {
+	private boolean generateCode(String senderMail, String token) {
 		try {
 			boolean result = false;
 			// verify token in redis
@@ -465,9 +393,8 @@ public class UploadServices {
 			return result;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " generating code : " + e.getMessage(),
+					uuid, e);
 		}
 	}
 
@@ -475,15 +402,9 @@ public class UploadServices {
 		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 		if (tokenMap != null) {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						"Invalid Token");
 				throw new UnauthorizedAccessException("Invalid Token");
 			}
 		} else {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					"Invalid Token");
 			throw new UnauthorizedAccessException("Invalid Token");
 		}
 	}
@@ -499,9 +420,8 @@ public class UploadServices {
 		return isValid;
 	}
 
-	private List<FileRepresentation> getRootFiles(RedisManager redisManager, String enclosureId) throws Exception {
+	private List<FileRepresentation> getRootFiles(String enclosureId) {
 		List<FileRepresentation> rootFiles = new ArrayList<>();
-		List<DirectoryRepresentation> rootDirs = new ArrayList<>();
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId), 0, -1).forEach(rootFileName -> {
 			String size = "";
 			String hashRootFile = RedisUtils.generateHashsha1(enclosureId + ":" + rootFileName);
@@ -509,10 +429,7 @@ public class UploadServices {
 				size = redisManager.getHgetString(RedisKeysEnum.FT_ROOT_FILE.getKey(hashRootFile),
 						RootFileKeysEnum.SIZE.getKey());
 			} catch (Exception e) {
-				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadException("Cannot get RootFiles : " + e.getMessage(), enclosureId, e);
 			}
 			FileRepresentation rootFile = new FileRepresentation();
 			rootFile.setName(rootFileName);
@@ -523,7 +440,7 @@ public class UploadServices {
 		return rootFiles;
 	}
 
-	private List<DirectoryRepresentation> getRootDirs(RedisManager redisManager, String enclosureId) throws Exception {
+	private List<DirectoryRepresentation> getRootDirs(String enclosureId) {
 		List<DirectoryRepresentation> rootDirs = new ArrayList<>();
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_DIRS.getKey(enclosureId), 0, -1).forEach(rootDirName -> {
 			String size = "";
@@ -532,10 +449,7 @@ public class UploadServices {
 				size = redisManager.getHgetString(RedisKeysEnum.FT_ROOT_DIR.getKey(hashRootDir),
 						RootDirKeysEnum.TOTAL_SIZE.getKey());
 			} catch (Exception e) {
-				String uuid = UUID.randomUUID().toString();
-				LOGGER.error("Type: {} -- id: {} -- message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-						e.getMessage(), e);
-				throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+				throw new UploadException("Cannot get RootDirs : " + e.getMessage(), enclosureId, e);
 			}
 			DirectoryRepresentation rootDir = new DirectoryRepresentation();
 			rootDir.setName(rootDirName);
@@ -546,34 +460,30 @@ public class UploadServices {
 		return rootDirs;
 	}
 
-	private LocalDate validateDownloadAuthorizationPublic(RedisManager redisManager, String enclosureId)
-			throws Exception {
-		LocalDate expirationDate = validateExpirationDate(redisManager, enclosureId);
+	private LocalDate validateDownloadAuthorizationPublic(String enclosureId) throws MetaloadException {
+		LocalDate expirationDate = validateExpirationDate(enclosureId);
 		return expirationDate;
 	}
 
-	private LocalDate validateExpirationDate(RedisManager redisManager, String enclosureId) throws Exception {
+	private LocalDate validateExpirationDate(String enclosureId) throws MetaloadException {
 		LocalDate expirationDate = DateUtils.convertStringToLocalDate(
 				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()));
 		if (LocalDate.now().isAfter(expirationDate)) {
-			throw new Exception("Vous ne pouvez plus accéder à ces fichiers");
+			throw new UploadException("Vous ne pouvez plus accéder à ces fichiers", enclosureId);
 		}
 		return expirationDate;
 	}
 
-	private String getNumberOfDownloadPublic(String enclosureId) throws Exception {
+	private String getNumberOfDownloadPublic(String enclosureId) {
 		Map<String, String> enclosureMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
 		if (enclosureMap != null) {
 			return enclosureMap.get(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey());
 		} else {
-			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					"Invalid Token");
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), enclosureId);
+			throw new UploadException("Error getting public donwload count", enclosureId);
 		}
 	}
 
-	private void cleanEnclosure(String prefix) throws Exception {
+	private void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
 		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
 		storageManager.deleteFilesWithPrefix(bucketName, prefix);
 	}

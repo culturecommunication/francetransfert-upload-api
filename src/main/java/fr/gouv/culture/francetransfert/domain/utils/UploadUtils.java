@@ -1,7 +1,7 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,7 +30,7 @@ public class UploadUtils {
 			return items[part];
 		} else {
 			String uuid = UUID.randomUUID().toString();
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
 		}
 	}
 
