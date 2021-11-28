@@ -19,9 +19,8 @@ import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.services.s3.model.PartETag;
 
-import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
@@ -32,14 +31,13 @@ import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDi
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
 
 @Service
 public class RedisForUploadUtils {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RedisForUploadUtils.class);
-	public final static String EnclosureHashGUIDKey = "guidEnclosure";
-	public final static String EnclosureHashExpirationDateKey = "expirationDate";
+	public final static String ENCLOSURE_HASH_GUID_KEY = "guidEnclosure";
+	public final static String ENCLOSURE_HASH_EXPIRATION_DATE_KEY = "expirationDate";
 
 	private static int maxUpdateDate;
 
@@ -49,7 +47,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static HashMap<String, String> createHashEnclosure(RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, int expiredays) throws Exception {
+			FranceTransfertDataRepresentation metadata) {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
@@ -78,21 +76,20 @@ public class RedisForUploadUtils {
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
-			hashEnclosureInfo.put(EnclosureHashGUIDKey, guidEnclosure);
-			hashEnclosureInfo.put(EnclosureHashExpirationDateKey, expiredDate.toLocalDate().toString());
+			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
+			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
 		} catch (Exception e) {
-			LOGGER.error("Error lors de l'insertion des metadata : " + e.getMessage(), e);
-			throw e;
+			throw new UploadException("Error inserting metadata : " + e.getMessage(), e);
 		}
 	}
 
 	public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		// ================ set sender info in redis ================
 		try {
 			if (null == metadata.getSenderEmail()) {
-				throw new Exception();
+				throw new UploadException("Sender null", enclosureId);
 			}
 			boolean isNewSender = StringUtils.isEmpty(metadata.getConfirmedSenderId());
 			if (isNewSender) {
@@ -108,17 +105,16 @@ public class RedisForUploadUtils {
 			redisManager.insertHASH(RedisKeysEnum.FT_SENDER.getKey(enclosureId), map);
 			return metadata.getConfirmedSenderId();
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw new UploadException("Error creating sender : " + e.getMessage(), enclosureId, e);
 		}
-		return metadata.getConfirmedSenderId();
 	}
 
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-					throw new Exception("Empty recipient");
+					throw new UploadException("Empty recipient", enclosureId);
 				}
 				Map<String, String> mapRecipients = new HashMap<>();
 				metadata.getRecipientEmails().forEach(recipientMail -> {
@@ -137,12 +133,12 @@ public class RedisForUploadUtils {
 				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
 			}
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw new UploadException("Error creating recipient : " + e.getMessage(), enclosureId, e);
 		}
 	}
 
 	public static void createRootFiles(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			Map<String, String> filesMap = FileUtils.searchRootFiles(metadata);
 			// ================ set List root-files info in redis================
@@ -173,7 +169,7 @@ public class RedisForUploadUtils {
 	}
 
 	public static void createRootDirs(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
-			String enclosureId) throws Exception {
+			String enclosureId) {
 		try {
 			Map<String, String> dirsMap = FileUtils.searchRootDirs(metadata);
 			// ================ set List root-dirs info in redis================
@@ -193,8 +189,8 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static void createContentFilesIds(StorageManager storageManager, RedisManager redisManager,
-			FranceTransfertDataRepresentation metadata, String enclosureId, String bucketPrefix) throws Exception {
+	public static void createContentFilesIds(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
+			String enclosureId) {
 		try {
 			List<FileDomain> files = FileUtils.searchFiles(metadata, enclosureId);
 			// ================ set List files info in redis================
@@ -202,7 +198,6 @@ public class RedisForUploadUtils {
 					RedisKeysEnum.FT_FILES_IDS.getKey(enclosureId),
 					files.stream().map(file -> RedisUtils.generateHashsha1(enclosureId + ":" + file.getFid()))
 							.collect(Collectors.toList()));
-			String bucketName = RedisUtils.getBucketName(redisManager, null, bucketPrefix);
 			for (FileDomain currentfile : files) {
 				LOGGER.debug(" current file: {} =>  size {}", currentfile.getFid(), currentfile.getSize());
 				String shaFid = RedisUtils.generateHashsha1(enclosureId + ":" + currentfile.getFid());
@@ -229,7 +224,7 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static List<PartETag> getPartEtags(RedisManager redisManager, String hashFid) throws Exception {
+	public static List<PartETag> getPartEtags(RedisManager redisManager, String hashFid) {
 		List<PartETag> partETags = new ArrayList<>();
 		try {
 			Pattern pattern = Pattern.compile(":");
@@ -250,7 +245,8 @@ public class RedisForUploadUtils {
 		return partETags;
 	}
 
-	public static String addToPartEtags(RedisManager redisManager, PartETag partETag, String hashFid) throws Exception {
+	public static String addToPartEtags(RedisManager redisManager, PartETag partETag, String hashFid)
+			throws UploadException {
 		String partEtagRedisForm = "";
 		try {
 			String key = RedisKeysEnum.FT_PART_ETAGS.getKey(hashFid);
@@ -258,41 +254,38 @@ public class RedisForUploadUtils {
 			redisManager.rpush(key, partEtagRedisForm);
 			return partEtagRedisForm;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw new UploadException("Error adding Etag : " + e.getMessage(), e);
 		}
-		return partEtagRedisForm;
 	}
 
-	public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId, String hashFid)
-			throws Exception {
+	public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId,
+			String hashFid) {
 		try {
 			String key = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
 			redisManager.lpush(key, uploadId);
 			return uploadId;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			throw e;
 		}
-		return uploadId;
 	}
 
-	public static String getUploadIdBlocking(RedisManager redisManager, String hashFid) throws Exception {
+	public static String getUploadIdBlocking(RedisManager redisManager, String hashFid) throws UploadException {
 		String keySource = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);
 		String uploadOsuId = redisManager.brpoplpush(keySource, keySource, 30);
 
 		if (uploadOsuId == null || uploadOsuId.isBlank() || uploadOsuId.isEmpty()) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} ", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException("Error getting uploadOsuId for hash : " + hashFid, uuid);
 		}
 		return uploadOsuId;
 	}
 
-	private static LocalDateTime getExpiredTimeStamp(int expireDelay) throws Exception {
+	private static LocalDateTime getExpiredTimeStamp(int expireDelay) throws UploadException {
 		LocalDateTime date = LocalDateTime.now();
 		LocalDateTime dateInsert = date.plusDays(expireDelay);
 		LocalDateTime maxDate = date.plusDays(maxUpdateDate);
 		if (dateInsert.isAfter(maxDate)) {
-			throw new Exception("Date invalide, veuillez sélectionner une date inférieure à " + maxUpdateDate
+			throw new UploadException("Date invalide, veuillez sélectionner une date inférieure à " + maxUpdateDate
 					+ " jours depuis la création du pli");
 		}
 		return dateInsert;

@@ -14,7 +14,7 @@ import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
-import fr.gouv.culture.francetransfert.domain.exceptions.UploadExcption;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
@@ -43,12 +43,11 @@ public class ConfirmationServices {
 	@Autowired
 	private RedisManager redisManager;
 
-	public void generateCodeConfirmation(String senderMail) throws Exception {
-//generate confirmation code
+	public void generateCodeConfirmation(String senderMail) {
+		// generate confirmation code
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
-//        RedisManager redisManager = RedisManager.getInstance();
 		if (null == redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
@@ -67,10 +66,9 @@ public class ConfirmationServices {
 
 	}
 
-	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) throws Exception {
-//        RedisManager redisManager = RedisManager.getInstance();
+	public String validateCodeConfirmationAndGenerateToken(String senderMail, String code) {
 		// validate confirmation code
-		validateCodeConfirmation(redisManager, senderMail, code);
+		validateCodeConfirmation(senderMail, code);
 		try {
 			/*
 			 * genarate and insert in REDIS :(GUID && timpStamp cokies) per sender by
@@ -80,7 +78,6 @@ public class ConfirmationServices {
 			 * [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]
 			 */
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
-//			redisManager.deleteKey(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
@@ -90,14 +87,12 @@ public class ConfirmationServices {
 			return token;
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
-			LOGGER.error("Type: {} -- id: {} -- message : {}", ErrorEnum.TECHNICAL_ERROR.getValue(), uuid,
-					e.getMessage(), e);
-			LOGGER.error("Erreur Code validation : " + e.getMessage(), e);
-			throw new UploadExcption(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid);
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + "during code validation : " + e.getMessage(), uuid, e);
 		}
 	}
 
-	public void validateCodeConfirmation(RedisManager redisManager, String senderMail, String code) throws Exception {
+	public void validateCodeConfirmation(String senderMail, String code) {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
@@ -111,29 +106,29 @@ public class ConfirmationServices {
 
 		// Si try > au maxTry on delete le code de confirmation
 		if (tryCount >= maxTryCodeCount) {
-			deleteConfirmationCode(redisManager, senderMail);
+			deleteConfirmationCode(senderMail);
 		}
 
 		// Si le code est invalide on incr/delete si superieur au max try et throw
-		if (null == redisCode || !(redisCode != null && code.equals(redisCode))) {
+		if (!code.equals(redisCode)) {
 			if ((tryCount + 1) >= maxTryCodeCount) {
-				deleteConfirmationCode(redisManager, senderMail);
+				deleteConfirmationCode(senderMail);
 			} else {
 				tryCount++;
 				LOGGER.error("error code sender: this code: {} is not validated for this sender mail {}", code,
 						senderMail);
 				redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)),
 						Integer.toString(tryCount));
-				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), null, tryCount);
+				throw new ConfirmationCodeException(ErrorEnum.CONFIRMATION_CODE_ERROR.getValue(), tryCount);
 			}
 			// Si le code est valide et try < au max on valide
-		} else if (tryCount <= maxTryCodeCount) {
+		} else {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
 		}
 	}
 
-	private void deleteConfirmationCode(RedisManager redisManager, String senderMail) {
+	private void deleteConfirmationCode(String senderMail) {
 		redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 		redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
 		throw new MaxTryException("Unauthorized");
