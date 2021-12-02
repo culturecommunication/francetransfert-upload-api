@@ -2,6 +2,7 @@ package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,13 @@ public class RateServices {
 
 	public void createSatisfactionFT(RateRepresentation rateRepresentation) throws UploadException {
 		try {
-			String domain = rateRepresentation.getMailAdress().split("@")[1];
+
+			String domain = "";
+
+			if (StringUtils.isNotBlank(rateRepresentation.getMailAdress())) {
+			domain = rateRepresentation.getMailAdress().split("@")[1];
+			}
+
 			rateRepresentation.setDate(LocalDate.now());
 			rateRepresentation.setDomain(domain);
 			rateRepresentation.setHashMail(null);
