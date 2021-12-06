@@ -64,6 +64,8 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
+			LOGGER.debug("is password enerated! : {}", metadata.getPasswordGenerated());
+			map.put(EnclosureKeysEnum.PASSWORD_GENERATED.getKey(), metadata.getPasswordGenerated().toString());
 			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
