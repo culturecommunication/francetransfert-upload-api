@@ -97,7 +97,7 @@ public class UploadServices {
 			Map<String, String> tokenMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 			if (token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId) + ".zip";
+				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
 				storageManager.deleteObject(bucketName, fileToDelete);
 				LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
 				deleteRepresentation
