@@ -18,13 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/api-private/confirmation-module")
-@Api(value = "Confirmation code resources")
+@Tag(name = "Confirmation code resources")
 @Validated
 public class ConfirmationCodeResources {
 
@@ -34,7 +34,7 @@ public class ConfirmationCodeResources {
 	private ConfirmationServices confirmationServices;
 
 	@GetMapping("/generate-code")
-	@ApiOperation(httpMethod = "GET", value = "Generate code  ")
+	@Operation(method = "GET", description = "Generate code")
 	public void generateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
 			throws UploadException {
 		try {

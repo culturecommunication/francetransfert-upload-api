@@ -97,7 +97,7 @@ public class UploadServices {
 			Map<String, String> tokenMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 			if (token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId) + ".zip";
+				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
 				storageManager.deleteObject(bucketName, fileToDelete);
 				LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
 				deleteRepresentation
@@ -304,6 +304,7 @@ public class UploadServices {
 				LOGGER.info("Hashing password");
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword().trim());
 				metadata.setPassword(passwordHashed);
+				metadata.setPasswordGenerated(false);
 				LOGGER.info("calculate pasword hashed ******");
 			} else {
 				LOGGER.info("No password generating new one");
@@ -311,6 +312,7 @@ public class UploadServices {
 				LOGGER.info("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
+				metadata.setPasswordGenerated(true);
 			}
 			LOGGER.info("create enclosure metadata in redis ");
 			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
