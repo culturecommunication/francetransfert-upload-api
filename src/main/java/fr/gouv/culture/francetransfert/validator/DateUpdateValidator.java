@@ -11,9 +11,9 @@ import javax.validation.ConstraintValidatorContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 
 public class DateUpdateValidator implements ConstraintValidator<DateUpdateConstraint, Object> {
 

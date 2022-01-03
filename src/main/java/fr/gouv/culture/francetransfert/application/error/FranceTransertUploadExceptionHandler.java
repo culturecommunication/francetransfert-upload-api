@@ -26,6 +26,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.BusinessDomainException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
@@ -34,7 +35,6 @@ import fr.gouv.culture.francetransfert.domain.exceptions.FlowChunkNotExistExcept
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 /**

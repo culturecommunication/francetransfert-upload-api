@@ -28,26 +28,26 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.services.MimeService;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
+import fr.gouv.culture.francetransfert.core.services.StorageManager;
+import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
+import fr.gouv.culture.francetransfert.core.utils.DateUtils;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.MimeService;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.exception.MetaloadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.DateUtils;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
-import fr.gouv.culture.francetransfert.utils.Base64CryptoService;
 
 @Service
 public class UploadServices {

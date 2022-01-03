@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 import com.google.gson.Gson;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.enums.TypeStat;
+import fr.gouv.culture.francetransfert.core.model.RateRepresentation;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.enums.TypeStat;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.model.RateRepresentation;
 
 @Service
 public class RateServices {
@@ -30,7 +30,7 @@ public class RateServices {
 			String domain = "";
 
 			if (StringUtils.isNotBlank(rateRepresentation.getMailAdress())) {
-			domain = rateRepresentation.getMailAdress().split("@")[1];
+				domain = rateRepresentation.getMailAdress().split("@")[1];
 			}
 
 			rateRepresentation.setDate(LocalDate.now());
