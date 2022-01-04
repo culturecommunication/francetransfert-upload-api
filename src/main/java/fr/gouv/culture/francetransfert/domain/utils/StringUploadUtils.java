@@ -1,7 +1,9 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -199,4 +201,6 @@ public class StringUploadUtils {
 	public String getEmailDomain(String emailAddress) {
 		return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1).toLowerCase()).orElse(null);
 	}
+
+
 }

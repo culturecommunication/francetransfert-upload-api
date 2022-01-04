@@ -73,6 +73,15 @@ public class RedisForUploadUtils {
 			} else {
 				map.put(EnclosureKeysEnum.MESSAGE.getKey(), "");
 			}
+			LOGGER.debug("Objet du pli : {}", metadata.getSubject());
+			if (!StringUtils.isBlank(metadata.getSubject())) {
+				LOGGER.debug("objet: {}",
+						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getSubject());
+				map.put(EnclosureKeysEnum.SUBJECT.getKey(), metadata.getSubject());
+			} else {
+				map.put(EnclosureKeysEnum.SUBJECT.getKey(), "");
+			}
+
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");

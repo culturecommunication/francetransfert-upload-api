@@ -183,6 +183,12 @@ public class UploadResources {
 		return uploadServices.validateMailDomain(mails);
 	}
 
+	@RequestMapping(value = "/allowed-sender-mail", method = RequestMethod.POST)
+	@Operation(method = "POST", description = "allowed sender mail")
+	public Boolean allowedSenderMail(@RequestBody String mail) throws UploadException {
+		return uploadServices.allowedSendermail(mail);
+	}
+
 	@RequestMapping(value = "/config", method = RequestMethod.GET)
 	@Operation(method = "GET", description = "Get Config")
 	public ConfigRepresentation getConfig() {
