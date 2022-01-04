@@ -75,6 +75,9 @@ public class UploadServices {
 	@Value("${upload.expired.limit}")
 	private int maxUpdateDate;
 
+	@Value("${upload.limit.senderMail}")
+	private int maxUpload;
+
 	@Autowired
 	private ConfirmationServices confirmationServices;
 
@@ -419,7 +422,14 @@ public class UploadServices {
 			}
 			return false;
 		});
+
 		return isValid;
+	}
+
+	public Boolean allowedSendermail(String senderMail){
+		if(numberTokensOfTheDay(senderMail) > maxUpload){
+			return false;}
+		return true;
 	}
 
 	private List<FileRepresentation> getRootFiles(String enclosureId) {
@@ -488,5 +498,14 @@ public class UploadServices {
 	private void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
 		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
 		storageManager.deleteFilesWithPrefix(bucketName, prefix);
+	}
+
+	private Long numberTokensOfTheDay(String senderMail) {
+		Set<String> setTokenInRedis = redisManager
+				.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+
+		Long number = setTokenInRedis.stream().filter(tokenRedis -> LocalDate.now().isEqual(
+				UploadUtils.extractStartDateSenderToken(tokenRedis))).count();
+		return number;
 	}
 }

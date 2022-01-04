@@ -24,7 +24,7 @@ public class RateServices {
 	@Autowired
 	RedisManager redisManager;
 
-	public void createSatisfactionFT(RateRepresentation rateRepresentation) throws UploadException {
+	public boolean createSatisfactionFT(RateRepresentation rateRepresentation) throws UploadException {
 		try {
 
 			String domain = "";
@@ -40,6 +40,7 @@ public class RateServices {
 			rateRepresentation.setType(TypeStat.UPLOAD_SATISFACTION);
 			String jsonInString = new Gson().toJson(rateRepresentation);
 			redisManager.publishFT(RedisQueueEnum.SATISFACTION_QUEUE.getValue(), jsonInString);
+			return true;
 		} catch (Exception e) {
 			throw new UploadException(
 					ErrorEnum.TECHNICAL_ERROR.getValue() + " while create satisfaction : " + e.getMessage(),

@@ -164,9 +164,9 @@ public class UploadResources {
 
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "Rates the app on a scvale of 1 to 4")
-	public void createSatisfactionFT(HttpServletResponse response,
+	public boolean createSatisfactionFT(HttpServletResponse response,
 			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadException {
-		rateServices.createSatisfactionFT(rateRepresentation);
+		return rateServices.createSatisfactionFT(rateRepresentation);
 	}
 
 	@RequestMapping(value = "/validate-mail", method = RequestMethod.GET)
@@ -181,6 +181,12 @@ public class UploadResources {
 	@Operation(method = "POST", description = "Validate mail")
 	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadException {
 		return uploadServices.validateMailDomain(mails);
+	}
+
+	@RequestMapping(value = "/allowed-sender-mail", method = RequestMethod.POST)
+	@Operation(method = "POST", description = "allowed sender mail")
+	public Boolean allowedSenderMail(@RequestBody String mail) throws UploadException {
+		return uploadServices.allowedSendermail(mail);
 	}
 
 	@RequestMapping(value = "/config", method = RequestMethod.GET)

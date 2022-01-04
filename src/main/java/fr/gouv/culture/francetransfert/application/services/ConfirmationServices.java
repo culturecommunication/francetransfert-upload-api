@@ -51,6 +51,7 @@ public class ConfirmationServices {
 		if (null == redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
+
 			// insert confirmation code in REDIS
 			redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
 					confirmationCode, secondsToExpireConfirmationCode);
@@ -59,8 +60,10 @@ public class ConfirmationServices {
 			LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
 			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
 			// insert in queue to: send mail to sender in worker module)
+			Long ttl = redisManager.ttl(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+			String ttltCodeConfirmation = LocalDateTime.now().plusSeconds(ttl).toString();
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
-					senderMail + ":" + confirmationCode);
+					senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
 		}
 
