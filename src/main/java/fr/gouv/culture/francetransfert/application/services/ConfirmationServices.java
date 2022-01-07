@@ -1,6 +1,9 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -48,6 +51,7 @@ public class ConfirmationServices {
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
+		senderMail = senderMail.toLowerCase();
 		if (null == redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
@@ -61,7 +65,8 @@ public class ConfirmationServices {
 			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
 			// insert in queue to: send mail to sender in worker module)
 			Long ttl = redisManager.ttl(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
-			String ttltCodeConfirmation = LocalDateTime.now().plusSeconds(ttl).toString();
+			ZoneId zone = ZoneId.of("Europe/Paris");
+			String ttltCodeConfirmation = LocalDateTime.now().atZone(zone).plusSeconds(ttl).toString();
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
 					senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
