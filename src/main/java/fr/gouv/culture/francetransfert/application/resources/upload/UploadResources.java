@@ -186,7 +186,7 @@ public class UploadResources {
 	@RequestMapping(value = "/allowed-sender-mail", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "allowed sender mail")
 	public Boolean allowedSenderMail(@RequestBody String mail) throws UploadException {
-		return uploadServices.allowedSendermail(mail);
+		return uploadServices.allowedSendermail(mail.toLowerCase());
 	}
 
 	@RequestMapping(value = "/config", method = RequestMethod.GET)
