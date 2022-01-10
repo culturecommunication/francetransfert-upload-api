@@ -203,8 +203,12 @@ public class UploadServices {
 			}
 			return isUploaded;
 		} catch (Exception e) {
-			LOGGER.error("Error while uploading enclosure" + enclosureId + " : ", e);
-			cleanEnclosure(enclosureId);
+			LOGGER.error("Error while uploading enclosure" + enclosureId + " : " + e.getMessage(), e);
+			try {
+				cleanEnclosure(enclosureId);
+			} catch (Exception e1) {
+				LOGGER.error("Error while cleanin after upload error : " + e.getMessage(), e);
+			}
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
 		}
