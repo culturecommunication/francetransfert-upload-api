@@ -203,6 +203,7 @@ public class UploadServices {
 			}
 			return isUploaded;
 		} catch (Exception e) {
+			LOGGER.error("Error while uploading enclosure" + enclosureId + " : ", e);
 			cleanEnclosure(enclosureId);
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
@@ -426,9 +427,10 @@ public class UploadServices {
 		return isValid;
 	}
 
-	public Boolean allowedSendermail(String senderMail){
-		if(numberTokensOfTheDay(senderMail) > maxUpload){
-			return false;}
+	public Boolean allowedSendermail(String senderMail) {
+		if (numberTokensOfTheDay(senderMail) > maxUpload) {
+			return false;
+		}
 		return true;
 	}
 
@@ -501,11 +503,11 @@ public class UploadServices {
 	}
 
 	private Long numberTokensOfTheDay(String senderMail) {
-		Set<String> setTokenInRedis = redisManager
-				.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+		Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
 
-		Long number = setTokenInRedis.stream().filter(tokenRedis -> LocalDate.now().isEqual(
-				UploadUtils.extractStartDateSenderToken(tokenRedis))).count();
+		Long number = setTokenInRedis.stream()
+				.filter(tokenRedis -> LocalDate.now().isEqual(UploadUtils.extractStartDateSenderToken(tokenRedis)))
+				.count();
 		return number;
 	}
 }
