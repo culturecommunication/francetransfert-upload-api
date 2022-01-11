@@ -202,6 +202,8 @@ public class UploadServices {
 				}
 			}
 			return isUploaded;
+		} catch (ExtensionNotFoundException e) {
+			throw e;
 		} catch (Exception e) {
 			LOGGER.error("Error while uploading enclosure" + enclosureId + " : " + e.getMessage(), e);
 //			try {
