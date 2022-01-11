@@ -103,7 +103,10 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 	@ExceptionHandler(ExtensionNotFoundException.class)
 	public ResponseEntity<Object> handleExtensionNotFoundException(Exception ex) {
 		LOG.error("Handle error ExtensionNotFoundException : " + ex.getMessage(), ex);
-		return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
+		String errorId = RedisUtils.generateGUID();
+		return new ResponseEntity<>(
+				new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), errorId),
+				HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
 	@ExceptionHandler(FlowChunkNotExistException.class)
