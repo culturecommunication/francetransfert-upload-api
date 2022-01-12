@@ -93,6 +93,8 @@ public class UploadServices {
 	@Autowired
 	private MimeService mimeService;
 
+
+
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
 		try {
@@ -434,8 +436,11 @@ public class UploadServices {
 	}
 
 	public Boolean allowedSendermail(String senderMail) {
+		if(!stringUploadUtils.isValidEmailIgni(senderMail)){
 		if (numberTokensOfTheDay(senderMail) > maxUpload) {
 			return false;
+		}
+		return true;
 		}
 		return true;
 	}
@@ -516,4 +521,5 @@ public class UploadServices {
 				.count();
 		return number;
 	}
+
 }
