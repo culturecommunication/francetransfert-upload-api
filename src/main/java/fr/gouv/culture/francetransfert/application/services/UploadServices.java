@@ -76,7 +76,7 @@ public class UploadServices {
 	private int maxUpdateDate;
 
 	@Value("${upload.limit.senderMail}")
-	private int maxUpload;
+	private Long maxUpload;
 
 	@Autowired
 	private ConfirmationServices confirmationServices;
@@ -92,8 +92,6 @@ public class UploadServices {
 
 	@Autowired
 	private MimeService mimeService;
-
-
 
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
@@ -436,11 +434,13 @@ public class UploadServices {
 	}
 
 	public Boolean allowedSendermail(String senderMail) {
-		if(!stringUploadUtils.isValidEmailIgni(senderMail)){
-		if (numberTokensOfTheDay(senderMail) > maxUpload) {
-			return false;
-		}
-		return true;
+		if (!stringUploadUtils.isValidEmailIgni(senderMail)) {
+			Long nbUpload = numberTokensOfTheDay(senderMail);
+			LOGGER.debug("Upload for user {} = {}", senderMail, nbUpload);
+			if (nbUpload > maxUpload) {
+				return false;
+			}
+			return true;
 		}
 		return true;
 	}
