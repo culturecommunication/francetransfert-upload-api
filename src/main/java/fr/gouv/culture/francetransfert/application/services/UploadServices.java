@@ -437,7 +437,7 @@ public class UploadServices {
 		if (!stringUploadUtils.isValidEmailIgni(senderMail)) {
 			Long nbUpload = numberTokensOfTheDay(senderMail);
 			LOGGER.debug("Upload for user {} = {}", senderMail, nbUpload);
-			if (nbUpload > maxUpload) {
+			if (nbUpload >= maxUpload) {
 				return false;
 			}
 			return true;
