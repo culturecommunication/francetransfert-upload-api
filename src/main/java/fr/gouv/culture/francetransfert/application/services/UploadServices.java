@@ -178,7 +178,7 @@ public class UploadServices {
 
 			Boolean isUploaded = false;
 
-			LOGGER.info("Osu bucket name: {}", bucketName);
+			LOGGER.debug("Osu bucket name: {}", bucketName);
 			PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber,
 					fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
 			String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
