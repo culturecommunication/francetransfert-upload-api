@@ -155,11 +155,12 @@ public class UploadServices {
 			validateToken(senderId, senderToken);
 
 			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
-				LOGGER.error("Extension file no authorised");
+				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
 				cleanEnclosure(enclosureId);
-				throw new ExtensionNotFoundException("Extension file no authorised");
+				throw new ExtensionNotFoundException(
+						"Extension file no authorised for file " + multipartFile.getOriginalFilename());
 			}
-			LOGGER.info("Extension file authorised");
+			LOGGER.debug("Extension file authorised");
 
 			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
 			if (chunkExists(flowChunkNumber, hashFid)) {
