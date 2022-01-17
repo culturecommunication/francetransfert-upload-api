@@ -191,14 +191,14 @@ public class UploadServices {
 				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
 						partETags);
 				if (succesUpload != null) {
-					LOGGER.info("Finish upload File ==> {} ", fileNameWithPath);
+					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
-					LOGGER.info("Counter of successful upload files : {} ", uploadFilesCounter);
+					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
+							uploadFilesCounter);
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
-						LOGGER.info("Finish upload enclosure ==> {} ",
-								redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
+						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				}
 			}
@@ -306,7 +306,7 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.LIMT_SIZE_ERROR.getValue());
 		}
 		try {
-			LOGGER.info("limit enclosure size is < upload limit size: {}", uploadLimitSize);
+			LOGGER.debug("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
 			if (metadata.getPassword() == null) {
 				LOGGER.info("password is null");
@@ -316,31 +316,31 @@ public class UploadServices {
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword().trim());
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(false);
-				LOGGER.info("calculate pasword hashed ******");
+				LOGGER.debug("calculate pasword hashed ******");
 			} else {
 				LOGGER.info("No password generating new one");
 				String generatedPassword = base64CryptoService.generatePassword(0);
-				LOGGER.info("Hashing generated password");
+				LOGGER.debug("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(true);
 			}
-			LOGGER.info("create enclosure metadata in redis ");
+			LOGGER.debug("create enclosure metadata in redis ");
 			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
-			LOGGER.info("get expiration date and enclosure id back ");
+			LOGGER.debug("get expiration date and enclosure id back ");
 			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_GUID_KEY);
 			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_EXPIRATION_DATE_KEY);
-			LOGGER.info("update list date-enclosure in redis ");
+			LOGGER.debug("update list date-enclosure in redis ");
 			RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
-			LOGGER.info("create sender metadata in redis");
+			LOGGER.debug("create sender metadata in redis");
 			String senderId = RedisForUploadUtils.createHashSender(redisManager, metadata, enclosureId);
-			LOGGER.info("create all recipients metadata in redis ");
+			LOGGER.debug("create all recipients metadata in redis ");
 			RedisForUploadUtils.createAllRecipient(redisManager, metadata, enclosureId);
-			LOGGER.info("create root-files metadata in redis ");
+			LOGGER.debug("create root-files metadata in redis ");
 			RedisForUploadUtils.createRootFiles(redisManager, metadata, enclosureId);
-			LOGGER.info("create root-dirs metadata in redis ");
+			LOGGER.debug("create root-dirs metadata in redis ");
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
-			LOGGER.info("create contents-files-ids metadata in redis ");
+			LOGGER.debug("create contents-files-ids metadata in redis ");
 			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
@@ -376,7 +376,7 @@ public class UploadServices {
 		} else {
 			throw new UploadException("Invalid token");
 		}
-		LOGGER.info("Valid token for sender mail {}", senderMail);
+		LOGGER.debug("Valid token for sender mail {}", senderMail);
 	}
 
 	private boolean generateCode(String senderMail, String token) {
