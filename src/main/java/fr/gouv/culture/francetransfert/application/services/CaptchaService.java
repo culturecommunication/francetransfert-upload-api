@@ -15,7 +15,7 @@ public class CaptchaService {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	@Value("${captcha.url}")
+	@Value("${captcha.url:''}")
 	private String capchatUrl;
 
 	public boolean checkCaptcha(String challengeId, String userResponse, CaptchaTypeEnum captchaType) {
