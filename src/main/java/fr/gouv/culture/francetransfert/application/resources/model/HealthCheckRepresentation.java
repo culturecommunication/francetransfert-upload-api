@@ -12,4 +12,11 @@ public class HealthCheckRepresentation {
 	private boolean smtp;
 	private boolean config;
 
+	public boolean isError() {
+		if (redis == false || s3 == false || smtp == false || config == false) {
+			return true;
+		}
+		return false;
+	}
+
 }
