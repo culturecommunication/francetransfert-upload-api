@@ -79,7 +79,7 @@ public class HealthCheckService {
 		Socket s = new Socket();
 		s.setReuseAddress(true);
 		SocketAddress sa = new InetSocketAddress(smtpHost, smtpPort);
-		s.connect(sa, 1000);
+		s.connect(sa, 5000);
 		s.close();
 		return true;
 	}
