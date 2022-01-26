@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,6 +106,16 @@ public class UploadResources {
 				token);
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
+	}
+
+	@PostMapping("/sender-contact")
+	@Operation(method = "POST", description = "sender contact")
+	public boolean senderContact(HttpServletRequest request, HttpServletResponse response,
+											  @RequestBody FormulaireContactData metadata) {
+		LOGGER.info("start sending message ");
+		boolean formulaire = uploadServices.senderContact(metadata);
+		response.setStatus(HttpStatus.OK.value());
+		return formulaire;
 	}
 
 	@GetMapping("/delete-file")

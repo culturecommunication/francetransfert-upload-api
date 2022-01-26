@@ -34,7 +34,7 @@ public class HealthCheckService {
 	@Value("${healthcheck.smtp.host:''}")
 	String smtpHost;
 
-	@Value("${healthcheck.smtp.port:''}")
+	@Value("${healthcheck.smtp.port:0}")
 	int smtpPort;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(HealthCheckService.class);
