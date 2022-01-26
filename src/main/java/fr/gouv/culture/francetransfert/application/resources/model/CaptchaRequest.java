@@ -1,6 +1,6 @@
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import fr.gouv.culture.francetransfert.domain.soap.CaptchaTypeEnum;
+import fr.gouv.culture.francetransfert.core.enums.CaptchaTypeEnum;
 import lombok.Data;
 
 @Data

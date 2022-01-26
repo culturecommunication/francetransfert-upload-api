@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import fr.gouv.culture.francetransfert.domain.soap.CaptchaTypeEnum;
+import fr.gouv.culture.francetransfert.core.enums.CaptchaTypeEnum;
 import fr.gouv.culture.francetransfert.domain.soap.EnvelopeUtils;
 
 @Service

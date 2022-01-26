@@ -32,6 +32,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeExcepti
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.FlowChunkNotExistException;
+import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
@@ -204,6 +205,14 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 	@ExceptionHandler(MaxTryException.class)
 	public ResponseEntity<Object> handleMaxTryException(MaxTryException ex) {
 		LOG.error("Handle error type MaxTryException : " + ex.getMessage(), ex);
+		LOG.error("message: {}", ex.getMessage(), ex);
+		return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), "", ex.getMessage()),
+				HttpStatus.UNAUTHORIZED);
+	}
+
+	@ExceptionHandler(InvalidCaptchaException.class)
+	public ResponseEntity<Object> InvalidCaptchaException(InvalidCaptchaException ex) {
+		LOG.error("Handle error type InvalidCaptchaException : " + ex.getMessage(), ex);
 		LOG.error("message: {}", ex.getMessage(), ex);
 		return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), "", ex.getMessage()),
 				HttpStatus.UNAUTHORIZED);

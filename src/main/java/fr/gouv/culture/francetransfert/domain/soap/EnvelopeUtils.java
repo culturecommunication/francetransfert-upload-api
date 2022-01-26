@@ -1,5 +1,7 @@
 package fr.gouv.culture.francetransfert.domain.soap;
 
+import fr.gouv.culture.francetransfert.core.enums.CaptchaTypeEnum;
+
 public class EnvelopeUtils {
 
 	private static final String checkCaptcha = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v1=\"http://fr.mcc.transverse.captcha.service/catpcha/v1.0\"> <soapenv:Header/> <soapenv:Body> <v1:checkCaptcha> <challengeId>{{challengeId}}</challengeId> <userResponse>{{userResponse}}</userResponse> <captchaType>{{captchaType}}</captchaType> </v1:checkCaptcha> </soapenv:Body> </soapenv:Envelope>";
