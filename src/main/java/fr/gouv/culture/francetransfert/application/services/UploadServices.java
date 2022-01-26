@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.gson.Gson;
+import fr.gouv.culture.francetransfert.core.enums.*;
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,12 +31,6 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.services.MimeService;
@@ -522,5 +519,30 @@ public class UploadServices {
 				.count();
 		return number;
 	}
+
+	/**
+	 *
+	 * @param metadata
+	 * @return
+	 */
+	public boolean senderContact(FormulaireContactData metadata) {
+		try {
+
+			if (null == metadata) {
+				String uuid = UUID.randomUUID().toString();
+				throw new UploadException("la formulaire est null", uuid);
+			}
+
+			String jsonInString = new Gson().toJson(metadata);
+			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
+			return true;
+		} catch (Exception e) {
+			String uuid = UUID.randomUUID().toString();
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+		}
+
+	}
+
+
 
 }
