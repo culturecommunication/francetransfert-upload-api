@@ -8,9 +8,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.gson.Gson;
-import fr.gouv.culture.francetransfert.core.enums.*;
-import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -22,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.model.PartETag;
+import com.google.gson.Gson;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
@@ -31,8 +29,15 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import fr.gouv.culture.francetransfert.core.services.MimeService;
 import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.services.StorageManager;
@@ -532,7 +537,7 @@ public class UploadServices {
 				String uuid = UUID.randomUUID().toString();
 				throw new UploadException("la formulaire est null", uuid);
 			}
-			//checkNull(metadata);
+			checkNull(metadata);
 			String jsonInString = new Gson().toJson(metadata);
 			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
 			return true;
@@ -543,17 +548,19 @@ public class UploadServices {
 
 	}
 
-	public void checkNull(FormulaireContactData metadat){
-		if(metadat.getNom() == null)
+	public void checkNull(FormulaireContactData metadat) {
+		if (StringUtils.isBlank(metadat.getNom())) {
 			metadat.setNom("");
-		if(metadat.getPrenom() == null)
+		}
+		if (StringUtils.isBlank(metadat.getPrenom())) {
 			metadat.setPrenom("");
-		if(metadat.getAdministration() == null)
+		}
+		if (StringUtils.isBlank(metadat.getAdministration())) {
 			metadat.setAdministration("");
-		if(metadat.getSubject() == null)
+		}
+		if (StringUtils.isBlank(metadat.getSubject())) {
 			metadat.setSubject("");
+		}
 	}
-
-
 
 }
