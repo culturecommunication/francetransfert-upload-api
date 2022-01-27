@@ -532,7 +532,7 @@ public class UploadServices {
 				String uuid = UUID.randomUUID().toString();
 				throw new UploadException("la formulaire est null", uuid);
 			}
-
+			//checkNull(metadata);
 			String jsonInString = new Gson().toJson(metadata);
 			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
 			return true;
@@ -541,6 +541,17 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
 		}
 
+	}
+
+	public void checkNull(FormulaireContactData metadat){
+		if(metadat.getNom() == null)
+			metadat.setNom("");
+		if(metadat.getPrenom() == null)
+			metadat.setPrenom("");
+		if(metadat.getAdministration() == null)
+			metadat.setAdministration("");
+		if(metadat.getSubject() == null)
+			metadat.setSubject("");
 	}
 
 
