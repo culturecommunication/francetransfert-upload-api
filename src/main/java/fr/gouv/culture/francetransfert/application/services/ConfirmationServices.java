@@ -1,9 +1,9 @@
 package fr.gouv.culture.francetransfert.application.services;
 
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.UUID;
 
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,14 +11,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 
 @Service
 public class ConfirmationServices {
@@ -48,9 +48,11 @@ public class ConfirmationServices {
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
+		senderMail = senderMail.toLowerCase();
 		if (null == redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
+
 			// insert confirmation code in REDIS
 			redisManager.setNxString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)),
 					confirmationCode, secondsToExpireConfirmationCode);
@@ -59,8 +61,10 @@ public class ConfirmationServices {
 			LOGGER.info("sender: {} generated confirmation code in redis", senderMail);
 			// insert in queue of REDIS: confirmation-code-mail" => SenderMail":"code" (
 			// insert in queue to: send mail to sender in worker module)
+			Long ttl = redisManager.ttl(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+			String ttltCodeConfirmation = ZonedDateTime.now(ZoneId.of("Europe/Paris")).plusSeconds(ttl).toString();
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
-					senderMail + ":" + confirmationCode);
+					senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
 		}
 

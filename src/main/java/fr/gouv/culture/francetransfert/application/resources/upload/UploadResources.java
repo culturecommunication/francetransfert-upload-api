@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +37,11 @@ import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.model.RateRepresentation;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.exception.MetaloadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
-import fr.gouv.culture.francetransfert.model.RateRepresentation;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -88,7 +89,7 @@ public class UploadResources {
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
-		LOGGER.info("upload chunk number: {}/{} ", flowChunkNumber, flowTotalChunks);
+		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
 		response.setStatus(HttpStatus.OK.value());
@@ -105,6 +106,16 @@ public class UploadResources {
 				token);
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
+	}
+
+	@PostMapping("/sender-contact")
+	@Operation(method = "POST", description = "sender contact")
+	public boolean senderContact(HttpServletRequest request, HttpServletResponse response,
+											  @RequestBody FormulaireContactData metadata) {
+		LOGGER.info("start sending message ");
+		boolean formulaire = uploadServices.senderContact(metadata);
+		response.setStatus(HttpStatus.OK.value());
+		return formulaire;
 	}
 
 	@GetMapping("/delete-file")
@@ -164,9 +175,9 @@ public class UploadResources {
 
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "Rates the app on a scvale of 1 to 4")
-	public void createSatisfactionFT(HttpServletResponse response,
+	public boolean createSatisfactionFT(HttpServletResponse response,
 			@Valid @RequestBody RateRepresentation rateRepresentation) throws UploadException {
-		rateServices.createSatisfactionFT(rateRepresentation);
+		return rateServices.createSatisfactionFT(rateRepresentation);
 	}
 
 	@RequestMapping(value = "/validate-mail", method = RequestMethod.GET)
@@ -181,6 +192,12 @@ public class UploadResources {
 	@Operation(method = "POST", description = "Validate mail")
 	public Boolean validateMailDomain(@RequestBody List<String> mails) throws UploadException {
 		return uploadServices.validateMailDomain(mails);
+	}
+
+	@RequestMapping(value = "/allowed-sender-mail", method = RequestMethod.POST)
+	@Operation(method = "POST", description = "allowed sender mail")
+	public Boolean allowedSenderMail(@RequestBody String mail) throws UploadException {
+		return uploadServices.allowedSendermail(mail.toLowerCase());
 	}
 
 	@RequestMapping(value = "/config", method = RequestMethod.GET)

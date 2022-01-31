@@ -20,17 +20,17 @@ import org.springframework.util.CollectionUtils;
 import com.amazonaws.services.s3.model.PartETag;
 
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RecipientKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.SenderKeysEnum;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RecipientKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.SenderKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 
 @Service
 public class RedisForUploadUtils {
@@ -73,6 +73,15 @@ public class RedisForUploadUtils {
 			} else {
 				map.put(EnclosureKeysEnum.MESSAGE.getKey(), "");
 			}
+			LOGGER.debug("Objet du pli : {}", metadata.getSubject());
+			if (!StringUtils.isBlank(metadata.getSubject())) {
+				LOGGER.debug("objet: {}",
+						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getSubject());
+				map.put(EnclosureKeysEnum.SUBJECT.getKey(), metadata.getSubject());
+			} else {
+				map.put(EnclosureKeysEnum.SUBJECT.getKey(), "");
+			}
+
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");
