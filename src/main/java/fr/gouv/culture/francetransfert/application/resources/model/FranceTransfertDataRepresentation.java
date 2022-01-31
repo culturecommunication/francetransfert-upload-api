@@ -17,6 +17,7 @@ public class FranceTransfertDataRepresentation {
     private String password;
     private Boolean passwordGenerated;
     private String message;
+    private String subject;
     private Boolean publicLink;
     private int passwordTryCount;
     private int expireDelay;

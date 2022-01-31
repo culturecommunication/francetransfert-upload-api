@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.model.PartETag;
+import com.google.gson.Gson;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
@@ -28,26 +29,27 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
+import fr.gouv.culture.francetransfert.core.services.MimeService;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
+import fr.gouv.culture.francetransfert.core.services.StorageManager;
+import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
+import fr.gouv.culture.francetransfert.core.utils.DateUtils;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.MimeService;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RootFileKeysEnum;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.exception.MetaloadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.DateUtils;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.StorageManager;
-import fr.gouv.culture.francetransfert.francetransfert_storage_api.Exception.StorageException;
-import fr.gouv.culture.francetransfert.utils.Base64CryptoService;
 
 @Service
 public class UploadServices {
@@ -74,6 +76,9 @@ public class UploadServices {
 
 	@Value("${upload.expired.limit}")
 	private int maxUpdateDate;
+
+	@Value("${upload.limit.senderMail}")
+	private Long maxUpload;
 
 	@Autowired
 	private ConfirmationServices confirmationServices;
@@ -152,11 +157,12 @@ public class UploadServices {
 			validateToken(senderId, senderToken);
 
 			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
-				LOGGER.error("Extension file no authorised");
+				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
 				cleanEnclosure(enclosureId);
-				throw new ExtensionNotFoundException("Extension file no authorised");
+				throw new ExtensionNotFoundException(
+						"Extension file no authorised for file " + multipartFile.getOriginalFilename());
 			}
-			LOGGER.info("Extension file authorised");
+			LOGGER.debug("Extension file authorised");
 
 			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
 			if (chunkExists(flowChunkNumber, hashFid)) {
@@ -174,7 +180,7 @@ public class UploadServices {
 
 			Boolean isUploaded = false;
 
-			LOGGER.info("Osu bucket name: {}", bucketName);
+			LOGGER.debug("Osu bucket name: {}", bucketName);
 			PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber,
 					fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
 			String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
@@ -187,20 +193,27 @@ public class UploadServices {
 				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
 						partETags);
 				if (succesUpload != null) {
-					LOGGER.info("Finish upload File ==> {} ", fileNameWithPath);
+					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
-					LOGGER.info("Counter of successful upload files : {} ", uploadFilesCounter);
+					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
+							uploadFilesCounter);
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
-						LOGGER.info("Finish upload enclosure ==> {} ",
-								redisManager.lrange(RedisQueueEnum.ZIP_QUEUE.getValue(), 0, -1));
+						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				}
 			}
 			return isUploaded;
+		} catch (ExtensionNotFoundException e) {
+			throw e;
 		} catch (Exception e) {
-			cleanEnclosure(enclosureId);
+			LOGGER.error("Error while uploading enclosure" + enclosureId + " : " + e.getMessage(), e);
+//			try {
+//				cleanEnclosure(enclosureId);
+//			} catch (Exception e1) {
+//				LOGGER.error("Error while cleanin after upload error : " + e.getMessage(), e);
+//			}
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
 		}
@@ -295,7 +308,7 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.LIMT_SIZE_ERROR.getValue());
 		}
 		try {
-			LOGGER.info("limit enclosure size is < upload limit size: {}", uploadLimitSize);
+			LOGGER.debug("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
 			if (metadata.getPassword() == null) {
 				LOGGER.info("password is null");
@@ -305,31 +318,31 @@ public class UploadServices {
 				String passwordHashed = base64CryptoService.aesEncrypt(metadata.getPassword().trim());
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(false);
-				LOGGER.info("calculate pasword hashed ******");
+				LOGGER.debug("calculate pasword hashed ******");
 			} else {
 				LOGGER.info("No password generating new one");
 				String generatedPassword = base64CryptoService.generatePassword(0);
-				LOGGER.info("Hashing generated password");
+				LOGGER.debug("Hashing generated password");
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(true);
 			}
-			LOGGER.info("create enclosure metadata in redis ");
+			LOGGER.debug("create enclosure metadata in redis ");
 			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
-			LOGGER.info("get expiration date and enclosure id back ");
+			LOGGER.debug("get expiration date and enclosure id back ");
 			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_GUID_KEY);
 			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_EXPIRATION_DATE_KEY);
-			LOGGER.info("update list date-enclosure in redis ");
+			LOGGER.debug("update list date-enclosure in redis ");
 			RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
-			LOGGER.info("create sender metadata in redis");
+			LOGGER.debug("create sender metadata in redis");
 			String senderId = RedisForUploadUtils.createHashSender(redisManager, metadata, enclosureId);
-			LOGGER.info("create all recipients metadata in redis ");
+			LOGGER.debug("create all recipients metadata in redis ");
 			RedisForUploadUtils.createAllRecipient(redisManager, metadata, enclosureId);
-			LOGGER.info("create root-files metadata in redis ");
+			LOGGER.debug("create root-files metadata in redis ");
 			RedisForUploadUtils.createRootFiles(redisManager, metadata, enclosureId);
-			LOGGER.info("create root-dirs metadata in redis ");
+			LOGGER.debug("create root-dirs metadata in redis ");
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
-			LOGGER.info("create contents-files-ids metadata in redis ");
+			LOGGER.debug("create contents-files-ids metadata in redis ");
 			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
 			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
@@ -365,7 +378,7 @@ public class UploadServices {
 		} else {
 			throw new UploadException("Invalid token");
 		}
-		LOGGER.info("Valid token for sender mail {}", senderMail);
+		LOGGER.debug("Valid token for sender mail {}", senderMail);
 	}
 
 	private boolean generateCode(String senderMail, String token) {
@@ -419,7 +432,20 @@ public class UploadServices {
 			}
 			return false;
 		});
+
 		return isValid;
+	}
+
+	public Boolean allowedSendermail(String senderMail) {
+		if (!stringUploadUtils.isValidEmailIgni(senderMail)) {
+			Long nbUpload = numberTokensOfTheDay(senderMail);
+			LOGGER.debug("Upload for user {} = {}", senderMail, nbUpload);
+			if (nbUpload >= maxUpload) {
+				return false;
+			}
+			return true;
+		}
+		return true;
 	}
 
 	private List<FileRepresentation> getRootFiles(String enclosureId) {
@@ -489,4 +515,52 @@ public class UploadServices {
 		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
 		storageManager.deleteFilesWithPrefix(bucketName, prefix);
 	}
+
+	private Long numberTokensOfTheDay(String senderMail) {
+		Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+
+		Long number = setTokenInRedis.stream()
+				.filter(tokenRedis -> LocalDate.now().isEqual(UploadUtils.extractStartDateSenderToken(tokenRedis)))
+				.count();
+		return number;
+	}
+
+	/**
+	 *
+	 * @param metadata
+	 * @return
+	 */
+	public boolean senderContact(FormulaireContactData metadata) {
+		try {
+
+			if (null == metadata) {
+				String uuid = UUID.randomUUID().toString();
+				throw new UploadException("la formulaire est null", uuid);
+			}
+			checkNull(metadata);
+			String jsonInString = new Gson().toJson(metadata);
+			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
+			return true;
+		} catch (Exception e) {
+			String uuid = UUID.randomUUID().toString();
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+		}
+
+	}
+
+	public void checkNull(FormulaireContactData metadat) {
+		if (StringUtils.isBlank(metadat.getNom())) {
+			metadat.setNom("");
+		}
+		if (StringUtils.isBlank(metadat.getPrenom())) {
+			metadat.setPrenom("");
+		}
+		if (StringUtils.isBlank(metadat.getAdministration())) {
+			metadat.setAdministration("");
+		}
+		if (StringUtils.isBlank(metadat.getSubject())) {
+			metadat.setSubject("");
+		}
+	}
+
 }

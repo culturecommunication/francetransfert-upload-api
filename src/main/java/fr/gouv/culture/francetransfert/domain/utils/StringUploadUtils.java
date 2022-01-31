@@ -1,7 +1,9 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -9,8 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.RedisManager;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 
 /**
  * StringUtils class Utily class to manipulate Strings
@@ -199,4 +201,6 @@ public class StringUploadUtils {
 	public String getEmailDomain(String emailAddress) {
 		return Optional.of(emailAddress.substring(emailAddress.indexOf("@") + 1).toLowerCase()).orElse(null);
 	}
+
+
 }

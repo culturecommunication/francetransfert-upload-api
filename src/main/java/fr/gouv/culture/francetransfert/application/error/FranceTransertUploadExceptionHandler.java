@@ -26,15 +26,16 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.BusinessDomainException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.FlowChunkNotExistException;
+import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.utils.RedisUtils;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 /**
@@ -103,7 +104,10 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 	@ExceptionHandler(ExtensionNotFoundException.class)
 	public ResponseEntity<Object> handleExtensionNotFoundException(Exception ex) {
 		LOG.error("Handle error ExtensionNotFoundException : " + ex.getMessage(), ex);
-		return generateError(ex, ErrorEnum.TECHNICAL_ERROR.getValue());
+		String errorId = RedisUtils.generateGUID();
+		return new ResponseEntity<>(
+				new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorEnum.TECHNICAL_ERROR.getValue(), errorId),
+				HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
 	@ExceptionHandler(FlowChunkNotExistException.class)
@@ -201,6 +205,14 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 	@ExceptionHandler(MaxTryException.class)
 	public ResponseEntity<Object> handleMaxTryException(MaxTryException ex) {
 		LOG.error("Handle error type MaxTryException : " + ex.getMessage(), ex);
+		LOG.error("message: {}", ex.getMessage(), ex);
+		return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), "", ex.getMessage()),
+				HttpStatus.UNAUTHORIZED);
+	}
+
+	@ExceptionHandler(InvalidCaptchaException.class)
+	public ResponseEntity<Object> InvalidCaptchaException(InvalidCaptchaException ex) {
+		LOG.error("Handle error type InvalidCaptchaException : " + ex.getMessage(), ex);
 		LOG.error("message: {}", ex.getMessage(), ex);
 		return new ResponseEntity<>(new ApiError(HttpStatus.UNAUTHORIZED.value(), "", ex.getMessage()),
 				HttpStatus.UNAUTHORIZED);

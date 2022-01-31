@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import fr.gouv.culture.francetransfert.application.resources.model.ConfigRepresentation;
-import fr.gouv.culture.francetransfert.francetransfert_metaload_api.MimeService;
+import fr.gouv.culture.francetransfert.core.services.MimeService;
 
 @Service
 public class ConfigService {
