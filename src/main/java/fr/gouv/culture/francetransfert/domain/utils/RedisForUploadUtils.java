@@ -148,6 +148,33 @@ public class RedisForUploadUtils {
 		}
 	}
 
+	public static String createNewRecipient(RedisManager redisManager, String email,
+										  String enclosureId) {
+		try {
+
+				if (StringUtils.isBlank(email)) {
+					throw new UploadException("Empty recipient", enclosureId);
+				}
+				Map<String, String> mapRecipients = new HashMap<>();
+
+					String guidRecipient = RedisUtils.generateGUID();
+					mapRecipients.put(email, guidRecipient);
+					// idRecepient => HASH { nbDl: "0" }
+					Map<String, String> mapRecipient = new HashMap<>();
+					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
+					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
+					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
+					LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
+				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
+				// idRecepient>
+				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
+				return guidRecipient;
+		} catch (Exception e) {
+			throw new UploadException("Error creating recipient : " + e.getMessage(), enclosureId, e);
+		}
+	}
+
+
 	public static void createRootFiles(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
 		try {

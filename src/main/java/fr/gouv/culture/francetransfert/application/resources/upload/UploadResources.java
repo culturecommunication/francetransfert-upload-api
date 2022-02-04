@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+import fr.gouv.culture.francetransfert.application.resources.model.*;
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,6 +174,17 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
+
+	@PostMapping("/add-recipient")
+	@Operation(method = "POST", description = "add a new recipient")
+	public boolean addRecipient(HttpServletResponse response, @RequestBody AddNewRecipientRequest addNewRecipientRequest) throws UnauthorizedAccessException, MetaloadException {
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
+		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),addNewRecipientRequest.getNewRecipient());
+		response.setStatus(HttpStatus.OK.value());
+		return res;
+	}
+
+
 
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "Rates the app on a scvale of 1 to 4")

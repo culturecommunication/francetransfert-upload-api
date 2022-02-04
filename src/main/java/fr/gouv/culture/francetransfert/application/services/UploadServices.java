@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import fr.gouv.culture.francetransfert.core.enums.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -29,12 +30,6 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
@@ -285,6 +280,11 @@ public class UploadServices {
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+			List<String> recipientsMails = new ArrayList<>();
+			for (Map.Entry<String, String> recipient : RedisUtils.getRecipientsEnclosure(redisManager, enclosureId)
+					.entrySet()) {
+				recipientsMails.add(recipient.getKey());
+			}
 			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
 			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
 			Map<String, String> enclosureMap = redisManager
@@ -295,12 +295,34 @@ public class UploadServices {
 			if (StringUtils.isNotBlank(downString)) {
 				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
 			}
-			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail)
+			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
 					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
 			throw new UploadException(
 					ErrorEnum.TECHNICAL_ERROR.getValue() + " while getting plisInfo : " + e.getMessage(), enclosureId,
+					e);
+		}
+	}
+
+	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) throws MetaloadException{
+		// validate Enclosure download right
+		//LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
+		try {
+			LOGGER.debug("create new recipient ");
+			/*FranceTransfertDataRepresentation metadata = new FranceTransfertDataRepresentation();
+			List<String> recipientEmails = new ArrayList<>();
+			recipientEmails.add(email);
+			metadata.setRecipientEmails(recipientEmails);
+			metadata.setPublicLink(false);*/
+			String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
+			redisManager.publishFT(RedisQueueEnum.MAIL_QUEUE.getValue(), enclosureId);
+			redisManager.publishFT(RedisQueueEnum.NEW_RECIPIENT.getValue(),email);
+			redisManager.publishFT(RedisQueueEnum.NEW_ID_RECIPIENT.getValue(),idRecipient);
+			return true;
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while adding new recipient : " + e.getMessage(), enclosureId,
 					e);
 		}
 	}
