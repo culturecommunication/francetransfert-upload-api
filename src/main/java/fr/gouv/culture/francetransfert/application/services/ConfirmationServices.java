@@ -105,7 +105,7 @@ public class ConfirmationServices {
 			tryCount = Integer.parseInt(
 					redisManager.getString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail))));
 		} catch (Exception e) {
-			throw new DomainNotFoundException(senderMail.getClass(), null);
+			throw new DomainNotFoundException("Code Invalid : " + senderMail, e);
 		}
 
 		// Si try > au maxTry on delete le code de confirmation
