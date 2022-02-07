@@ -8,8 +8,8 @@ public class DomainNotFoundException extends RuntimeException {
 	 * @param domain domain class example Parameter
 	 * @param id     id of the domain
 	 */
-	public DomainNotFoundException(Class domain, Long id) {
-		super(domain.getSimpleName() + " id not found : " + id);
+	public DomainNotFoundException(String message, Throwable ex) {
+		super(message, ex);
 	}
 
 }
