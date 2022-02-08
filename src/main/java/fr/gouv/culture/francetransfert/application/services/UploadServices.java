@@ -45,6 +45,7 @@ import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
 import fr.gouv.culture.francetransfert.core.utils.DateUtils;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
@@ -94,6 +95,9 @@ public class UploadServices {
 
 	@Autowired
 	private MimeService mimeService;
+
+	@Autowired
+	private CaptchaService captchaService;
 
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
@@ -531,21 +535,15 @@ public class UploadServices {
 	 * @return
 	 */
 	public boolean senderContact(FormulaireContactData metadata) {
-		try {
 
-			if (null == metadata) {
-				String uuid = UUID.randomUUID().toString();
-				throw new UploadException("la formulaire est null", uuid);
-			}
-			checkNull(metadata);
-			String jsonInString = new Gson().toJson(metadata);
-			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
-			return true;
-		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+		if (!captchaService.checkCaptcha(metadata.getChallengeId(), metadata.getUserResponse(),
+				metadata.getCaptchaType())) {
+			throw new InvalidCaptchaException("Captcha incorrect");
 		}
-
+		checkNull(metadata);
+		String jsonInString = new Gson().toJson(metadata);
+		redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
+		return true;
 	}
 
 	public void checkNull(FormulaireContactData metadat) {
