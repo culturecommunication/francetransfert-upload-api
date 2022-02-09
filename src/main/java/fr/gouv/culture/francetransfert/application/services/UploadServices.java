@@ -281,9 +281,14 @@ public class UploadServices {
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
 			List<String> recipientsMails = new ArrayList<>();
+			List<String> deletedRecipients = new ArrayList<>();
 			for (Map.Entry<String, String> recipient : RedisUtils.getRecipientsEnclosure(redisManager, enclosureId)
 					.entrySet()) {
-				recipientsMails.add(recipient.getKey());
+				if(buildRecipient(recipient.getKey(),enclosureId)){
+					deletedRecipients.add(recipient.getKey());
+				}else{
+					recipientsMails.add(recipient.getKey());
+				}
 			}
 			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
 			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
@@ -296,7 +301,7 @@ public class UploadServices {
 				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
 			}
 			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
-					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
+					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
 					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
 			throw new UploadException(
@@ -305,18 +310,21 @@ public class UploadServices {
 		}
 	}
 
-	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) throws MetaloadException{
-		// validate Enclosure download right
-		//LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
+	public Boolean buildRecipient(String email,String enclosureId) throws MetaloadException {
+		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+		Map<String, String> recipientMap = redisManager
+				.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+		if(Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1){
+			return true;
+		}
+		return  false;
+	}
+
+	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {
 		try {
 			LOGGER.debug("create new recipient ");
-			/*FranceTransfertDataRepresentation metadata = new FranceTransfertDataRepresentation();
-			List<String> recipientEmails = new ArrayList<>();
-			recipientEmails.add(email);
-			metadata.setRecipientEmails(recipientEmails);
-			metadata.setPublicLink(false);*/
 			String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
-			redisManager.publishFT(RedisQueueEnum.MAIL_QUEUE.getValue(), enclosureId);
+			redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), enclosureId);
 			redisManager.publishFT(RedisQueueEnum.NEW_RECIPIENT.getValue(),email);
 			redisManager.publishFT(RedisQueueEnum.NEW_ID_RECIPIENT.getValue(),idRecipient);
 			return true;
@@ -325,6 +333,24 @@ public class UploadServices {
 					ErrorEnum.TECHNICAL_ERROR.getValue() + " while adding new recipient : " + e.getMessage(), enclosureId,
 					e);
 		}
+	}
+	public boolean logicDeleteRecipient(String enclosureId, String email) throws MetaloadException {
+		try {
+			LOGGER.debug("delete recipient");
+			String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+			Map<String, String> recipientMap = redisManager
+					.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+
+			recipientMap.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "1");
+			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId), recipientMap);
+			return true;
+
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while deleting recipient : " + e.getMessage(), email,
+					e);
+		}
+
 	}
 
 	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata) {

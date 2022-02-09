@@ -136,6 +136,7 @@ public class RedisForUploadUtils {
 					Map<String, String> mapRecipient = new HashMap<>();
 					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
 					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
+					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(),"0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
 				});
@@ -163,6 +164,7 @@ public class RedisForUploadUtils {
 					Map<String, String> mapRecipient = new HashMap<>();
 					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
 					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
+					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(),"0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
 				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,

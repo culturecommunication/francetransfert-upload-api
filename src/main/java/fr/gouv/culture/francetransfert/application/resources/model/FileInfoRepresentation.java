@@ -14,6 +14,7 @@ public class FileInfoRepresentation {
     private LocalDate validUntilDate;
     private String senderEmail;
     private List<String> recipientsMails;
+    private List<String> deletedRecipients;
     private String message;
     private String timestamp;
     private List<FileRepresentation> rootFiles;
