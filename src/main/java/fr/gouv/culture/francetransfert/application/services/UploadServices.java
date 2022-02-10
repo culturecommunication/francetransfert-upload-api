@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import fr.gouv.culture.francetransfert.core.enums.*;
+import fr.gouv.culture.francetransfert.core.model.NewRecipient;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -334,10 +335,13 @@ public class UploadServices {
 				recipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
 				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId), recipient);
 			}else{
-			String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
-			redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), enclosureId);
-			redisManager.publishFT(RedisQueueEnum.NEW_RECIPIENT.getValue(),email);
-			redisManager.publishFT(RedisQueueEnum.NEW_ID_RECIPIENT.getValue(),idRecipient);
+				NewRecipient rec = new NewRecipient();
+				String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
+				rec.setMail(email);
+				rec.setId(idRecipient);
+				rec.setIdEnclosure(enclosureId);
+				String recJsonInString = new Gson().toJson(rec);
+				redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), recJsonInString);
 			}
 			return true;
 		} catch (Exception e) {

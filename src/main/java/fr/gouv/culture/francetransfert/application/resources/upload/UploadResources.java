@@ -96,6 +96,7 @@ public class UploadResources {
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
 		response.setStatus(HttpStatus.OK.value());
+
 	}
 
 	@PostMapping("/sender-info")
