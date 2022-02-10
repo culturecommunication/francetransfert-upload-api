@@ -93,10 +93,9 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		/*uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
+		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
-		response.setStatus(HttpStatus.OK.value());*/
-		throw new UploadException("Chunk doest not exist : " );
+		response.setStatus(HttpStatus.OK.value());
 	}
 
 	@PostMapping("/sender-info")

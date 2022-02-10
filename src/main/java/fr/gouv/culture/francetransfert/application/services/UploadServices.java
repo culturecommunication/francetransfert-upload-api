@@ -323,10 +323,22 @@ public class UploadServices {
 	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {
 		try {
 			LOGGER.debug("create new recipient ");
+			Map<String, String> recipientMap = RedisUtils.getRecipientsEnclosure(redisManager,enclosureId);
+			boolean emailExist = recipientMap.containsKey(email);
+			if(emailExist){
+				String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+				String id = recipientMap.get(email);
+				Map<String, String> recipient = redisManager
+						.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+
+				recipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
+				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId), recipient);
+			}else{
 			String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
 			redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), enclosureId);
 			redisManager.publishFT(RedisQueueEnum.NEW_RECIPIENT.getValue(),email);
 			redisManager.publishFT(RedisQueueEnum.NEW_ID_RECIPIENT.getValue(),idRecipient);
+			}
 			return true;
 		} catch (Exception e) {
 			throw new UploadException(
