@@ -246,7 +246,7 @@ public class UploadServices {
 			 * en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur
 			 * s’affiche.
 			 **/
-			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
+			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
@@ -451,6 +451,7 @@ public class UploadServices {
 
 	private boolean generateCode(String senderMail, String token) {
 		try {
+			senderMail = senderMail.toLowerCase();
 			boolean result = false;
 			// verify token in redis
 			if (!StringUtils.isEmpty(token)) {

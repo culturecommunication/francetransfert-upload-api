@@ -38,7 +38,7 @@ public class ConfirmationCodeResources {
 	public void generateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
 			throws UploadException {
 		try {
-			confirmationServices.generateCodeConfirmation(senderMail);
+			confirmationServices.generateCodeConfirmation(senderMail.toLowerCase());
 			response.setStatus(HttpStatus.OK.value());
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();

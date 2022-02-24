@@ -93,8 +93,8 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
-				senderToken);
+		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
+				senderId, senderToken);
 		response.setStatus(HttpStatus.OK.value());
 
 	}
@@ -158,8 +158,8 @@ public class UploadResources {
 		EnclosureRepresentation enclosureRepresentation = null;
 		LOGGER.info("start validate confirmation code : " + code);
 		code = code.trim();
-		String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
-				code);
+		String cookieTocken = confirmationServices
+				.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail().toLowerCase(), code);
 		metadata.setConfirmedSenderId(metadata.getSenderId());
 		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
 		enclosureRepresentation.setSenderToken(cookieTocken);
