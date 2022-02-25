@@ -1,5 +1,6 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.client.RedisTryAgainException;
 import org.slf4j.Logger;
@@ -81,7 +83,8 @@ public class RedisForUploadUtils {
 			} else {
 				map.put(EnclosureKeysEnum.SUBJECT.getKey(), "");
 			}
-
+			LOGGER.debug("hashFile null for now : {}");
+			map.put(EnclosureKeysEnum.HASH_FILE.getKey(),"");
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");
@@ -94,6 +97,8 @@ public class RedisForUploadUtils {
 			throw new UploadException("Error inserting metadata : " + e.getMessage(), e);
 		}
 	}
+
+
 
 	public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
