@@ -96,7 +96,7 @@ public class UploadResources {
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
 				senderId, senderToken);
 		response.setStatus(HttpStatus.OK.value());
-
+		//throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while checking mail creating meta : ");
 	}
 
 	@PostMapping("/sender-info")
