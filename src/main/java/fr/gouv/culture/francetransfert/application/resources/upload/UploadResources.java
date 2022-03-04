@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.application.resources.model.*;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,7 @@ import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import fr.gouv.culture.francetransfert.core.model.RateRepresentation;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
@@ -90,9 +93,10 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
-				senderToken);
+		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
+				senderId, senderToken);
 		response.setStatus(HttpStatus.OK.value());
+
 	}
 
 	@PostMapping("/sender-info")
@@ -111,7 +115,7 @@ public class UploadResources {
 	@PostMapping("/sender-contact")
 	@Operation(method = "POST", description = "sender contact")
 	public boolean senderContact(HttpServletRequest request, HttpServletResponse response,
-											  @RequestBody FormulaireContactData metadata) {
+			@Valid @RequestBody FormulaireContactData metadata) {
 		LOGGER.info("start sending message ");
 		boolean formulaire = uploadServices.senderContact(metadata);
 		response.setStatus(HttpStatus.OK.value());
@@ -154,8 +158,8 @@ public class UploadResources {
 		EnclosureRepresentation enclosureRepresentation = null;
 		LOGGER.info("start validate confirmation code : " + code);
 		code = code.trim();
-		String cookieTocken = confirmationServices.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail(),
-				code);
+		String cookieTocken = confirmationServices
+				.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail().toLowerCase(), code);
 		metadata.setConfirmedSenderId(metadata.getSenderId());
 		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
 		enclosureRepresentation.setSenderToken(cookieTocken);
@@ -172,6 +176,25 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
+
+	@PostMapping("/add-recipient")
+	@Operation(method = "POST", description = "add a new recipient")
+	public boolean addRecipient(HttpServletResponse response, @RequestBody AddNewRecipientRequest addNewRecipientRequest) throws UnauthorizedAccessException , MetaloadException {
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
+		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),addNewRecipientRequest.getNewRecipient());
+		response.setStatus(HttpStatus.OK.value());
+		return res;
+	}
+
+	@PostMapping("/delete-recipient")
+	@Operation(method = "POST", description = "delete recipient")
+	public boolean deleteRecipient(HttpServletResponse response, @RequestBody AddNewRecipientRequest addNewRecipientRequest) throws UnauthorizedAccessException, MetaloadException {
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
+		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),addNewRecipientRequest.getNewRecipient());
+		response.setStatus(HttpStatus.OK.value());
+		return res;
+	}
+
 
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "Rates the app on a scvale of 1 to 4")

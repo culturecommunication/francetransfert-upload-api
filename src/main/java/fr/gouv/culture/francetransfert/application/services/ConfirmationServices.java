@@ -1,6 +1,8 @@
 package fr.gouv.culture.francetransfert.application.services;
 
-import java.time.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -50,7 +52,7 @@ public class ConfirmationServices {
 		// enclosure with code)
 		senderMail = senderMail.toLowerCase();
 		if (null == redisManager
-				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)))) {
+				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
 
 			// insert confirmation code in REDIS
@@ -82,8 +84,8 @@ public class ConfirmationServices {
 			 * [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]
 			 */
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)));
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
+			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
 			int dayInSecond = daysToExpiretokenSender * 86400;
 			redisManager.expire(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), dayInSecond);
@@ -99,7 +101,7 @@ public class ConfirmationServices {
 	public void validateCodeConfirmation(String senderMail, String code) {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
-				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
+				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
 		int tryCount = 0;
 		try {
 			tryCount = Integer.parseInt(
