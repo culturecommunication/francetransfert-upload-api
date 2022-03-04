@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import fr.gouv.culture.francetransfert.core.enums.*;
+import fr.gouv.culture.francetransfert.core.model.NewRecipient;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -29,12 +31,6 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
@@ -45,6 +41,7 @@ import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
 import fr.gouv.culture.francetransfert.core.utils.DateUtils;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
+import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
@@ -94,6 +91,9 @@ public class UploadServices {
 
 	@Autowired
 	private MimeService mimeService;
+
+	@Autowired
+	private CaptchaService captchaService;
 
 	public DeleteRepresentation deleteFile(String enclosureId, String token) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
@@ -246,7 +246,7 @@ public class UploadServices {
 			 * en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur
 			 * s’affiche.
 			 **/
-			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail());
+			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
@@ -281,6 +281,16 @@ public class UploadServices {
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+			List<String> recipientsMails = new ArrayList<>();
+			List<String> deletedRecipients = new ArrayList<>();
+			for (Map.Entry<String, String> recipient : RedisUtils.getRecipientsEnclosure(redisManager, enclosureId)
+					.entrySet()) {
+				if(buildRecipient(recipient.getKey(),enclosureId)){
+					deletedRecipients.add(recipient.getKey());
+				}else{
+					recipientsMails.add(recipient.getKey());
+				}
+			}
 			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
 			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
 			Map<String, String> enclosureMap = redisManager
@@ -291,14 +301,72 @@ public class UploadServices {
 			if (StringUtils.isNotBlank(downString)) {
 				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
 			}
-			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail)
-					.message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
+			return FileInfoRepresentation.builder().validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
+					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs).timestamp(timestamp)
 					.downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis)).build();
 		} catch (Exception e) {
 			throw new UploadException(
 					ErrorEnum.TECHNICAL_ERROR.getValue() + " while getting plisInfo : " + e.getMessage(), enclosureId,
 					e);
 		}
+	}
+
+	public Boolean buildRecipient(String email,String enclosureId) throws MetaloadException {
+		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+		Map<String, String> recipientMap = redisManager
+				.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+		if(Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1){
+			return true;
+		}
+		return  false;
+	}
+
+	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {
+		try {
+			LOGGER.debug("create new recipient ");
+			Map<String, String> recipientMap = RedisUtils.getRecipientsEnclosure(redisManager,enclosureId);
+			boolean emailExist = recipientMap.containsKey(email);
+			if(emailExist){
+				String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+				String id = recipientMap.get(email);
+				Map<String, String> recipient = redisManager
+						.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+
+				recipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
+				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId), recipient);
+			}else{
+				NewRecipient rec = new NewRecipient();
+				String idRecipient = RedisForUploadUtils.createNewRecipient(redisManager, email, enclosureId);
+				rec.setMail(email);
+				rec.setId(idRecipient);
+				rec.setIdEnclosure(enclosureId);
+				String recJsonInString = new Gson().toJson(rec);
+				redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), recJsonInString);
+			}
+			return true;
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while adding new recipient : " + e.getMessage(), enclosureId,
+					e);
+		}
+	}
+	public boolean logicDeleteRecipient(String enclosureId, String email) throws MetaloadException {
+		try {
+			LOGGER.debug("delete recipient");
+			String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+			Map<String, String> recipientMap = redisManager
+					.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+
+			recipientMap.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "1");
+			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId), recipientMap);
+			return true;
+
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while deleting recipient : " + e.getMessage(), email,
+					e);
+		}
+
 	}
 
 	private EnclosureRepresentation createMetaDataEnclosureInRedis(FranceTransfertDataRepresentation metadata) {
@@ -383,6 +451,7 @@ public class UploadServices {
 
 	private boolean generateCode(String senderMail, String token) {
 		try {
+			senderMail = senderMail.toLowerCase();
 			boolean result = false;
 			// verify token in redis
 			if (!StringUtils.isEmpty(token)) {
@@ -531,21 +600,15 @@ public class UploadServices {
 	 * @return
 	 */
 	public boolean senderContact(FormulaireContactData metadata) {
-		try {
 
-			if (null == metadata) {
-				String uuid = UUID.randomUUID().toString();
-				throw new UploadException("la formulaire est null", uuid);
-			}
-			checkNull(metadata);
-			String jsonInString = new Gson().toJson(metadata);
-			redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
-			return true;
-		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue(), uuid, e);
+		if (!captchaService.checkCaptcha(metadata.getChallengeId(), metadata.getUserResponse(),
+				metadata.getCaptchaType())) {
+			throw new InvalidCaptchaException("Captcha incorrect");
 		}
-
+		checkNull(metadata);
+		String jsonInString = new Gson().toJson(metadata);
+		redisManager.publishFT(RedisQueueEnum.FORMULE_CONTACT_QUEUE.getValue(), jsonInString);
+		return true;
 	}
 
 	public void checkNull(FormulaireContactData metadat) {
