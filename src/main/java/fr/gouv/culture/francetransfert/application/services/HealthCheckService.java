@@ -76,12 +76,13 @@ public class HealthCheckService {
 	}
 
 	private boolean checkMail() throws Exception {
-		Socket s = new Socket();
-		s.setReuseAddress(true);
-		SocketAddress sa = new InetSocketAddress(smtpHost, smtpPort);
-		s.connect(sa, 5000);
-		s.close();
-		return true;
+		try (Socket s = new Socket()) {
+			s.setReuseAddress(true);
+			SocketAddress sa = new InetSocketAddress(smtpHost, smtpPort);
+			s.connect(sa, 5000);
+			s.close();
+			return true;
+		}
 	}
 
 }
