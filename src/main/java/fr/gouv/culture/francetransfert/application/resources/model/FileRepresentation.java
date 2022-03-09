@@ -1,9 +1,11 @@
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import lombok.*;
-
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -12,9 +14,8 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class FileRepresentation extends DataRepresentation {
 
-    @NotBlank
-    private String fid;
+	@NotBlank
+	private String fid;
 
-    @Min(1)
-    private long size;
+	private long size;
 }
