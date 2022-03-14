@@ -290,6 +290,8 @@ public class UploadServices {
 		try {
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.PASSWORD.getKey());
+			boolean withPassword = !StringUtils.isEmpty(passwordRedis);
+			passwordRedis = "";
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
@@ -316,9 +318,7 @@ public class UploadServices {
 			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
-					.timestamp(timestamp).downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis))
-					.build();
-			passwordRedis = "";
+					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword).build();
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
