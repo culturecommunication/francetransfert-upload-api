@@ -52,7 +52,6 @@ import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
 import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
-import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
 
 @Service
 public class UploadServices {
@@ -212,6 +211,7 @@ public class UploadServices {
 							uploadFilesCounter);
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
+						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				}
@@ -573,11 +573,11 @@ public class UploadServices {
 	}
 
 	private Long numberTokensOfTheDay(String senderMail) {
-		Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-		Long number = setTokenInRedis.stream()
-				.filter(tokenRedis -> LocalDate.now().isEqual(UploadUtils.extractStartDateSenderToken(tokenRedis)))
-				.count();
-		return number;
+		Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_SENDER_PLIS.getKey(senderMail));
+		if (CollectionUtils.isNotEmpty(setTokenInRedis)) {
+			return setTokenInRedis.stream().count();
+		}
+		return 0L;
 	}
 
 	/**
