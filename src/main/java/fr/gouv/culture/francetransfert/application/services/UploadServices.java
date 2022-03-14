@@ -83,6 +83,9 @@ public class UploadServices {
 	@Value("${upload.limit.senderMail}")
 	private Long maxUpload;
 
+	@Value("${upload.token.chunkModulo:20}")
+	private int chunkModulo;
+
 	@Autowired
 	private ConfirmationServices confirmationServices;
 
@@ -161,6 +164,9 @@ public class UploadServices {
 		try {
 
 			confirmationServices.validateToken(senderId, senderToken);
+			if ((flowChunkNumber % chunkModulo) == 0) {
+				confirmationServices.extendTokenValidity(senderId, senderToken);
+			}
 
 			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
 				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
@@ -440,15 +446,11 @@ public class UploadServices {
 			boolean result = false;
 			// verify token in redis
 			if (!StringUtils.isEmpty(token)) {
-				LOGGER.info("verify token in redis");
-				Set<String> setTokenInRedis = redisManager
-						.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-				LOGGER.info("extract all Token sender from redis");
-				boolean tokenExistInRedis = setTokenInRedis.stream()
-						.anyMatch(tokenRedis -> LocalDate.now().minusDays(1).isBefore(
-								UploadUtils.extractStartDateSenderToken(tokenRedis).plusDays(daysToExpiretokenSender))
-								&& tokenRedis.equals(token));
-				if (!tokenExistInRedis) {
+				try {
+					LOGGER.info("verify token in redis");
+					confirmationServices.validateToken(senderMail, token);
+					confirmationServices.extendTokenValidity(senderMail, token);
+				} catch (UploadException e) {
 					confirmationServices.generateCodeConfirmation(senderMail);
 					result = true;
 					LOGGER.info("generate confirmation code for sender mail {}", senderMail);
