@@ -8,9 +8,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
-import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
-import fr.gouv.culture.francetransfert.application.resources.model.*;
-import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
+import fr.gouv.culture.francetransfert.application.resources.model.AddNewRecipientRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.ConfigRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DateUpdateRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
@@ -93,10 +91,11 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
-				senderId, senderToken);
+		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
+				senderToken);
 		response.setStatus(HttpStatus.OK.value());
-		//throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while checking mail creating meta : ");
+		// throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while
+		// checking mail creating meta : ");
 	}
 
 	@PostMapping("/sender-info")
@@ -151,7 +150,7 @@ public class UploadResources {
 	}
 
 	@PostMapping("/validate-code")
-	@Operation(method = "POST", description = "Validate code  ")
+	@Operation(method = "POST", description = "Validate code")
 	public EnclosureRepresentation validateCode(HttpServletRequest request, HttpServletResponse response,
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code,
 			@Valid @EmailsFranceTransfert @RequestBody FranceTransfertDataRepresentation metadata) {
@@ -179,22 +178,27 @@ public class UploadResources {
 
 	@PostMapping("/add-recipient")
 	@Operation(method = "POST", description = "add a new recipient")
-	public boolean addRecipient(HttpServletResponse response, @RequestBody AddNewRecipientRequest addNewRecipientRequest) throws UnauthorizedAccessException , MetaloadException {
+	public boolean addRecipient(HttpServletResponse response,
+			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
+			throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
-		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),addNewRecipientRequest.getNewRecipient());
+		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
 		return res;
 	}
 
 	@PostMapping("/delete-recipient")
 	@Operation(method = "POST", description = "delete recipient")
-	public boolean deleteRecipient(HttpServletResponse response, @RequestBody AddNewRecipientRequest addNewRecipientRequest) throws UnauthorizedAccessException, MetaloadException {
+	public boolean deleteRecipient(HttpServletResponse response,
+			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
+			throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
-		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),addNewRecipientRequest.getNewRecipient());
+		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
 		return res;
 	}
-
 
 	@RequestMapping(value = "/satisfaction", method = RequestMethod.POST)
 	@Operation(method = "POST", description = "Rates the app on a scvale of 1 to 4")

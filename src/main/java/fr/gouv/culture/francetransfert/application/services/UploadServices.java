@@ -160,7 +160,7 @@ public class UploadServices {
 
 		try {
 
-			validateToken(senderId, senderToken);
+			confirmationServices.validateToken(senderId, senderToken);
 
 			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
 				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
@@ -434,32 +434,6 @@ public class UploadServices {
 		}
 	}
 
-	private void validateToken(String senderMail, String token) {
-		// verify token in redis
-		if (token != null && !token.equalsIgnoreCase("unknown")) {
-			boolean tokenExistInRedis;
-			try {
-				Set<String> setTokenInRedis = redisManager
-						.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-				tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> {
-					return LocalDate.now().isBefore(
-							UploadUtils.extractStartDateSenderToken(tokenRedis).plusDays(daysToExpiretokenSender))
-							&& tokenRedis.equals(token);
-				});
-			} catch (Exception e) {
-				String uuid = UUID.randomUUID().toString();
-				throw new UploadException(
-						ErrorEnum.TECHNICAL_ERROR.getValue() + " validating token : " + e.getMessage(), uuid, e);
-			}
-			if (!tokenExistInRedis) {
-				throw new UploadException("Invalid token: token does not exist in redis");
-			}
-		} else {
-			throw new UploadException("Invalid token");
-		}
-		LOGGER.debug("Valid token for sender mail {}", senderMail);
-	}
-
 	private boolean generateCode(String senderMail, String token) {
 		try {
 			senderMail = senderMail.toLowerCase();
@@ -598,7 +572,6 @@ public class UploadServices {
 
 	private Long numberTokensOfTheDay(String senderMail) {
 		Set<String> setTokenInRedis = redisManager.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
-
 		Long number = setTokenInRedis.stream()
 				.filter(tokenRedis -> LocalDate.now().isEqual(UploadUtils.extractStartDateSenderToken(tokenRedis)))
 				.count();

@@ -1,8 +1,10 @@
 package fr.gouv.culture.francetransfert.application.services;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -21,6 +23,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeExcepti
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
+import fr.gouv.culture.francetransfert.domain.utils.UploadUtils;
 
 @Service
 public class ConfirmationServices {
@@ -51,8 +54,8 @@ public class ConfirmationServices {
 		// confirmation code and insert in queue redis (send mail to the sender
 		// enclosure with code)
 		senderMail = senderMail.toLowerCase();
-		if (null == redisManager
-				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())))) {
+		if (null == redisManager.getString(
+				RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())))) {
 			String confirmationCode = RandomStringUtils.randomNumeric(lengthCode);
 
 			// insert confirmation code in REDIS
@@ -84,8 +87,10 @@ public class ConfirmationServices {
 			 * [e4cce869-6f3d-4e10-900a-74299602f460:2018-01-21T12:01:34.519, ..]
 			 */
 			String token = RedisUtils.generateGUID() + ":" + LocalDateTime.now().toString();
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
-			redisManager.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
+			redisManager.deleteKey(
+					RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
+			redisManager
+					.deleteKey(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));
 			redisManager.saddString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), token);
 			int dayInSecond = daysToExpiretokenSender * 86400;
 			redisManager.expire(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail), dayInSecond);
@@ -132,6 +137,32 @@ public class ConfirmationServices {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
 		}
+	}
+	
+	public void validateToken(String senderMail, String token) {
+		// verify token in redis
+		if (token != null && !token.equalsIgnoreCase("unknown")) {
+			boolean tokenExistInRedis;
+			try {
+				Set<String> setTokenInRedis = redisManager
+						.smembersString(RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail));
+				tokenExistInRedis = setTokenInRedis.stream().anyMatch(tokenRedis -> {
+					return LocalDate.now().isBefore(
+							UploadUtils.extractStartDateSenderToken(tokenRedis).plusDays(daysToExpiretokenSender))
+							&& tokenRedis.equals(token);
+				});
+			} catch (Exception e) {
+				String uuid = UUID.randomUUID().toString();
+				throw new UploadException(
+						ErrorEnum.TECHNICAL_ERROR.getValue() + " validating token : " + e.getMessage(), uuid, e);
+			}
+			if (!tokenExistInRedis) {
+				throw new UploadException("Invalid token: token does not exist in redis");
+			}
+		} else {
+			throw new UploadException("Invalid token");
+		}
+		LOGGER.debug("Valid token for sender mail {}", senderMail);
 	}
 
 	private void deleteConfirmationCode(String senderMail) {
