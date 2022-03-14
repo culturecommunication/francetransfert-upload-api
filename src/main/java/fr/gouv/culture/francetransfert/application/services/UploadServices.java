@@ -318,7 +318,7 @@ public class UploadServices {
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
 					.timestamp(timestamp).downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis))
 					.build();
-			passwordRedis = null;
+			passwordRedis = "";
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -402,7 +402,7 @@ public class UploadServices {
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(false);
 				LOGGER.debug("calculate pasword hashed ******");
-				passwordHashed = null;
+				passwordHashed = "";
 			} else {
 				LOGGER.info("No password generating new one");
 				String generatedPassword = base64CryptoService.generatePassword(0);
@@ -410,7 +410,7 @@ public class UploadServices {
 				String passwordHashed = base64CryptoService.aesEncrypt(generatedPassword.trim());
 				metadata.setPassword(passwordHashed);
 				metadata.setPasswordGenerated(true);
-				passwordHashed = null;
+				passwordHashed = "";
 			}
 			LOGGER.debug("create enclosure metadata in redis ");
 			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
