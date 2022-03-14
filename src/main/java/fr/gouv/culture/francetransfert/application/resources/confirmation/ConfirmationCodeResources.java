@@ -46,4 +46,18 @@ public class ConfirmationCodeResources {
 					uuid, e);
 		}
 	}
+
+	@GetMapping("/validate-code")
+	@Operation(method = "GET", description = "validate code")
+	public void validateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail,
+			@RequestParam("code") String code) throws UploadException {
+		try {
+			confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code);
+			response.setStatus(HttpStatus.OK.value());
+		} catch (Exception e) {
+			String uuid = UUID.randomUUID().toString();
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " validate code : " + e.getMessage(), uuid,
+					e);
+		}
+	}
 }
