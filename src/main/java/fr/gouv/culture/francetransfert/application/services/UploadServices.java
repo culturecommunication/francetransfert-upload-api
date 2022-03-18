@@ -220,7 +220,8 @@ public class UploadServices {
 		} catch (ExtensionNotFoundException e) {
 			throw e;
 		} catch (Exception e) {
-			LOGGER.error("Error while uploading enclosure" + enclosureId + " : " + e.getMessage(), e);
+			LOGGER.error("Error while uploading enclosure" + enclosureId + " for chunk " + flowChunkNumber
+					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
 //			try {
 //				cleanEnclosure(enclosureId);
 //			} catch (Exception e1) {
