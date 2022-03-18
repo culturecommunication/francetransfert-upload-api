@@ -72,7 +72,8 @@ public class ConfirmationServices {
 
 	}
 
-	public ValidateCodeResponse validateCodeConfirmationAndGenerateToken(String senderMail, String code) {
+	public ValidateCodeResponse validateCodeConfirmationAndGenerateToken(String senderMail, String code)
+			throws ConfirmationCodeException {
 		// validate confirmation code
 		validateCodeConfirmation(senderMail, code);
 		try {
@@ -102,7 +103,7 @@ public class ConfirmationServices {
 		}
 	}
 
-	public void validateCodeConfirmation(String senderMail, String code) {
+	public void validateCodeConfirmation(String senderMail, String code) throws ConfirmationCodeException {
 		LOGGER.info("verify validy confirmation code");
 		String redisCode = redisManager
 				.getString(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail.toLowerCase())));

@@ -182,7 +182,7 @@ public class UploadServices {
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
 			Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
 			String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
-			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1 || flowChunkNumber == 1) {
+			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
 				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
 				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
 			}
