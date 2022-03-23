@@ -11,9 +11,13 @@ public class HealthCheckRepresentation {
 	private boolean s3;
 	private boolean smtp;
 	private boolean config;
+	private String smtpUuid;
+	private int smtpDelay;
+	private int smtpPending;
+	private boolean smtpDelayOk;
 
-	public boolean isError() {
-		if (redis == false || s3 == false || smtp == false || config == false) {
+	public boolean isFtError() {
+		if (redis == false || s3 == false || smtp == false || config == false || smtpDelayOk == false) {
 			return true;
 		}
 		return false;
