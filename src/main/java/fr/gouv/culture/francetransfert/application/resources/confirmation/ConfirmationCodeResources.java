@@ -52,6 +52,6 @@ public class ConfirmationCodeResources {
 	@Operation(method = "GET", description = "validate code")
 	public ValidateCodeResponse validateCode(HttpServletResponse response,
 			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code) {
-		return confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code);
+		return confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code.trim());
 	}
 }
