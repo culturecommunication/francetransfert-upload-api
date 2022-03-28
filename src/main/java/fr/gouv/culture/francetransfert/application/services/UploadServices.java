@@ -430,7 +430,8 @@ public class UploadServices {
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
 			LOGGER.debug("create contents-files-ids metadata in redis ");
 			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
-			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
+			LOGGER.info("enclosure id : {} and the sender id : {} and senderMail : {}", enclosureId, senderId,
+					metadata.getSenderEmail());
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
 			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(expireDate)
