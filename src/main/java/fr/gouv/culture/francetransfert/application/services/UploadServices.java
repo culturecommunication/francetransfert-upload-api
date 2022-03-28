@@ -220,7 +220,8 @@ public class UploadServices {
 		} catch (ExtensionNotFoundException e) {
 			throw e;
 		} catch (Exception e) {
-			LOGGER.error("Error while uploading enclosure" + enclosureId + " : " + e.getMessage(), e);
+			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
+					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
 //			try {
 //				cleanEnclosure(enclosureId);
 //			} catch (Exception e1) {
@@ -290,6 +291,8 @@ public class UploadServices {
 		try {
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.PASSWORD.getKey());
+			boolean withPassword = !StringUtils.isEmpty(passwordRedis);
+			passwordRedis = "";
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
@@ -316,9 +319,7 @@ public class UploadServices {
 			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
-					.timestamp(timestamp).downloadCount(downloadCount).withPassword(!StringUtils.isEmpty(passwordRedis))
-					.build();
-			passwordRedis = "";
+					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword).build();
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -429,7 +430,8 @@ public class UploadServices {
 			RedisForUploadUtils.createRootDirs(redisManager, metadata, enclosureId);
 			LOGGER.debug("create contents-files-ids metadata in redis ");
 			RedisForUploadUtils.createContentFilesIds(redisManager, metadata, enclosureId);
-			LOGGER.info("enclosure id : {} and the sender id : {} ", enclosureId, senderId);
+			LOGGER.info("enclosure id : {} and the sender id : {} and senderMail : {}", enclosureId, senderId,
+					metadata.getSenderEmail());
 			RedisForUploadUtils.createDeleteToken(redisManager, enclosureId);
 
 			return EnclosureRepresentation.builder().enclosureId(enclosureId).senderId(senderId).expireDate(expireDate)

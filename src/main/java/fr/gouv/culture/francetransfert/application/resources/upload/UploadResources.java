@@ -158,7 +158,8 @@ public class UploadResources {
 		LOGGER.info("start validate confirmation code : " + code);
 		code = code.trim();
 		String cookieTocken = confirmationServices
-				.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail().toLowerCase(), code);
+				.validateCodeConfirmationAndGenerateToken(metadata.getSenderEmail().toLowerCase(), code)
+				.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
 		enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata, cookieTocken);
 		enclosureRepresentation.setSenderToken(cookieTocken);

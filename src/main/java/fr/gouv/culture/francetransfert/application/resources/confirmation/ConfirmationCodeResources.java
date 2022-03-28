@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,15 +50,8 @@ public class ConfirmationCodeResources {
 
 	@GetMapping("/validate-code")
 	@Operation(method = "GET", description = "validate code")
-	public void validateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail,
-			@RequestParam("code") String code) throws UploadException {
-		try {
-			confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code);
-			response.setStatus(HttpStatus.OK.value());
-		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " validate code : " + e.getMessage(), uuid,
-					e);
-		}
+	public ValidateCodeResponse validateCode(HttpServletResponse response,
+			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code) {
+		return confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code.trim());
 	}
 }

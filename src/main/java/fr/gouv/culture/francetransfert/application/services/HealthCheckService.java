@@ -3,6 +3,8 @@ package fr.gouv.culture.francetransfert.application.services;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import fr.gouv.culture.francetransfert.application.resources.model.HealthCheckRepresentation;
+import fr.gouv.culture.francetransfert.core.enums.CheckMailKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.services.StorageManager;
 
@@ -20,22 +24,25 @@ import fr.gouv.culture.francetransfert.core.services.StorageManager;
 public class HealthCheckService {
 
 	@Autowired
-	RestTemplate restTemplate;
+	private RestTemplate restTemplate;
 
 	@Autowired
-	RedisManager redisManager;
+	private RedisManager redisManager;
 
 	@Autowired
-	StorageManager storageManager;
+	private StorageManager storageManager;
 
 	@Value("${healthcheck.config.url:''}")
-	String configUrl;
+	private String configUrl;
 
 	@Value("${healthcheck.smtp.host:''}")
-	String smtpHost;
+	private String smtpHost;
 
 	@Value("${healthcheck.smtp.port:0}")
-	int smtpPort;
+	private int smtpPort;
+
+	@Value("${healthcheck.smtp.delay:300000}")
+	private int smtpAllowedDelay;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(HealthCheckService.class);
 
@@ -45,6 +52,10 @@ public class HealthCheckService {
 		boolean s3 = false;
 		boolean config = false;
 		boolean smtp = false;
+		boolean smtpDelayOk = false;
+		String smtpUuid = "";
+		int smtpDelay = -1;
+		int smtpPending = -1;
 
 		try {
 			redis = redisManager.ping().equalsIgnoreCase("PONG");
@@ -71,7 +82,20 @@ public class HealthCheckService {
 			LOGGER.error("Error while checking smtp", e);
 		}
 
-		return HealthCheckRepresentation.builder().smtp(smtp).s3(s3).redis(redis).config(config).build();
+		try {
+			Map<String, String> hashRedis = redisManager.hmgetAllString(RedisKeysEnum.CHECK_MAIL.getFirstKeyPart());
+			smtpUuid = hashRedis.getOrDefault(CheckMailKeysEnum.UUID.getKey(), "");
+			smtpPending = Integer.parseInt(hashRedis.getOrDefault(CheckMailKeysEnum.PENDING.getKey(), "-1"));
+			smtpDelay = Integer.parseInt(hashRedis.getOrDefault(CheckMailKeysEnum.DELAY.getKey(), "-1"));
+			if (smtpDelay < smtpAllowedDelay) {
+				smtpDelayOk = true;
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error while checking smtp delay", e);
+		}
+
+		return HealthCheckRepresentation.builder().smtp(smtp).s3(s3).redis(redis).config(config).smtpDelay(smtpDelay)
+				.smtpPending(smtpPending).smtpUuid(smtpUuid).smtpDelayOk(smtpDelayOk).build();
 
 	}
 
