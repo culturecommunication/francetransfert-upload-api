@@ -207,7 +207,9 @@ public class UploadServices {
 					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
-					confirmationServices.extendTokenValidity(senderId, senderToken);
+					if ((uploadFilesCounter % chunkModulo) == 0) {
+						confirmationServices.extendTokenValidity(senderId, senderToken);
+					}
 					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
 							uploadFilesCounter);
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
