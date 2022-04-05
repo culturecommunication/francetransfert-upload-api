@@ -39,7 +39,7 @@ public class HeathCheckResources {
 			throws UploadException {
 		if (apiKeyConfig.equals(apiKey)) {
 			HealthCheckRepresentation heathStatus = healthCheckService.healthCheck();
-			if (heathStatus.isError()) {
+			if (heathStatus.isFtError()) {
 				return new ResponseEntity<HealthCheckRepresentation>(heathStatus, HttpStatus.SERVICE_UNAVAILABLE);
 			}
 			return new ResponseEntity<HealthCheckRepresentation>(heathStatus, HttpStatus.OK);
