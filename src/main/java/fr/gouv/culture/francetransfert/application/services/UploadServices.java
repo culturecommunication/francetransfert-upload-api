@@ -272,7 +272,9 @@ public class UploadServices {
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
-				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token);
+				//added
+				String language = metadata.getLanguage().toString();
+				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language );
 				if (!isRequiredToGeneratedCode) {
 					return createMetaDataEnclosureInRedis(metadata);
 				}
@@ -445,7 +447,7 @@ public class UploadServices {
 		}
 	}
 
-	private boolean generateCode(String senderMail, String token) {
+	private boolean generateCode(String senderMail, String token, String currentLanguage) {
 		try {
 			senderMail = senderMail.toLowerCase();
 			boolean result = false;
@@ -456,13 +458,13 @@ public class UploadServices {
 					confirmationServices.validateToken(senderMail, token);
 					confirmationServices.extendTokenValidity(senderMail, token);
 				} catch (UploadException e) {
-					confirmationServices.generateCodeConfirmation(senderMail);
+					confirmationServices.generateCodeConfirmation(senderMail, currentLanguage);
 					result = true;
 					LOGGER.info("generate confirmation code for sender mail {}", senderMail);
 				}
 			} else {
 				LOGGER.info("token does not exist");
-				confirmationServices.generateCodeConfirmation(senderMail);
+				confirmationServices.generateCodeConfirmation(senderMail, currentLanguage);
 				result = true;
 				LOGGER.info("generate confirmation code for sender mail {}", senderMail);
 			}

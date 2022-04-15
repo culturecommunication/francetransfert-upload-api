@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -61,13 +62,33 @@ public class RedisForUploadUtils {
 			LocalDateTime startDate = LocalDateTime.now();
 			LOGGER.debug("enclosure creation date: {}", startDate);
 			map.put(EnclosureKeysEnum.TIMESTAMP.getKey(), startDate.toString());
+			
 			LocalDateTime expiredDate = getExpiredTimeStamp(metadata.getExpireDelay());
 			LOGGER.debug("enclosure expire date: {}", expiredDate);
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
+			
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
+			
 			LOGGER.debug("is password enerated! : {}", metadata.getPasswordGenerated());
 			map.put(EnclosureKeysEnum.PASSWORD_GENERATED.getKey(), metadata.getPasswordGenerated().toString());
+			
+			//added by abir
+			String result = metadata.getLanguage().toString();
+			Pattern pattern = Pattern.compile("-");
+			String[] items = pattern.split(result, 2);
+		
+				result = items[0];
+			
+
+			LOGGER.debug("enclosure language: {}", result);
+			map.put(EnclosureKeysEnum.LANGUAGE.getKey(), result);
+			
+			
+			LOGGER.debug("is password zip checked? : {}", metadata.getZipPassword().toString());
+			map.put(EnclosureKeysEnum.PASSWORD_ZIP.getKey(), metadata.getZipPassword().toString());
+			//-------------------
+			
 			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
