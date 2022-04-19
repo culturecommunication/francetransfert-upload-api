@@ -21,4 +21,9 @@ public class FileInfoRepresentation {
     private List<DirectoryRepresentation> rootDirs;
     private boolean withPassword;
     private int downloadCount;
+    
+    //added by abir
+    private String token;
+    private String subject;
+    private String enclosureId;
 }

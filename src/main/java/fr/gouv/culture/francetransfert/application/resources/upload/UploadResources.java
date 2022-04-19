@@ -37,15 +37,20 @@ import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
+import fr.gouv.culture.francetransfert.core.enums.PliKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import fr.gouv.culture.francetransfert.core.model.RateRepresentation;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+
 
 @CrossOrigin
 @RestController
@@ -56,6 +61,11 @@ public class UploadResources {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(UploadResources.class);
 
+	//added by abir
+	@Autowired
+	private RedisManager redisManager;
+	//---------- 
+	
 	@Autowired
 	private UploadServices uploadServices;
 
@@ -173,22 +183,46 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(enclosureId, token);
+		LOGGER.info("-----------file-info-------- : {}",  enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
-
+	
+	@PostMapping("/file-info-connect")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
+			@RequestBody FranceTransfertDataRepresentation metadata) throws UnauthorizedAccessException, MetaloadException {
+		LOGGER.info("-----------Abiiiiiiiiiiiiiiiir-------- : {}",  enclosureId);
+		confirmationServices.validateToken(metadata.getSenderEmail().toLowerCase(), metadata.getSenderToken());
+		//add validate token service b body
+		LOGGER.info("-----------file-info connect-------- : {}",  enclosureId);
+		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
+		response.setStatus(HttpStatus.OK.value());
+		return fileInfoRepresentation;
+	}
+	
+	
+	//added by abir
 	@GetMapping("/get-plis-sent")
 	@Operation(method = "GET", description = "Download Info without URL ")
-	public boolean getPlisSent(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
+	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
 			throws UnauthorizedAccessException, MetaloadException {
+		LOGGER.info("-----------SENDER MAIL-------- : {}",  senderMail);
+		
+	//add validate token service b body
+		List<FileInfoRepresentation> ListPlis = new ArrayList<FileInfoRepresentation>(); 
+		List<String> result = RedisUtils.getSentPli(redisManager, senderMail);
+		
+		for (String enclosureId : result) {
+			LOGGER.info("-----------enclosureId------- : {}",  enclosureId);
+			ListPlis.add(uploadServices.getInfoPlis(enclosureId));
+		}
 
-		LOGGER.debug("--------------PLI------------- : ");
+		LOGGER.info("-----------ListPlis-------- ");
 
-		// FileInfoRepresentation fileInfoRepresentation =
-		// uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
-		return true;
+		return ListPlis;
 	}
 
 	@PostMapping("/add-recipient")
