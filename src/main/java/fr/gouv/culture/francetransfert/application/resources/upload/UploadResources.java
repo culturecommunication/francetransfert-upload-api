@@ -1,10 +1,7 @@
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -49,8 +46,6 @@ import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import redis.clients.jedis.Jedis;
-import java.util.HashMap;
 
 @CrossOrigin
 @RestController
@@ -108,12 +103,11 @@ public class UploadResources {
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
 			@RequestBody FranceTransfertDataRepresentation metadata) {
 		LOGGER.info("start upload enclosure ");
-		//LOGGER.info("----------CURRENT	LANGUAGE-------- ", currentLanguage);
-		LOGGER.info("----------METADA------- ", metadata.getLanguage());
+		LOGGER.debug("----------LANGUAGE------- ", metadata.getLanguage());
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
 		EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata,
-				token );
+				token);
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
@@ -183,20 +177,19 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
-	
+
 	@GetMapping("/get-plis-sent")
 	@Operation(method = "GET", description = "Download Info without URL ")
 	public boolean getPlisSent(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
 			throws UnauthorizedAccessException, MetaloadException {
-		
-		LOGGER.info("--------------PLI------------- : ");
-	
-		//FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
+
+		LOGGER.debug("--------------PLI------------- : ");
+
+		// FileInfoRepresentation fileInfoRepresentation =
+		// uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return true;
 	}
-	
-	
 
 	@PostMapping("/add-recipient")
 	@Operation(method = "POST", description = "add a new recipient")

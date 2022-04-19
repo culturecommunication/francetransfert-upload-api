@@ -272,9 +272,9 @@ public class UploadServices {
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
-				//added
+				// added
 				String language = metadata.getLanguage().toString();
-				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language );
+				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
 				if (!isRequiredToGeneratedCode) {
 					return createMetaDataEnclosureInRedis(metadata);
 				}
