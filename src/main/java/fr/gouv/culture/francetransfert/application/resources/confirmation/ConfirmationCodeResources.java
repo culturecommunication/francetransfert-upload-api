@@ -36,10 +36,10 @@ public class ConfirmationCodeResources {
 
 	@GetMapping("/generate-code")
 	@Operation(method = "GET", description = "Generate code")
-	public void generateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
+	public void generateCode(HttpServletResponse response, @RequestParam("senderMail") String senderMail, @RequestParam("currentLanguage") String currentLanguage)
 			throws UploadException {
 		try {
-			confirmationServices.generateCodeConfirmation(senderMail.toLowerCase());
+			confirmationServices.generateCodeConfirmation(senderMail.toLowerCase(), currentLanguage);
 			response.setStatus(HttpStatus.OK.value());
 		} catch (Exception e) {
 			String uuid = UUID.randomUUID().toString();
@@ -51,7 +51,7 @@ public class ConfirmationCodeResources {
 	@GetMapping("/validate-code")
 	@Operation(method = "GET", description = "validate code")
 	public ValidateCodeResponse validateCode(HttpServletResponse response,
-			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code) {
+			@RequestParam("senderMail") String senderMail, @RequestParam("code") String code, @RequestParam("currentLanguage") String currentLanguage) {
 		return confirmationServices.validateCodeConfirmationAndGenerateToken(senderMail.toLowerCase(), code.trim());
 	}
 }
