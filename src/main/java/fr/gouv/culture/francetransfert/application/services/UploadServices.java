@@ -297,26 +297,23 @@ public class UploadServices {
 		try {
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.PASSWORD.getKey());
-			LOGGER.info("-----------passwordRedis pli-------- : {}", passwordRedis);
+
 			boolean withPassword = !StringUtils.isEmpty(passwordRedis);
 			passwordRedis = "";
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
-			LOGGER.info("-----------message-------- : {}", message);
+
 			
 			
 		    //added by abir
 			String subject = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.SUBJECT.getKey());
-			LOGGER.info("-----------subjet-------- : {}", subject);	
+
 			
 			Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-			//String token = RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.TOKEN.getKey());
-			//String token = "?token=" + tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()) + "&enclosure=" + enclosureId;
 			String token = tokenMap.get(EnclosureKeysEnum.TOKEN.getKey());
 			
-			
-			LOGGER.info("-----------token-------- : {}", token);
+
 			//-----------
 			
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
@@ -326,26 +323,19 @@ public class UploadServices {
 					.entrySet()) {
 				if (buildRecipient(recipient.getKey(), enclosureId)) {
 					deletedRecipients.add(recipient.getKey());
-					LOGGER.info("-----------deletedRecipients-------- : {}", recipient.getKey());
 				} else {
 					recipientsMails.add(recipient.getKey());
-					LOGGER.info("-----------recipientsMails-------- : {}", recipient.getKey());
 				}
 			}
 			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
-			LOGGER.info("-----------rootFiles-------- ");
 			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
-			LOGGER.info("-----------rootDirs-------- ");
 			Map<String, String> enclosureMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey((enclosureId)));
 			String timestamp = enclosureMap.get(EnclosureKeysEnum.TIMESTAMP.getKey());
-			LOGGER.info("-----------timestamp-------- : {}", timestamp);
 			int downloadCount = 0;
 			String downString = getNumberOfDownloadPublic(enclosureId);
-			LOGGER.info("-----------downString-------- : {}", downString);
 			if (StringUtils.isNotBlank(downString)) {
 				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
-				LOGGER.info("-----------downloadCount-------- : {}", downloadCount);
 			}
 			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
