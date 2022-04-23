@@ -29,6 +29,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RecipientKeysEnum;
@@ -84,7 +85,6 @@ public class UploadServices {
 
 	@Value("${upload.token.chunkModulo:20}")
 	private int chunkModulo;
-	
 
 	@Autowired
 	private ConfirmationServices confirmationServices;
@@ -216,6 +216,9 @@ public class UploadServices {
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
 						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
+						String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+						//TODO Move updateListOfPli to worker to ensure upload complete
+						RedisUtils.updateListOfPli(redisManager, senderMail, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				}
@@ -303,19 +306,9 @@ public class UploadServices {
 			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.MESSAGE.getKey());
 
-			
-			
-		    //added by abir
 			String subject = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.SUBJECT.getKey());
 
-			
-			Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-			String token = tokenMap.get(EnclosureKeysEnum.TOKEN.getKey());
-			
-
-			//-----------
-			
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
 			List<String> recipientsMails = new ArrayList<>();
 			List<String> deletedRecipients = new ArrayList<>();
@@ -340,8 +333,8 @@ public class UploadServices {
 			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
-					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword)
-					.subject(subject).token(token).enclosureId(enclosureId).build();
+					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword).subject(subject)
+					.enclosureId(enclosureId).build();
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -437,15 +430,11 @@ public class UploadServices {
 			}
 			LOGGER.debug("create enclosure metadata in redis ");
 			HashMap<String, String> hashEnclosureInfo = RedisForUploadUtils.createHashEnclosure(redisManager, metadata);
-			
+
 			LOGGER.debug("get expiration date and enclosure id back ");
 			String enclosureId = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_GUID_KEY);
 			String expireDate = hashEnclosureInfo.get(RedisForUploadUtils.ENCLOSURE_HASH_EXPIRATION_DATE_KEY);
-			
-			//added by abir
-			RedisUtils.updateListOfPli(redisManager, metadata.getSenderEmail(), enclosureId);
-			
-			
+
 			LOGGER.debug("update list date-enclosure in redis ");
 			RedisUtils.updateListOfDatesEnclosure(redisManager, enclosureId);
 			LOGGER.debug("create sender metadata in redis");
@@ -477,7 +466,7 @@ public class UploadServices {
 			// verify token in redis
 			if (!StringUtils.isEmpty(token)) {
 				try {
-					LOGGER.info("verify token in redis");
+					LOGGER.debug("verify token in redis");
 					confirmationServices.validateToken(senderMail, token);
 					confirmationServices.extendTokenValidity(senderMail, token);
 				} catch (UploadException e) {
@@ -486,7 +475,7 @@ public class UploadServices {
 					LOGGER.info("generate confirmation code for sender mail {}", senderMail);
 				}
 			} else {
-				LOGGER.info("token does not exist");
+				LOGGER.debug("token does not exist");
 				confirmationServices.generateCodeConfirmation(senderMail, currentLanguage);
 				result = true;
 				LOGGER.info("generate confirmation code for sender mail {}", senderMail);
@@ -509,8 +498,6 @@ public class UploadServices {
 			throw new UnauthorizedAccessException("Invalid Token");
 		}
 	}
-	
-	
 
 	public Boolean validateMailDomain(List<String> mails) {
 		Boolean isValid = false;
@@ -536,32 +523,35 @@ public class UploadServices {
 		return true;
 	}
 
+	public List<FileInfoRepresentation> getSenderPlisList(ValidateCodeResponse metadata) throws MetaloadException {
+		List<FileInfoRepresentation> listPlis = new ArrayList<FileInfoRepresentation>();
+		List<String> result = RedisUtils.getSentPli(redisManager, metadata.getSenderMail());
+
+		for (String enclosureId : result) {
+			LOGGER.debug("-----------enclosureId------- : {}", enclosureId);
+			listPlis.add(getInfoPlis(enclosureId));
+		}
+
+		LOGGER.debug("-----------ListPlis-------- ");
+		return listPlis;
+	}
+
 	private List<FileRepresentation> getRootFiles(String enclosureId) {
 		List<FileRepresentation> rootFiles = new ArrayList<>();
 		LOGGER.info("------------0----------");
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId), 0, -1).forEach(rootFileName -> {
 			String size = "";
 			String hashRootFile = RedisUtils.generateHashsha1(enclosureId + ":" + rootFileName);
-			LOGGER.info("------------hashRootFile---------- : {}", hashRootFile);
 			try {
 				size = redisManager.getHgetString(RedisKeysEnum.FT_ROOT_FILE.getKey(hashRootFile),
 						RootFileKeysEnum.SIZE.getKey());
-				LOGGER.info("------------2----------");
-				LOGGER.info("------------size---------- : {}", size);
 			} catch (Exception e) {
 				throw new UploadException("Cannot get RootFiles : " + e.getMessage(), enclosureId, e);
 			}
 			FileRepresentation rootFile = new FileRepresentation();
-			LOGGER.info("------------3----------");
-			LOGGER.info("------------rootFile---------- : {}", rootFile);
 			rootFile.setName(rootFileName);
-			LOGGER.info("------------4----------");
-			LOGGER.info("------------rootFileName---------- : {}", rootFileName);
 			rootFile.setSize(Long.valueOf(size));
-			LOGGER.info("------------5----------");
-			LOGGER.info("------------size---------- : {}", size);
 			rootFiles.add(rootFile);
-			LOGGER.info("------------6----------");
 			LOGGER.debug("root file: {}", rootFileName);
 		});
 		return rootFiles;

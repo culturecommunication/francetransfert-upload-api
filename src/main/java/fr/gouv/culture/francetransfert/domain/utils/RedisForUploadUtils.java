@@ -22,7 +22,6 @@ import com.amazonaws.services.s3.model.PartETag;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.PliKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RecipientKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
@@ -32,9 +31,6 @@ import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
-
-
-import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 
 @Service
 public class RedisForUploadUtils {
@@ -55,20 +51,17 @@ public class RedisForUploadUtils {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
-		
-		//added by abir
-		String senderEmailKey = "";
 
 		try {
 			guidEnclosure = RedisUtils.generateGUID();
 			LOGGER.debug("enclosure id : {}", guidEnclosure);
 
 			Map<String, String> map = new HashMap<>();
-			
-			//added by abir
+
+			// added by abir
 			Map<String, String> mapPli = new HashMap<>();
-			//------------
-			
+			// ------------
+
 			LocalDateTime startDate = LocalDateTime.now();
 			LOGGER.debug("enclosure creation date: {}", startDate);
 			map.put(EnclosureKeysEnum.TIMESTAMP.getKey(), startDate.toString());
@@ -83,7 +76,6 @@ public class RedisForUploadUtils {
 			LOGGER.debug("is password generated! : {}", metadata.getPasswordGenerated());
 			map.put(EnclosureKeysEnum.PASSWORD_GENERATED.getKey(), metadata.getPasswordGenerated().toString());
 
-			// added by abir
 			String result = metadata.getLanguage().toString();
 			Pattern pattern = Pattern.compile("-");
 			String[] items = pattern.split(result, 2);
@@ -95,16 +87,8 @@ public class RedisForUploadUtils {
 
 			LOGGER.debug("is password zip checked? : {}", metadata.getZipPassword().toString());
 			map.put(EnclosureKeysEnum.PASSWORD_ZIP.getKey(), metadata.getZipPassword().toString());
-			//-------------------
-			
-
-			
-			//added by abir
-			senderEmailKey = metadata.getSenderEmail();
 			LOGGER.debug("enclosure ID pli: {}", guidEnclosure);
-			mapPli.put(PliKeysEnum.ENCLOSURE.getKey(), guidEnclosure);
-			//------------
-			
+
 			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
@@ -127,10 +111,7 @@ public class RedisForUploadUtils {
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
-			
-			//added by abir
-			//redisManager.insertHASH(RedisKeysEnum.FT_SEND.getKey(senderEmailKey), mapPli);
-			//------------
+
 			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;

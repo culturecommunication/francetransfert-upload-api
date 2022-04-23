@@ -38,20 +38,15 @@ import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
 import fr.gouv.culture.francetransfert.application.services.UploadServices;
-import fr.gouv.culture.francetransfert.core.enums.PliKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
 import fr.gouv.culture.francetransfert.core.model.RateRepresentation;
-import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.validator.EmailsFranceTransfert;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-
 
 @CrossOrigin
 @RestController
@@ -62,11 +57,6 @@ public class UploadResources {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(UploadResources.class);
 
-	//added by abir
-	@Autowired
-	private RedisManager redisManager;
-	//---------- 
-	
 	@Autowired
 	private UploadServices uploadServices;
 
@@ -184,49 +174,37 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(enclosureId, token);
-		LOGGER.info("-----------file-info-------- : {}",  enclosureId);
+		LOGGER.info("-----------file-info-------- : {}", enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
-	
+
 	@PostMapping("/file-info-connect")
 	@Operation(method = "POST", description = "Download Info without URL ")
-	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
-			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
-		LOGGER.info("-----------Abiiiiiiiiiiiiiiiir-------- : {}",  enclosureId);
-		LOGGER.info("-----------Abiiiiiiiiiiiiiiiir-------- : {}",  metadata.getSenderMail());
-		LOGGER.info("-----------Abiiiiiiiiiiiiiiiir-------- : {}",  metadata.getSenderToken());
+	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response,
+			@RequestParam("enclosure") String enclosureId, @RequestBody ValidateCodeResponse metadata)
+			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
-		//add validate token service b body
-		LOGGER.info("-----------file-info connect-------- : {}",  enclosureId);
-		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId); 
+		// add validate token service b body
+		LOGGER.debug("-----------file-info connect-------- : {}", enclosureId);
+		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
-	
-	
-	//added by abir
+
 	@PostMapping("/get-plis-sent")
 	@Operation(method = "POST", description = "Download Info without URL ")
-	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response, @RequestBody ValidateCodeResponse metadata) 
-			throws UnauthorizedAccessException, MetaloadException {
+	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response,
+			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
-		LOGGER.info("-----------SENDER MAIL-------- : {}",   metadata.getSenderMail());
-		
-	//add validate token service b body
-		List<FileInfoRepresentation> ListPlis = new ArrayList<FileInfoRepresentation>(); 
-		List<String> result = RedisUtils.getSentPli(redisManager, metadata.getSenderMail());
-		
-		for (String enclosureId : result) {
-			LOGGER.info("-----------enclosureId------- : {}",  enclosureId);
-			ListPlis.add(uploadServices.getInfoPlis(enclosureId));
-		}
+		LOGGER.info("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
 
-		LOGGER.info("-----------ListPlis-------- ");
+		// add validate token service b body
+		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
 
 		response.setStatus(HttpStatus.OK.value());
-		return ListPlis;
+		return listPlis;
 	}
 
 	@PostMapping("/add-recipient")
