@@ -51,11 +51,17 @@ public class RedisForUploadUtils {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
+
 		try {
 			guidEnclosure = RedisUtils.generateGUID();
 			LOGGER.debug("enclosure id : {}", guidEnclosure);
 
 			Map<String, String> map = new HashMap<>();
+
+			// added by abir
+			Map<String, String> mapPli = new HashMap<>();
+			// ------------
+
 			LocalDateTime startDate = LocalDateTime.now();
 			LOGGER.debug("enclosure creation date: {}", startDate);
 			map.put(EnclosureKeysEnum.TIMESTAMP.getKey(), startDate.toString());
@@ -70,7 +76,6 @@ public class RedisForUploadUtils {
 			LOGGER.debug("is password generated! : {}", metadata.getPasswordGenerated());
 			map.put(EnclosureKeysEnum.PASSWORD_GENERATED.getKey(), metadata.getPasswordGenerated().toString());
 
-			// added by abir
 			String result = metadata.getLanguage().toString();
 			Pattern pattern = Pattern.compile("-");
 			String[] items = pattern.split(result, 2);
@@ -82,6 +87,7 @@ public class RedisForUploadUtils {
 
 			LOGGER.debug("is password zip checked? : {}", metadata.getZipPassword().toString());
 			map.put(EnclosureKeysEnum.PASSWORD_ZIP.getKey(), metadata.getZipPassword().toString());
+			LOGGER.debug("enclosure ID pli: {}", guidEnclosure);
 
 			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
@@ -105,6 +111,7 @@ public class RedisForUploadUtils {
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
+
 			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;

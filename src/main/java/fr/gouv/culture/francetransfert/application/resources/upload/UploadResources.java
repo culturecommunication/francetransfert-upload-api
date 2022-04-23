@@ -33,6 +33,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.DeleteReprese
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
@@ -173,22 +174,37 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(enclosureId, token);
+		LOGGER.info("-----------file-info-------- : {}", enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
 	}
 
-	@GetMapping("/get-plis-sent")
-	@Operation(method = "GET", description = "Download Info without URL ")
-	public boolean getPlisSent(HttpServletResponse response, @RequestParam("senderMail") String senderMail)
+	@PostMapping("/file-info-connect")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response,
+			@RequestParam("enclosure") String enclosureId, @RequestBody ValidateCodeResponse metadata)
 			throws UnauthorizedAccessException, MetaloadException {
-
-		LOGGER.debug("--------------PLI------------- : ");
-
-		// FileInfoRepresentation fileInfoRepresentation =
-		// uploadServices.getInfoPlis(enclosureId);
+		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
+		// add validate token service b body
+		LOGGER.debug("-----------file-info connect-------- : {}", enclosureId);
+		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
-		return true;
+		return fileInfoRepresentation;
+	}
+
+	@PostMapping("/get-plis-sent")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response,
+			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
+		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
+		LOGGER.info("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
+
+		// add validate token service b body
+		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
+
+		response.setStatus(HttpStatus.OK.value());
+		return listPlis;
 	}
 
 	@PostMapping("/add-recipient")

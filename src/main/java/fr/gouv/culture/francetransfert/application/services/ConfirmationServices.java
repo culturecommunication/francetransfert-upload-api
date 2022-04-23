@@ -158,6 +158,7 @@ public class ConfirmationServices {
 	}
 
 	private void checkTokenValidity(String senderMail, String token) throws UploadException {
+
 		if (token != null && !token.equalsIgnoreCase("unknown")) {
 			boolean tokenExistInRedis;
 			try {
