@@ -153,24 +153,17 @@ public class ConfirmationServices {
 
 	public void validateToken(String senderMail, String token) {
 		// verify token in redis
-		LOGGER.info("check token for sender mail {}", senderMail);
 		LOGGER.debug("check token for sender mail {}", senderMail);
 		checkTokenValidity(senderMail, token);
 	}
 
 	private void checkTokenValidity(String senderMail, String token) throws UploadException {
-		
 
 		if (token != null && !token.equalsIgnoreCase("unknown")) {
 			boolean tokenExistInRedis;
 			try {
 				String tokenKey = RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail) + ":" + token;
-				
-				LOGGER.info("-----------Toooooooooooooken-------- : {}",  token);
-
-				
 				tokenExistInRedis = redisManager.exists(tokenKey);
-				LOGGER.info("-----------Toooooooooooooken-------- : {}",  tokenExistInRedis);
 			} catch (Exception e) {
 				String uuid = UUID.randomUUID().toString();
 				throw new UploadException(

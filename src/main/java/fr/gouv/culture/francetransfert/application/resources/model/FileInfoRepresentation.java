@@ -27,4 +27,8 @@ public class FileInfoRepresentation {
 	private int downloadCount;
 	private String subject;
 	private String enclosureId;
+
+	// TODO ADD PLIS TOTAL SIZE
+	private boolean publicLink;
+	private String totalSize;
 }
