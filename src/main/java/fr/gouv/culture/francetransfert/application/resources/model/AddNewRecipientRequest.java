@@ -1,6 +1,5 @@
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import fr.gouv.culture.francetransfert.validator.DateUpdateConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +17,6 @@ public class AddNewRecipientRequest {
     private String enclosureId;
 
     private String newRecipient;
+    
+	private String senderMail;
 }

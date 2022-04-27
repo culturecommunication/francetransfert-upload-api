@@ -1,10 +1,7 @@
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
+import javax.validation.constraints.NotBlank;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
-import fr.gouv.culture.francetransfert.validator.DateUpdateConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,15 +12,13 @@ import lombok.Setter;
 @AllArgsConstructor
 //@Builder
 @NoArgsConstructor
-@DateUpdateConstraint(enclosureId = "enclosureId", newDate = "newDate")
-public class DateUpdateRequest {
+public class DeleteRequest {
 
+	@NotBlank
 	private String token;
 
+	@NotBlank
 	private String enclosureId;
 
 	private String senderMail;
-
-	@JsonFormat(pattern = "dd-MM-yyyy")
-	private LocalDate newDate;
 }
