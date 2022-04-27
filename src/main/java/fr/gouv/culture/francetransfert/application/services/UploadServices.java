@@ -104,29 +104,18 @@ public class UploadServices {
 	@Autowired
 	private CaptchaService captchaService;
 
-	public DeleteRepresentation deleteFile(String enclosureId, String token) {
+	public DeleteRepresentation deleteFile(String enclosureId) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
 		try {
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
-			Map<String, String> tokenMap = redisManager
-					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-			if (token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
-				storageManager.deleteObject(bucketName, fileToDelete);
-				LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
-				deleteRepresentation
-						.setSuccess(redisManager.deleteKey(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId)));
-				deleteRepresentation.setMessage("Fichier supprimé");
-				deleteRepresentation.setStatus(HttpStatus.OK.value());
-				return deleteRepresentation;
-			} else {
-				LOGGER.error("Type: {} -- enclosureId: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(),
-						enclosureId, "Invalid Token");
-				deleteRepresentation.setMessage("Invalid Token");
-				deleteRepresentation.setSuccess(false);
-				deleteRepresentation.setStatus(HttpStatus.NOT_FOUND.value());
-				return deleteRepresentation;
-			}
+			String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
+			storageManager.deleteObject(bucketName, fileToDelete);
+			redisManager.publishFT(RedisQueueEnum.DELETE_ENCLOSURE_QUEUE.getValue(), enclosureId);
+			LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
+			deleteRepresentation.setSuccess(redisManager.deleteKey(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId)));
+			deleteRepresentation.setMessage("Fichier supprimé");
+			deleteRepresentation.setStatus(HttpStatus.OK.value());
+			return deleteRepresentation;
 		} catch (Exception e) {
 			LOGGER.error("Type: {} -- enclosureId: {} -- Message: {}", ErrorEnum.TECHNICAL_ERROR.getValue(),
 					enclosureId, e.getMessage(), e);
@@ -135,7 +124,6 @@ public class UploadServices {
 			deleteRepresentation.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 			return deleteRepresentation;
 		}
-
 	}
 
 	public EnclosureRepresentation updateExpiredTimeStamp(String enclosureId, LocalDate newDate) {
@@ -217,7 +205,7 @@ public class UploadServices {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
 						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
 						String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-						//TODO Move updateListOfPli to worker to ensure upload complete
+						// TODO Move updateListOfPli to worker to ensure upload complete
 						RedisUtils.updateListOfPli(redisManager, senderMail, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
@@ -270,12 +258,15 @@ public class UploadServices {
 			boolean validRecipients = false;
 			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
+
 					return !stringUploadUtils.isValidEmailIgni(x);
+
 				});
 			}
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
+
 				// added
 				String language = metadata.getLanguage().toString();
 				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
@@ -488,11 +479,19 @@ public class UploadServices {
 		}
 	}
 
-	public void validateAdminToken(String enclosureId, String token) {
+	public void validateAdminToken(String enclosureId, String token, String senderMail) {
 		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 		if (tokenMap != null) {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				throw new UnauthorizedAccessException("Invalid Token");
+				if (StringUtils.isNotBlank(senderMail)) {
+					try {
+						confirmationServices.validateToken(senderMail, token);
+					} catch (Exception e) {
+						throw new UnauthorizedAccessException("Invalid Token");
+					}
+				} else {
+					throw new UnauthorizedAccessException("Invalid Token");
+				}
 			}
 		} else {
 			throw new UnauthorizedAccessException("Invalid Token");
@@ -528,8 +527,11 @@ public class UploadServices {
 		List<String> result = RedisUtils.getSentPli(redisManager, metadata.getSenderMail());
 
 		for (String enclosureId : result) {
-			LOGGER.debug("-----------enclosureId------- : {}", enclosureId);
-			listPlis.add(getInfoPlis(enclosureId));
+			try {
+				listPlis.add(getInfoPlis(enclosureId));
+			} catch (Exception e) {
+				LOGGER.debug("Expired enclosure: ", e);
+			}
 		}
 
 		LOGGER.debug("-----------ListPlis-------- ");

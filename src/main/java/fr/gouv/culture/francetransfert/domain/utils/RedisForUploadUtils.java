@@ -148,6 +148,7 @@ public class RedisForUploadUtils {
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
 		try {
+			
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 					throw new UploadException("Empty recipient", enclosureId);

@@ -29,6 +29,7 @@ public class FranceTransfertDataRepresentation {
     @Valid
     private List<DirectoryRepresentation> rootDirs;
     
+    
     private Locale language;
     private Boolean zipPassword;
 
