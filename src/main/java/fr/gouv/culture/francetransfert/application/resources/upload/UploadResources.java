@@ -104,10 +104,8 @@ public class UploadResources {
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
 			@RequestBody FranceTransfertDataRepresentation metadata) {
 		LOGGER.info("start upload enclosure ");
-		LOGGER.debug("----------LANGUAGE------- ", metadata.getLanguage());
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
-		LOGGER.info("-----------TEST 0---------- ");
 		EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata,
 				token);
 		response.setStatus(HttpStatus.OK.value());

@@ -301,7 +301,6 @@ public class UploadServices {
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
-				LOGGER.info("-----------TEST 1-----------");
 				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
 			
 					return !stringUploadUtils.isValidEmailIgni(x);
@@ -316,11 +315,9 @@ public class UploadServices {
 				String language = metadata.getLanguage().toString();
 				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
 				if (!isRequiredToGeneratedCode) {
-					LOGGER.info("-----------TEST 2-----------{}", isRequiredToGeneratedCode);
 					return createMetaDataEnclosureInRedis(metadata);
 				}
 			} else {
-				LOGGER.info("-----------TEST 3----------" );
 				return EnclosureRepresentation.builder().canUpload(false).build();
 			}
 			return null;
@@ -528,8 +525,6 @@ public class UploadServices {
 
 	public void validateAdminToken(String enclosureId, String token) {
 		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-		LOGGER.info("------------tokenMap11------------ {}", tokenMap);
-		LOGGER.info("----------token11----------- {}", token);
 		if (tokenMap != null) {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
 				throw new UnauthorizedAccessException("Invalid Token");
