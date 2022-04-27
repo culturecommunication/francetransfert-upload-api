@@ -148,10 +148,14 @@ public class RedisForUploadUtils {
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
 		try {
+			LOGGER.info("-----------TEST 4-----------");
 			if (!metadata.getPublicLink()) {
+				LOGGER.info("-----------TEST 5-----------");
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+					LOGGER.info("-----------TEST 6----------- {}", metadata.getRecipientEmails());
 					throw new UploadException("Empty recipient", enclosureId);
 				}
+				LOGGER.info("-----------TEST 7-----------");
 				Map<String, String> mapRecipients = new HashMap<>();
 				metadata.getRecipientEmails().forEach(recipientMail -> {
 					String guidRecipient = RedisUtils.generateGUID();

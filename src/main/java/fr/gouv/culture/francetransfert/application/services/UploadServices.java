@@ -32,6 +32,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfe
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.PliKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RecipientKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
@@ -104,18 +105,49 @@ public class UploadServices {
 	@Autowired
 	private CaptchaService captchaService;
 
-	public DeleteRepresentation deleteFile(String enclosureId, String token) {
+	
+	public void deletePli(String enclosureId, String token, String senderMail){
+		
+		Map<String, String> tokenMap = redisManager
+				.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
+		if (token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
+			
+			LOGGER.info("------------delete file senderMail 2---------:{}", senderMail);
+			//added by abir
+			try {
+				RedisUtils.deleteListOfPli(redisManager, senderMail, enclosureId);
+			} catch (MetaloadException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		
+	}
+	public DeleteRepresentation deleteFile(String enclosureId, String token, String senderMail) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
 		try {
+			
+			LOGGER.info("------------delete file--------- ");
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
 			Map<String, String> tokenMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
 			if (token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
+
+				//added by abir
+				RedisUtils.deleteListOfPli(redisManager, senderMail, enclosureId);
 				String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
 				storageManager.deleteObject(bucketName, fileToDelete);
 				LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
 				deleteRepresentation
-						.setSuccess(redisManager.deleteKey(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId)));
+						.setSuccess(redisManager.deleteKey(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId)));  
+				
+
+				
+
+				
+				//----------
+				
 				deleteRepresentation.setMessage("Fichier supprimé");
 				deleteRepresentation.setStatus(HttpStatus.OK.value());
 				return deleteRepresentation;
@@ -256,7 +288,7 @@ public class UploadServices {
 	 */
 	public EnclosureRepresentation senderInfoWithTockenValidation(FranceTransfertDataRepresentation metadata,
 			String token) {
-		try {
+		try { 
 			LOGGER.info("create metadata in redis with token validation {} / {} ", metadata.getSenderEmail(), token);
 			/**
 			 * Si l’expéditeur communique une adresse existante dans ignimission, l’envoi
@@ -264,25 +296,31 @@ public class UploadServices {
 			 * règle nécessaire) Si l’expéditeur communique une adresse inexistante dans
 			 * ignimission, l’envoi doit se faire exclusivement sur une adresse
 			 * en @email_valide_ignimission. Si ce n’est pas le cas, un message d'erreur
-			 * s’affiche.
+			 * s’affiche.  
 			 **/
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+				LOGGER.info("-----------TEST 1-----------");
 				validRecipients = metadata.getRecipientEmails().stream().noneMatch(x -> {
+			
 					return !stringUploadUtils.isValidEmailIgni(x);
+					
 				});
 			}
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
+
 				// added
 				String language = metadata.getLanguage().toString();
 				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
 				if (!isRequiredToGeneratedCode) {
+					LOGGER.info("-----------TEST 2-----------{}", isRequiredToGeneratedCode);
 					return createMetaDataEnclosureInRedis(metadata);
 				}
 			} else {
+				LOGGER.info("-----------TEST 3----------" );
 				return EnclosureRepresentation.builder().canUpload(false).build();
 			}
 			return null;
@@ -490,9 +528,14 @@ public class UploadServices {
 
 	public void validateAdminToken(String enclosureId, String token) {
 		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
+		LOGGER.info("------------tokenMap11------------ {}", tokenMap);
+		LOGGER.info("----------token11----------- {}", token);
 		if (tokenMap != null) {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
 				throw new UnauthorizedAccessException("Invalid Token");
+			}
+			else {
+				LOGGER.info("TRUE");
 			}
 		} else {
 			throw new UnauthorizedAccessException("Invalid Token");

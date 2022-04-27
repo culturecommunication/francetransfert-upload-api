@@ -107,6 +107,7 @@ public class UploadResources {
 		LOGGER.debug("----------LANGUAGE------- ", metadata.getLanguage());
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
+		LOGGER.info("-----------TEST 0---------- ");
 		EnclosureRepresentation enclosureRepresentation = uploadServices.senderInfoWithTockenValidation(metadata,
 				token);
 		response.setStatus(HttpStatus.OK.value());
@@ -126,9 +127,11 @@ public class UploadResources {
 	@GetMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
 	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
-			@RequestParam("token") String token) {
+			@RequestParam("token") String token, @RequestParam("senderMail") String senderMail) {
 		LOGGER.info("start delete file ");
-		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(enclosureId, token);
+		LOGGER.info("------------delete file senderMail 0---------:{}", enclosureId);
+		//uploadServices.deletePli(enclosureId, token, senderMail);
+		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(enclosureId, token, senderMail);
 		response.setStatus(deleteRepresentation.getStatus());
 		return deleteRepresentation;
 	}
