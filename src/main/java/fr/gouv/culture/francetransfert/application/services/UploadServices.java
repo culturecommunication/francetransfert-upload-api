@@ -527,11 +527,13 @@ public class UploadServices {
 		List<FileInfoRepresentation> listPlis = new ArrayList<FileInfoRepresentation>();
 		List<String> result = RedisUtils.getSentPli(redisManager, metadata.getSenderMail());
 
-		for (String enclosureId : result) {
-			try {
-				listPlis.add(getInfoPlis(enclosureId));
-			} catch (Exception e) {
-				LOGGER.debug("Expired enclosure: ", e);
+		if (!CollectionUtils.isEmpty(result)) {
+			for (String enclosureId : result) {
+				try {
+					listPlis.add(getInfoPlis(enclosureId));
+				} catch (Exception e) {
+					LOGGER.debug("Expired enclosure: ", e);
+				}
 			}
 		}
 
