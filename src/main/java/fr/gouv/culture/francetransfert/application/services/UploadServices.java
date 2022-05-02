@@ -486,6 +486,7 @@ public class UploadServices {
 				if (StringUtils.isNotBlank(senderMail)) {
 					try {
 						confirmationServices.validateToken(senderMail, token);
+						confirmationServices.extendTokenValidity(senderMail, token);
 					} catch (Exception e) {
 						throw new UnauthorizedAccessException("Invalid Token");
 					}
