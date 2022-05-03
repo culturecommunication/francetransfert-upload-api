@@ -208,9 +208,6 @@ public class UploadServices {
 					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
 						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
 						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
-						String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-						// TODO Move updateListOfPli to worker to ensure upload complete
-						RedisUtils.updateListOfPli(redisManager, senderMail, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				}
