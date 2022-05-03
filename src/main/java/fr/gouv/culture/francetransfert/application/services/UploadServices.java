@@ -109,6 +109,10 @@ public class UploadServices {
 		try {
 			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
 			String fileToDelete = storageManager.getZippedEnclosureName(enclosureId);
+			Map<String, String> enclosureMap = redisManager
+					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
+			enclosureMap.put(EnclosureKeysEnum.DELETED.getKey(), "true");
+			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
 			storageManager.deleteObject(bucketName, fileToDelete);
 			redisManager.publishFT(RedisQueueEnum.DELETE_ENCLOSURE_QUEUE.getValue(), enclosureId);
 			LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
@@ -285,7 +289,7 @@ public class UploadServices {
 		}
 	}
 
-	public FileInfoRepresentation getInfoPlis(String enclosureId) throws MetaloadException {
+	public FileInfoRepresentation getInfoPlis(String enclosureId) throws MetaloadException, UploadException {
 		// validate Enclosure download right
 		LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
 		try {
@@ -299,6 +303,9 @@ public class UploadServices {
 
 			String subject = RedisUtils.getEnclosureValue(redisManager, enclosureId,
 					EnclosureKeysEnum.SUBJECT.getKey());
+
+			boolean deleted = Boolean.parseBoolean(
+					RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
 
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
 			List<String> recipientsMails = new ArrayList<>();
@@ -325,7 +332,7 @@ public class UploadServices {
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
 					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword).subject(subject)
-					.enclosureId(enclosureId).build();
+					.deleted(deleted).enclosureId(enclosureId).build();
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -530,20 +537,20 @@ public class UploadServices {
 		if (!CollectionUtils.isEmpty(result)) {
 			for (String enclosureId : result) {
 				try {
-					listPlis.add(getInfoPlis(enclosureId));
+					FileInfoRepresentation enclosureInfo = getInfoPlis(enclosureId);
+					if (!enclosureInfo.isDeleted()) {
+						listPlis.add(enclosureInfo);
+					}
 				} catch (Exception e) {
-					LOGGER.debug("Expired enclosure: ", e);
+					LOGGER.error("Cannot get plis {} for list ", enclosureId, e);
 				}
 			}
 		}
-
-		LOGGER.debug("-----------ListPlis-------- ");
 		return listPlis;
 	}
 
 	private List<FileRepresentation> getRootFiles(String enclosureId) {
 		List<FileRepresentation> rootFiles = new ArrayList<>();
-		LOGGER.info("------------0----------");
 		redisManager.lrange(RedisKeysEnum.FT_ROOT_FILES.getKey(enclosureId), 0, -1).forEach(rootFileName -> {
 			String size = "";
 			String hashRootFile = RedisUtils.generateHashsha1(enclosureId + ":" + rootFileName);
@@ -582,8 +589,14 @@ public class UploadServices {
 		return rootDirs;
 	}
 
-	private LocalDate validateDownloadAuthorizationPublic(String enclosureId) throws MetaloadException {
+	private LocalDate validateDownloadAuthorizationPublic(String enclosureId)
+			throws MetaloadException, UploadException {
 		LocalDate expirationDate = validateExpirationDate(enclosureId);
+		boolean deleted = Boolean.parseBoolean(
+				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
+		if (deleted) {
+			throw new UploadException("Vous ne pouvez plus accéder à ces fichiers", enclosureId);
+		}
 		return expirationDate;
 	}
 

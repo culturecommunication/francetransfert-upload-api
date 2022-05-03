@@ -200,7 +200,7 @@ public class UploadResources {
 	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response,
 			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
-		LOGGER.info("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
+		LOGGER.debug("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
 
 		// add validate token service b body
 		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
