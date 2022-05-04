@@ -29,6 +29,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
@@ -305,14 +306,15 @@ public class UploadServices {
 					RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
 
 			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-			List<String> recipientsMails = new ArrayList<>();
-			List<String> deletedRecipients = new ArrayList<>();
+			List<RecipientInfo> recipientsMails = new ArrayList<>();
+			List<RecipientInfo> deletedRecipients = new ArrayList<>();
 			for (Map.Entry<String, String> recipient : RedisUtils.getRecipientsEnclosure(redisManager, enclosureId)
 					.entrySet()) {
-				if (buildRecipient(recipient.getKey(), enclosureId)) {
-					deletedRecipients.add(recipient.getKey());
+				RecipientInfo recinfo = buildRecipient(recipient.getKey(), enclosureId);
+				if (recinfo.isDeleted()) {
+					deletedRecipients.add(recinfo);
 				} else {
-					recipientsMails.add(recipient.getKey());
+					recipientsMails.add(recinfo);
 				}
 			}
 			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
@@ -325,11 +327,15 @@ public class UploadServices {
 			if (StringUtils.isNotBlank(downString)) {
 				downloadCount = Integer.parseInt(getNumberOfDownloadPublic(enclosureId));
 			}
+
+			long tailleStr = (long) RedisUtils.getTotalSizeEnclosure(redisManager, enclosureId);
+			String taille = org.apache.commons.io.FileUtils.byteCountToDisplaySize(tailleStr);
+
 			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
 					.validUntilDate(expirationDate).senderEmail(senderMail).recipientsMails(recipientsMails)
 					.deletedRecipients(deletedRecipients).message(message).rootFiles(rootFiles).rootDirs(rootDirs)
 					.timestamp(timestamp).downloadCount(downloadCount).withPassword(withPassword).subject(subject)
-					.deleted(deleted).enclosureId(enclosureId).build();
+					.deleted(deleted).enclosureId(enclosureId).totalSize(taille).build();
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -338,13 +344,13 @@ public class UploadServices {
 		}
 	}
 
-	public Boolean buildRecipient(String email, String enclosureId) throws MetaloadException {
+	public RecipientInfo buildRecipient(String email, String enclosureId) throws MetaloadException {
 		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
 		Map<String, String> recipientMap = redisManager.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
-		if (Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1) {
-			return true;
-		}
-		return false;
+		int nbDownload = RedisUtils.getNumberOfDownloadsPerRecipient(redisManager, recipientId);
+		boolean deleted = Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1;
+		RecipientInfo recipient = new RecipientInfo(email, nbDownload, deleted);
+		return recipient;
 	}
 
 	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {

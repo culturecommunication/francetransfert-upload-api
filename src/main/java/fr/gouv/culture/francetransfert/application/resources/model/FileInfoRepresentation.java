@@ -17,8 +17,8 @@ import lombok.Setter;
 public class FileInfoRepresentation {
 	private LocalDate validUntilDate;
 	private String senderEmail;
-	private List<String> recipientsMails;
-	private List<String> deletedRecipients;
+	private List<RecipientInfo> recipientsMails;
+	private List<RecipientInfo> deletedRecipients;
 	private String message;
 	private String timestamp;
 	private List<FileRepresentation> rootFiles;
@@ -28,8 +28,6 @@ public class FileInfoRepresentation {
 	private String subject;
 	private String enclosureId;
 	private boolean deleted;
-
-	// TODO ADD PLIS TOTAL SIZE
 	private boolean publicLink;
 	private String totalSize;
 }
