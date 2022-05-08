@@ -1,6 +1,5 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +9,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.client.RedisTryAgainException;
 import org.slf4j.Logger;
@@ -53,21 +51,44 @@ public class RedisForUploadUtils {
 		// ================ set enclosure info in redis ================
 		HashMap<String, String> hashEnclosureInfo = new HashMap<String, String>();
 		String guidEnclosure = "";
+
 		try {
 			guidEnclosure = RedisUtils.generateGUID();
 			LOGGER.debug("enclosure id : {}", guidEnclosure);
 
 			Map<String, String> map = new HashMap<>();
+
+			// added by abir
+			Map<String, String> mapPli = new HashMap<>();
+			// ------------
+
 			LocalDateTime startDate = LocalDateTime.now();
 			LOGGER.debug("enclosure creation date: {}", startDate);
 			map.put(EnclosureKeysEnum.TIMESTAMP.getKey(), startDate.toString());
+
 			LocalDateTime expiredDate = getExpiredTimeStamp(metadata.getExpireDelay());
 			LOGGER.debug("enclosure expire date: {}", expiredDate);
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
+
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
-			LOGGER.debug("is password enerated! : {}", metadata.getPasswordGenerated());
+
+			LOGGER.debug("is password generated! : {}", metadata.getPasswordGenerated());
 			map.put(EnclosureKeysEnum.PASSWORD_GENERATED.getKey(), metadata.getPasswordGenerated().toString());
+
+			String result = metadata.getLanguage().toString();
+			Pattern pattern = Pattern.compile("-");
+			String[] items = pattern.split(result, 2);
+
+			result = items[0];
+
+			LOGGER.debug("enclosure language: {}", result);
+			map.put(EnclosureKeysEnum.LANGUAGE.getKey(), result);
+
+			LOGGER.debug("is password zip checked? : {}", metadata.getZipPassword().toString());
+			map.put(EnclosureKeysEnum.PASSWORD_ZIP.getKey(), metadata.getZipPassword().toString());
+			LOGGER.debug("enclosure ID pli: {}", guidEnclosure);
+
 			if (!StringUtils.isBlank(metadata.getMessage())) {
 				LOGGER.debug("message: {}",
 						StringUtils.isEmpty(metadata.getMessage()) ? "is empty" : metadata.getMessage());
@@ -84,12 +105,13 @@ public class RedisForUploadUtils {
 				map.put(EnclosureKeysEnum.SUBJECT.getKey(), "");
 			}
 			LOGGER.debug("hashFile null for now : {}");
-			map.put(EnclosureKeysEnum.HASH_FILE.getKey(),"");
+			map.put(EnclosureKeysEnum.HASH_FILE.getKey(), "");
 			LOGGER.debug("Public Link : {}", metadata.getPublicLink());
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
+
 			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
 			return hashEnclosureInfo;
@@ -97,8 +119,6 @@ public class RedisForUploadUtils {
 			throw new UploadException("Error inserting metadata : " + e.getMessage(), e);
 		}
 	}
-
-
 
 	public static String createHashSender(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
@@ -128,6 +148,7 @@ public class RedisForUploadUtils {
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
 		try {
+			
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 					throw new UploadException("Empty recipient", enclosureId);
@@ -141,7 +162,7 @@ public class RedisForUploadUtils {
 					Map<String, String> mapRecipient = new HashMap<>();
 					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
 					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
-					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(),"0");
+					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
 				});
@@ -154,33 +175,31 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static String createNewRecipient(RedisManager redisManager, String email,
-										  String enclosureId) {
+	public static String createNewRecipient(RedisManager redisManager, String email, String enclosureId) {
 		try {
 
-				if (StringUtils.isBlank(email)) {
-					throw new UploadException("Empty recipient", enclosureId);
-				}
-				Map<String, String> mapRecipients = new HashMap<>();
+			if (StringUtils.isBlank(email)) {
+				throw new UploadException("Empty recipient", enclosureId);
+			}
+			Map<String, String> mapRecipients = new HashMap<>();
 
-					String guidRecipient = RedisUtils.generateGUID();
-					mapRecipients.put(email, guidRecipient);
-					// idRecepient => HASH { nbDl: "0" }
-					Map<String, String> mapRecipient = new HashMap<>();
-					mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
-					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
-					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(),"0");
-					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
-					LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
-				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
-				// idRecepient>
-				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
-				return guidRecipient;
+			String guidRecipient = RedisUtils.generateGUID();
+			mapRecipients.put(email, guidRecipient);
+			// idRecepient => HASH { nbDl: "0" }
+			Map<String, String> mapRecipient = new HashMap<>();
+			mapRecipient.put(RecipientKeysEnum.NB_DL.getKey(), "0");
+			mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
+			mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
+			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
+			LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
+			// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
+			// idRecepient>
+			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
+			return guidRecipient;
 		} catch (Exception e) {
 			throw new UploadException("Error creating recipient : " + e.getMessage(), enclosureId, e);
 		}
 	}
-
 
 	public static void createRootFiles(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {

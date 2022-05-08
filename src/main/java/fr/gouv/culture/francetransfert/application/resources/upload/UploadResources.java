@@ -30,9 +30,11 @@ import fr.gouv.culture.francetransfert.application.resources.model.AddNewRecipie
 import fr.gouv.culture.francetransfert.application.resources.model.ConfigRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DateUpdateRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.DeleteRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
@@ -121,12 +123,13 @@ public class UploadResources {
 		return formulaire;
 	}
 
-	@GetMapping("/delete-file")
+	@PostMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
-	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
-			@RequestParam("token") String token) {
+	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest) {
 		LOGGER.info("start delete file ");
-		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(enclosureId, token);
+		uploadServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
+				deleteRequest.getSenderMail());
+		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
 		response.setStatus(deleteRepresentation.getStatus());
 		return deleteRepresentation;
 	}
@@ -135,7 +138,8 @@ public class UploadResources {
 	@Operation(method = "POST", description = "Update expired date")
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
 			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException {
-		uploadServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken());
+		uploadServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken(),
+				dateUpdateRequest.getSenderMail());
 		EnclosureRepresentation enclosureRepresentation = uploadServices
 				.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getNewDate());
 		return new ResponseEntity<Object>(enclosureRepresentation, new HttpHeaders(), HttpStatus.OK);
@@ -145,7 +149,7 @@ public class UploadResources {
 	public ResponseEntity<Object> validateToken(
 			@RequestParam @NotBlank(message = "Token must not be null") String token,
 			@RequestParam @NotBlank(message = "EnclosureId must not be null") String enclosureId) {
-		uploadServices.validateAdminToken(enclosureId, token);
+		uploadServices.validateAdminToken(enclosureId, token, null);
 		return new ResponseEntity<Object>(true, new HttpHeaders(), HttpStatus.OK);
 	}
 
@@ -171,10 +175,38 @@ public class UploadResources {
 	@Operation(method = "GET", description = "Download Info without URL ")
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(enclosureId, token);
+		uploadServices.validateAdminToken(enclosureId, token, null);
+		LOGGER.info("-----------file-info-------- : {}", enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
+	}
+
+	@PostMapping("/file-info-connect")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response,
+			@RequestParam("enclosure") String enclosureId, @RequestBody ValidateCodeResponse metadata)
+			throws UnauthorizedAccessException, MetaloadException {
+		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
+		// add validate token service b body
+		LOGGER.debug("-----------file-info connect-------- : {}", enclosureId);
+		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
+		response.setStatus(HttpStatus.OK.value());
+		return fileInfoRepresentation;
+	}
+
+	@PostMapping("/get-plis-sent")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response,
+			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
+		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
+		LOGGER.debug("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
+
+		// add validate token service b body
+		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
+
+		response.setStatus(HttpStatus.OK.value());
+		return listPlis;
 	}
 
 	@PostMapping("/add-recipient")
@@ -182,7 +214,8 @@ public class UploadResources {
 	public boolean addRecipient(HttpServletResponse response,
 			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
+				addNewRecipientRequest.getSenderMail());
 		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -194,7 +227,8 @@ public class UploadResources {
 	public boolean deleteRecipient(HttpServletResponse response,
 			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken());
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
+				addNewRecipientRequest.getSenderMail());
 		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
