@@ -45,7 +45,7 @@ public class ConfirmationServices {
 	@Autowired
 	private RedisManager redisManager;
 
-	public void generateCodeConfirmation(String senderMail) {
+	public void generateCodeConfirmation(String senderMail, String currentLanguage) {
 		// generate confirmation code
 		// verify code exist in REDIS for this mail : if not exist -> generate
 		// confirmation code and insert in queue redis (send mail to the sender
@@ -66,7 +66,7 @@ public class ConfirmationServices {
 			Long ttl = redisManager.ttl(RedisKeysEnum.FT_CODE_SENDER.getKey(RedisUtils.generateHashsha1(senderMail)));
 			String ttltCodeConfirmation = ZonedDateTime.now(ZoneId.of("Europe/Paris")).plusSeconds(ttl).toString();
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
-					senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
+					currentLanguage + ":" + senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
 		}
 
@@ -158,6 +158,7 @@ public class ConfirmationServices {
 	}
 
 	private void checkTokenValidity(String senderMail, String token) throws UploadException {
+
 		if (token != null && !token.equalsIgnoreCase("unknown")) {
 			boolean tokenExistInRedis;
 			try {

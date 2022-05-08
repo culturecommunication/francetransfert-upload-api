@@ -8,15 +8,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-//@Builder
 @NoArgsConstructor
+public class PliRepresentation {
 
-public class AddNewRecipientRequest {
-    private String token;
-
-    private String enclosureId;
-
-    private String newRecipient;
-    
-	private String senderMail;
+	private String send;
+	private String enclosureIdUser;
 }

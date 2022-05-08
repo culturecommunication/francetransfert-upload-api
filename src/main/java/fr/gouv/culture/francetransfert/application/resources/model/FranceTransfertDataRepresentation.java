@@ -4,6 +4,7 @@ import lombok.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Locale;
 
 @Getter
 @Setter
@@ -27,4 +28,9 @@ public class FranceTransfertDataRepresentation {
     private List<FileRepresentation> rootFiles;
     @Valid
     private List<DirectoryRepresentation> rootDirs;
+    
+    
+    private Locale language;
+    private Boolean zipPassword;
+
 }
