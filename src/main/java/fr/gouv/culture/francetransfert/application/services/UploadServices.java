@@ -117,7 +117,7 @@ public class UploadServices {
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), enclosureMap);
 			storageManager.deleteObject(bucketName, fileToDelete);
 			redisManager.publishFT(RedisQueueEnum.DELETE_ENCLOSURE_QUEUE.getValue(), enclosureId);
-			LOGGER.debug("Fichier supprimé, suppresson du token sur redis");
+			LOGGER.info("Fichier {} supprime", enclosureId);
 			deleteRepresentation.setSuccess(redisManager.deleteKey(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId)));
 			deleteRepresentation.setMessage("Fichier supprimé");
 			deleteRepresentation.setStatus(HttpStatus.OK.value());

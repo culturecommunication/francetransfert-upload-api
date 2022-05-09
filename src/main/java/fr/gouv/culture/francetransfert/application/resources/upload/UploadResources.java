@@ -126,7 +126,7 @@ public class UploadResources {
 	@PostMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
 	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest) {
-		LOGGER.info("start delete file ");
+		LOGGER.info("start delete file {}", deleteRequest.getEnclosureId());
 		uploadServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
 				deleteRequest.getSenderMail());
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
