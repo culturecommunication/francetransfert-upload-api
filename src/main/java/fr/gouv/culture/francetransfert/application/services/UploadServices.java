@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -268,9 +269,12 @@ public class UploadServices {
 
 			LOGGER.debug("Can Upload ==> sender {} / recipients {}  ", validSender, validRecipients);
 			if (validSender || validRecipients) {
-
+				String language = Locale.FRANCE.toString();
 				// added
-				String language = metadata.getLanguage().toString();
+				if (metadata.getLanguage() != null) {
+					language = metadata.getLanguage().toString();
+				}
+
 				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
 				if (!isRequiredToGeneratedCode) {
 					return createMetaDataEnclosureInRedis(metadata);
