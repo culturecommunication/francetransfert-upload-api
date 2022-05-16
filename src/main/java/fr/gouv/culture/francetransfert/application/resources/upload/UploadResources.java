@@ -202,8 +202,19 @@ public class UploadResources {
 		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
 		LOGGER.debug("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
 
-		// add validate token service b body
 		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
+
+		response.setStatus(HttpStatus.OK.value());
+		return listPlis;
+	}
+
+	@PostMapping("/get-plis-received")
+	@Operation(method = "POST", description = "Download Info without URL ")
+	public List<FileInfoRepresentation> getPliReceived(HttpServletResponse response,
+			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
+		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
+
+		List<FileInfoRepresentation> listPlis = uploadServices.getRecieverPlisList(metadata);
 
 		response.setStatus(HttpStatus.OK.value());
 		return listPlis;

@@ -49,12 +49,12 @@ import fr.gouv.culture.francetransfert.core.services.StorageManager;
 import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
 import fr.gouv.culture.francetransfert.core.utils.DateUtils;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
-import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
 
 @Service
 public class UploadServices {
@@ -157,9 +157,9 @@ public class UploadServices {
 
 		try {
 
-			confirmationServices.validateToken(senderId, senderToken);
+			redisManager.validateToken(senderId, senderToken);
 			if ((flowChunkNumber % chunkModulo) == 0) {
-				confirmationServices.extendTokenValidity(senderId, senderToken);
+				redisManager.extendTokenValidity(senderId, senderToken);
 			}
 
 			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
@@ -203,7 +203,7 @@ public class UploadServices {
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
 					if ((uploadFilesCounter % chunkModulo) == 0) {
-						confirmationServices.extendTokenValidity(senderId, senderToken);
+						redisManager.extendTokenValidity(senderId, senderToken);
 					}
 					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
 							uploadFilesCounter);
@@ -348,6 +348,42 @@ public class UploadServices {
 		}
 	}
 
+	public FileInfoRepresentation getInfoPlisForReciever(String enclosureId) throws MetaloadException, UploadException {
+		// validate Enclosure download right
+		LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
+		try {
+
+			String message = RedisUtils.getEnclosureValue(redisManager, enclosureId,
+					EnclosureKeysEnum.MESSAGE.getKey());
+
+			String subject = RedisUtils.getEnclosureValue(redisManager, enclosureId,
+					EnclosureKeysEnum.SUBJECT.getKey());
+
+			boolean deleted = Boolean.parseBoolean(
+					RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
+
+			String senderMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+			List<FileRepresentation> rootFiles = getRootFiles(enclosureId);
+			List<DirectoryRepresentation> rootDirs = getRootDirs(enclosureId);
+			Map<String, String> enclosureMap = redisManager
+					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey((enclosureId)));
+			String timestamp = enclosureMap.get(EnclosureKeysEnum.TIMESTAMP.getKey());
+
+			long tailleStr = (long) RedisUtils.getTotalSizeEnclosure(redisManager, enclosureId);
+			String taille = org.apache.commons.io.FileUtils.byteCountToDisplaySize(tailleStr);
+
+			FileInfoRepresentation fileInfoRepresentation = FileInfoRepresentation.builder()
+					.validUntilDate(expirationDate).senderEmail(senderMail).message(message).rootFiles(rootFiles)
+					.rootDirs(rootDirs).timestamp(timestamp).subject(subject).deleted(deleted).enclosureId(enclosureId)
+					.totalSize(taille).build();
+			return fileInfoRepresentation;
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while getting plisInfo : " + e.getMessage(), enclosureId,
+					e);
+		}
+	}
+
 	public RecipientInfo buildRecipient(String email, String enclosureId) throws MetaloadException {
 		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
 		Map<String, String> recipientMap = redisManager.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
@@ -472,8 +508,8 @@ public class UploadServices {
 			if (!StringUtils.isEmpty(token)) {
 				try {
 					LOGGER.debug("verify token in redis");
-					confirmationServices.validateToken(senderMail, token);
-					confirmationServices.extendTokenValidity(senderMail, token);
+					redisManager.validateToken(senderMail, token);
+					redisManager.extendTokenValidity(senderMail, token);
 				} catch (UploadException e) {
 					confirmationServices.generateCodeConfirmation(senderMail, currentLanguage);
 					result = true;
@@ -499,8 +535,8 @@ public class UploadServices {
 			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
 				if (StringUtils.isNotBlank(senderMail)) {
 					try {
-						confirmationServices.validateToken(senderMail, token);
-						confirmationServices.extendTokenValidity(senderMail, token);
+						redisManager.validateToken(senderMail, token);
+						redisManager.extendTokenValidity(senderMail, token);
 					} catch (Exception e) {
 						throw new UnauthorizedAccessException("Invalid Token");
 					}
@@ -545,6 +581,25 @@ public class UploadServices {
 			for (String enclosureId : result) {
 				try {
 					FileInfoRepresentation enclosureInfo = getInfoPlis(enclosureId);
+					if (!enclosureInfo.isDeleted()) {
+						listPlis.add(enclosureInfo);
+					}
+				} catch (Exception e) {
+					LOGGER.error("Cannot get plis {} for list ", enclosureId, e);
+				}
+			}
+		}
+		return listPlis;
+	}
+
+	public List<FileInfoRepresentation> getRecieverPlisList(ValidateCodeResponse metadata) throws MetaloadException {
+		List<FileInfoRepresentation> listPlis = new ArrayList<FileInfoRepresentation>();
+		List<String> result = RedisUtils.getReceivedPli(redisManager, metadata.getSenderMail());
+
+		if (!CollectionUtils.isEmpty(result)) {
+			for (String enclosureId : result) {
+				try {
+					FileInfoRepresentation enclosureInfo = getInfoPlisForReciever(enclosureId);
 					if (!enclosureInfo.isDeleted()) {
 						listPlis.add(enclosureInfo);
 					}
