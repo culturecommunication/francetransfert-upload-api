@@ -187,8 +187,8 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response,
 			@RequestParam("enclosure") String enclosureId, @RequestBody ValidateCodeResponse metadata)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(enclosureId, metadata.getSenderMail().toLowerCase(),
-				metadata.getSenderToken());
+		uploadServices.validateAdminToken(enclosureId, metadata.getSenderToken(),
+				metadata.getSenderMail().toLowerCase());
 		// add validate token service b body
 		LOGGER.debug("-----------file-info connect-------- : {}", enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
