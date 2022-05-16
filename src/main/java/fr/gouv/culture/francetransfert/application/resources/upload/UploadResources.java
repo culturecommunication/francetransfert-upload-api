@@ -176,7 +176,6 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
 		uploadServices.validateAdminToken(enclosureId, token, null);
-		LOGGER.info("-----------file-info-------- : {}", enclosureId);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
@@ -201,10 +200,7 @@ public class UploadResources {
 	public List<FileInfoRepresentation> getPlisSent(HttpServletResponse response,
 			@RequestBody ValidateCodeResponse metadata) throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateToken(metadata.getSenderMail().toLowerCase(), metadata.getSenderToken());
-		LOGGER.debug("-----------SENDER MAIL-------- : {}", metadata.getSenderMail());
-
 		List<FileInfoRepresentation> listPlis = uploadServices.getSenderPlisList(metadata);
-
 		response.setStatus(HttpStatus.OK.value());
 		return listPlis;
 	}
@@ -242,6 +238,19 @@ public class UploadResources {
 		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
 				addNewRecipientRequest.getSenderMail());
 		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getNewRecipient());
+		response.setStatus(HttpStatus.OK.value());
+		return res;
+	}
+	
+	@PostMapping("/resend-download-link")
+	@Operation(method = "POST", description = "add a new recipient")
+	public boolean resendDownloadLink(HttpServletResponse response,
+			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
+			throws UnauthorizedAccessException, MetaloadException {
+		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
+				addNewRecipientRequest.getSenderMail());
+		boolean res = uploadServices.ResendDonwloadLink(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
 		return res;

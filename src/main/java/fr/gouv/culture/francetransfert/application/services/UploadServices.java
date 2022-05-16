@@ -390,6 +390,32 @@ public class UploadServices {
 		return recipient;
 	}
 
+	//abir
+	public boolean ResendDonwloadLink(String enclosureId, String email) {
+		try {
+			LOGGER.debug("create new recipient ");
+			Map<String, String> recipientMap = RedisUtils.getRecipientsEnclosure(redisManager, enclosureId);
+			boolean emailExist = recipientMap.containsKey(email);
+			if (!emailExist) {
+				LOGGER.error("Recipient doesn't exist");
+				throw new UploadException(ErrorEnum.RECIPIENT_DOESNT_EXIST.getValue());
+			} else {
+				NewRecipient rec = new NewRecipient();
+				String idRecipient = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+				rec.setMail(email);
+				rec.setId(idRecipient);
+				rec.setIdEnclosure(enclosureId);
+				String recJsonInString = new Gson().toJson(rec);
+				redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), recJsonInString);
+			}
+			return true;
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while resending download link : " + e.getMessage(),
+					enclosureId, e);
+		}
+	}
+	
 	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {
 		try {
 			LOGGER.debug("create new recipient ");
@@ -445,6 +471,7 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.LIMT_SIZE_ERROR.getValue());
 		}
 		try {
+			LOGGER.info("---------------metadata.getPassword ----------- {}", metadata.getPassword());
 			LOGGER.debug("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
 			if (metadata.getPassword() == null) {
