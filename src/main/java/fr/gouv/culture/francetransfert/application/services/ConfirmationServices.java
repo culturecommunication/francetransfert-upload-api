@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,6 +141,18 @@ public class ConfirmationServices {
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
 			LOGGER.warn("CONFIRMATION_OK || sender: {}", senderMail);
 		}
+	}
+
+	public void validateTokenAndEnclosure(String senderMail, String token, String enclosureId)
+			throws MetaloadException {
+		// verify token in redis
+		LOGGER.debug("check token for sender mail {}", senderMail);
+		redisManager.validateToken(senderMail, token);
+		String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+		if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+			throw new MetaloadException("Invalid token");
+		}
+
 	}
 
 	public void validateToken(String senderMail, String token) throws MetaloadException {

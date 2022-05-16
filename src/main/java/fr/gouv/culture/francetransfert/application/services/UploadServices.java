@@ -533,6 +533,10 @@ public class UploadServices {
 				if (StringUtils.isNotBlank(senderMail)) {
 					try {
 						redisManager.validateToken(senderMail, token);
+						String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+						if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+							throw new UnauthorizedAccessException("Invalid Token");
+						}
 						redisManager.extendTokenValidity(senderMail, token);
 					} catch (Exception e) {
 						throw new UnauthorizedAccessException("Invalid Token");
@@ -589,7 +593,7 @@ public class UploadServices {
 		return listPlis;
 	}
 
-	public List<FileInfoRepresentation> getRecieverPlisList(ValidateCodeResponse metadata) throws MetaloadException {
+	public List<FileInfoRepresentation> getReceivedPlisList(ValidateCodeResponse metadata) throws MetaloadException {
 		List<FileInfoRepresentation> listPlis = new ArrayList<FileInfoRepresentation>();
 		List<String> result = RedisUtils.getReceivedPli(redisManager, metadata.getSenderMail());
 
