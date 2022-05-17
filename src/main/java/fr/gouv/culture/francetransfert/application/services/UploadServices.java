@@ -23,7 +23,6 @@ import com.amazonaws.services.s3.model.PartETag;
 import com.google.gson.Gson;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
-import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
@@ -390,6 +389,31 @@ public class UploadServices {
 		return recipient;
 	}
 
+	public boolean resendDonwloadLink(String enclosureId, String email) {
+		try {
+			LOGGER.debug("create new recipient ");
+			Map<String, String> recipientMap = RedisUtils.getRecipientsEnclosure(redisManager, enclosureId);
+			boolean emailExist = recipientMap.containsKey(email);
+			if (!emailExist) {
+				LOGGER.error("Recipient doesn't exist");
+				throw new UploadException(ErrorEnum.RECIPIENT_DOESNT_EXIST.getValue());
+			} else {
+				NewRecipient rec = new NewRecipient();
+				String idRecipient = RedisUtils.getRecipientId(redisManager, enclosureId, email);
+				rec.setMail(email);
+				rec.setId(idRecipient);
+				rec.setIdEnclosure(enclosureId);
+				String recJsonInString = new Gson().toJson(rec);
+				redisManager.publishFT(RedisQueueEnum.MAIL_NEW_RECIPIENT_QUEUE.getValue(), recJsonInString);
+			}
+			return true;
+		} catch (Exception e) {
+			throw new UploadException(
+					ErrorEnum.TECHNICAL_ERROR.getValue() + " while resending download link : " + e.getMessage(),
+					enclosureId, e);
+		}
+	}
+
 	public boolean addNewRecipientToMetaDataInRedis(String enclosureId, String email) {
 		try {
 			LOGGER.debug("create new recipient ");
@@ -523,30 +547,6 @@ public class UploadServices {
 			String uuid = UUID.randomUUID().toString();
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " generating code : " + e.getMessage(),
 					uuid, e);
-		}
-	}
-
-	public void validateAdminToken(String enclosureId, String token, String senderMail) {
-		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
-		if (tokenMap != null) {
-			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
-				if (StringUtils.isNotBlank(senderMail)) {
-					try {
-						redisManager.validateToken(senderMail, token);
-						String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-						if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
-							throw new UnauthorizedAccessException("Invalid Token");
-						}
-						redisManager.extendTokenValidity(senderMail, token);
-					} catch (Exception e) {
-						throw new UnauthorizedAccessException("Invalid Token");
-					}
-				} else {
-					throw new UnauthorizedAccessException("Invalid Token");
-				}
-			}
-		} else {
-			throw new UnauthorizedAccessException("Invalid Token");
 		}
 	}
 

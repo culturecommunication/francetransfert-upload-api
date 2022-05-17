@@ -2,6 +2,7 @@ package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -13,7 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
@@ -159,6 +162,30 @@ public class ConfirmationServices {
 		// verify token in redis
 		LOGGER.debug("check token for sender mail {}", senderMail);
 		redisManager.validateToken(senderMail, token);
+	}
+
+	public void validateAdminToken(String enclosureId, String token, String senderMail) {
+		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
+		if (tokenMap != null) {
+			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
+				if (StringUtils.isNotBlank(senderMail)) {
+					try {
+						redisManager.validateToken(senderMail, token);
+						String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+						if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+							throw new UnauthorizedAccessException("Invalid Token");
+						}
+						redisManager.extendTokenValidity(senderMail, token);
+					} catch (Exception e) {
+						throw new UnauthorizedAccessException("Invalid Token");
+					}
+				} else {
+					throw new UnauthorizedAccessException("Invalid Token");
+				}
+			}
+		} else {
+			throw new UnauthorizedAccessException("Invalid Token");
+		}
 	}
 
 	private void deleteConfirmationCode(String senderMail) {
