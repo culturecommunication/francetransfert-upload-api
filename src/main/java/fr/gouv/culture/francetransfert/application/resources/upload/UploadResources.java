@@ -127,7 +127,7 @@ public class UploadResources {
 	@Operation(method = "GET", description = "Generate delete URL ")
 	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest) {
 		LOGGER.info("start delete file {}", deleteRequest.getEnclosureId());
-		uploadServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
+		confirmationServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
 				deleteRequest.getSenderMail());
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
 		response.setStatus(deleteRepresentation.getStatus());
@@ -138,7 +138,7 @@ public class UploadResources {
 	@Operation(method = "POST", description = "Update expired date")
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
 			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException {
-		uploadServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken(),
+		confirmationServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken(),
 				dateUpdateRequest.getSenderMail());
 		EnclosureRepresentation enclosureRepresentation = uploadServices
 				.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getNewDate());
@@ -149,7 +149,7 @@ public class UploadResources {
 	public ResponseEntity<Object> validateToken(
 			@RequestParam @NotBlank(message = "Token must not be null") String token,
 			@RequestParam @NotBlank(message = "EnclosureId must not be null") String enclosureId) {
-		uploadServices.validateAdminToken(enclosureId, token, null);
+		confirmationServices.validateAdminToken(enclosureId, token, null);
 		return new ResponseEntity<Object>(true, new HttpHeaders(), HttpStatus.OK);
 	}
 
@@ -175,7 +175,7 @@ public class UploadResources {
 	@Operation(method = "GET", description = "Download Info without URL ")
 	public FileInfoRepresentation fileInfo(HttpServletResponse response, @RequestParam("enclosure") String enclosureId,
 			@RequestParam("token") String token) throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(enclosureId, token, null);
+		confirmationServices.validateAdminToken(enclosureId, token, null);
 		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(enclosureId);
 		response.setStatus(HttpStatus.OK.value());
 		return fileInfoRepresentation;
@@ -186,7 +186,7 @@ public class UploadResources {
 	public FileInfoRepresentation fileInfoConnect(HttpServletResponse response,
 			@RequestParam("enclosure") String enclosureId, @RequestBody ValidateCodeResponse metadata)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(enclosureId, metadata.getSenderToken(),
+		confirmationServices.validateAdminToken(enclosureId, metadata.getSenderToken(),
 				metadata.getSenderMail().toLowerCase());
 		// add validate token service b body
 		LOGGER.debug("-----------file-info connect-------- : {}", enclosureId);
@@ -222,8 +222,8 @@ public class UploadResources {
 	public boolean addRecipient(HttpServletResponse response,
 			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
-				addNewRecipientRequest.getSenderMail());
+		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
 		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -235,22 +235,22 @@ public class UploadResources {
 	public boolean deleteRecipient(HttpServletResponse response,
 			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
-				addNewRecipientRequest.getSenderMail());
+		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
 		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
 		return res;
 	}
-	
+
 	@PostMapping("/resend-download-link")
 	@Operation(method = "POST", description = "add a new recipient")
 	public boolean resendDownloadLink(HttpServletResponse response,
 			@RequestBody AddNewRecipientRequest addNewRecipientRequest)
 			throws UnauthorizedAccessException, MetaloadException {
-		uploadServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(), addNewRecipientRequest.getToken(),
-				addNewRecipientRequest.getSenderMail());
-		boolean res = uploadServices.ResendDonwloadLink(addNewRecipientRequest.getEnclosureId(),
+		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
+				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
+		boolean res = uploadServices.resendDonwloadLink(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
 		return res;
