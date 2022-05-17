@@ -469,7 +469,6 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.LIMT_SIZE_ERROR.getValue());
 		}
 		try {
-			LOGGER.info("---------------metadata.getPassword ----------- {}", metadata.getPassword());
 			LOGGER.debug("limit enclosure size is < upload limit size: {}", uploadLimitSize);
 			// generate password if provided one not valid
 			if (metadata.getPassword() == null) {
