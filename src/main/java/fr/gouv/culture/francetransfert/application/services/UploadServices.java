@@ -309,14 +309,13 @@ public class UploadServices {
 			List<RecipientInfo> deletedRecipients = new ArrayList<>();
 
 			int downloadCount = getSenderInfoPlis(enclosureId, recipientsMails, deletedRecipients);
-
+			
 			FileInfoRepresentation fileInfoRepresentation = infoPlis(enclosureId, expirationDate);
 			fileInfoRepresentation.setDeletedRecipients(deletedRecipients);
 			fileInfoRepresentation.setRecipientsMails(recipientsMails);
 			fileInfoRepresentation.setPublicLink(publicLink);
 			fileInfoRepresentation.setWithPassword(withPassword);
 			fileInfoRepresentation.setDownloadCount(downloadCount);
-
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -343,6 +342,8 @@ public class UploadServices {
 		}
 		return downloadCount;
 	}
+	
+
 
 	public FileInfoRepresentation getInfoPlisForReciever(String enclosureId) throws MetaloadException, UploadException {
 		// validate Enclosure download right
@@ -384,9 +385,11 @@ public class UploadServices {
 	public RecipientInfo buildRecipient(String email, String enclosureId) throws MetaloadException {
 		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
 		Map<String, String> recipientMap = redisManager.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
+		Set<String> downloadDate = redisManager.smembersString(RedisKeysEnum.FT_Download_Date.getKey(recipientId));
+		ArrayList<String> downloadDates = new ArrayList<String>(downloadDate);
 		int nbDownload = RedisUtils.getNumberOfDownloadsPerRecipient(redisManager, recipientId);
 		boolean deleted = Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1;
-		RecipientInfo recipient = new RecipientInfo(email, nbDownload, deleted);
+		RecipientInfo recipient = new RecipientInfo(email, nbDownload, deleted, downloadDates);
 		return recipient;
 	}
 
