@@ -73,7 +73,7 @@ public class ConfirmationServices {
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
 					currentLanguage + ":" + senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
-			LOGGER.warn("CONFIRMATION_REQUEST || sender: {}", senderMail);
+			LOGGER.warn("msgtype: CONFIRMATION_REQUEST || sender: {}", senderMail);
 		}
 
 	}
@@ -142,7 +142,7 @@ public class ConfirmationServices {
 		} else {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
-			LOGGER.warn("CONFIRMATION_OK || sender: {}", senderMail);
+			LOGGER.warn("msgtype: CONFIRMATION_OK || sender: {}", senderMail);
 		}
 	}
 
