@@ -1,5 +1,6 @@
 package fr.gouv.culture.francetransfert.domain.utils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,10 +58,6 @@ public class RedisForUploadUtils {
 			LOGGER.debug("enclosure id : {}", guidEnclosure);
 
 			Map<String, String> map = new HashMap<>();
-
-			// added by abir
-			Map<String, String> mapPli = new HashMap<>();
-			// ------------
 
 			LocalDateTime startDate = LocalDateTime.now();
 			LOGGER.debug("enclosure creation date: {}", startDate);
@@ -148,7 +145,7 @@ public class RedisForUploadUtils {
 	public static void createAllRecipient(RedisManager redisManager, FranceTransfertDataRepresentation metadata,
 			String enclosureId) {
 		try {
-			
+
 			if (!metadata.getPublicLink()) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 					throw new UploadException("Empty recipient", enclosureId);
@@ -164,11 +161,13 @@ public class RedisForUploadUtils {
 					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
 					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
+					//redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient), mapRecipients);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
 				});
 				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
 				// idRecepient>
 				redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
+
 			}
 		} catch (Exception e) {
 			throw new UploadException("Error creating recipient : " + e.getMessage(), enclosureId, e);
@@ -194,6 +193,9 @@ public class RedisForUploadUtils {
 			LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
 			// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
 			// idRecepient>
+			
+			
+			//redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient), mapRecipients);
 			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
 			return guidRecipient;
 		} catch (Exception e) {
