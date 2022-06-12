@@ -30,4 +30,5 @@ public class FileInfoRepresentation {
 	private boolean deleted;
 	private boolean publicLink;
 	private String totalSize;
+	
 }

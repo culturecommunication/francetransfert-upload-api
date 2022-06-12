@@ -1,8 +1,5 @@
 package fr.gouv.culture.francetransfert.validator;
 
-import java.util.Iterator;
-import java.util.Objects;
-
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
@@ -11,7 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.domain.utils.StringUploadUtils;
+import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
 
 public class EmailFranceTransfertValidator
 		implements ConstraintValidator<EmailsFranceTransfert, FranceTransfertDataRepresentation> {

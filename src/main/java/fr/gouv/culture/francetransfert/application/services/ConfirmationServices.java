@@ -2,9 +2,11 @@ package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
+import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
+import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
@@ -68,6 +73,7 @@ public class ConfirmationServices {
 			redisManager.publishFT(RedisQueueEnum.CONFIRMATION_CODE_MAIL_QUEUE.getValue(),
 					currentLanguage + ":" + senderMail + ":" + confirmationCode + ":" + ttltCodeConfirmation);
 			LOGGER.info("sender: {} insert in queue rdis to send mail with confirmation code", senderMail);
+			LOGGER.warn("msgtype: CONFIRMATION_REQUEST || sender: {}", senderMail);
 		}
 
 	}
@@ -136,44 +142,49 @@ public class ConfirmationServices {
 		} else {
 			redisManager.setString(RedisKeysEnum.FT_CODE_TRY.getKey(RedisUtils.generateHashsha1(senderMail)), "0");
 			LOGGER.info("sender: {} valid code: {} ", senderMail, code);
+			LOGGER.warn("msgtype: CONFIRMATION_OK || sender: {}", senderMail);
 		}
 	}
 
-	public void extendTokenValidity(String senderMail, String token) throws UploadException {
-
-		checkTokenValidity(senderMail, token);
-		String tokenKey = RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail) + ":" + token;
-		boolean tokenExist = redisManager.exists(tokenKey);
-		if (tokenExist) {
-			int secondToExpire = expireTokenSender;
-			redisManager.expire(tokenKey, secondToExpire);
-		}
-
-	}
-
-	public void validateToken(String senderMail, String token) {
+	public void validateTokenAndEnclosure(String senderMail, String token, String enclosureId)
+			throws MetaloadException {
 		// verify token in redis
 		LOGGER.debug("check token for sender mail {}", senderMail);
-		checkTokenValidity(senderMail, token);
+		redisManager.validateToken(senderMail, token);
+		String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+		if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+			throw new MetaloadException("Invalid token");
+		}
+
 	}
 
-	private void checkTokenValidity(String senderMail, String token) throws UploadException {
+	public void validateToken(String senderMail, String token) throws MetaloadException {
+		// verify token in redis
+		LOGGER.debug("check token for sender mail {}", senderMail);
+		redisManager.validateToken(senderMail, token);
+	}
 
-		if (token != null && !token.equalsIgnoreCase("unknown")) {
-			boolean tokenExistInRedis;
-			try {
-				String tokenKey = RedisKeysEnum.FT_TOKEN_SENDER.getKey(senderMail) + ":" + token;
-				tokenExistInRedis = redisManager.exists(tokenKey);
-			} catch (Exception e) {
-				String uuid = UUID.randomUUID().toString();
-				throw new UploadException(
-						ErrorEnum.TECHNICAL_ERROR.getValue() + " validating token : " + e.getMessage(), uuid, e);
-			}
-			if (!tokenExistInRedis) {
-				throw new UploadException("Invalid token: token does not exist in redis");
+	public void validateAdminToken(String enclosureId, String token, String senderMail) {
+		Map<String, String> tokenMap = redisManager.hmgetAllString(RedisKeysEnum.FT_ADMIN_TOKEN.getKey(enclosureId));
+		if (tokenMap != null) {
+			if (!token.equals(tokenMap.get(EnclosureKeysEnum.TOKEN.getKey()))) {
+				if (StringUtils.isNotBlank(senderMail)) {
+					try {
+						redisManager.validateToken(senderMail, token);
+						String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+						if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+							throw new UnauthorizedAccessException("Invalid Token");
+						}
+						redisManager.extendTokenValidity(senderMail, token);
+					} catch (Exception e) {
+						throw new UnauthorizedAccessException("Invalid Token");
+					}
+				} else {
+					throw new UnauthorizedAccessException("Invalid Token");
+				}
 			}
 		} else {
-			throw new UploadException("Invalid token");
+			throw new UnauthorizedAccessException("Invalid Token");
 		}
 	}
 
