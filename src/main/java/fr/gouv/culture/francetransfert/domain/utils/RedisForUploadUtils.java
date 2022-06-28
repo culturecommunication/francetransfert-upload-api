@@ -2,6 +2,8 @@ package fr.gouv.culture.francetransfert.domain.utils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +68,7 @@ public class RedisForUploadUtils {
 			LocalDateTime expiredDate = getExpiredTimeStamp(metadata.getExpireDelay());
 			LOGGER.debug("enclosure expire date: {}", expiredDate);
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
+			
 
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());

@@ -31,4 +31,9 @@ public class FileInfoRepresentation {
 	private boolean publicLink;
 	private String totalSize;
 	
+	
+	private boolean archive;
+	private boolean expired;
+	private LocalDate archiveUntilDate;
+	
 }
