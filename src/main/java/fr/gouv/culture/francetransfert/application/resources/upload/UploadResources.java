@@ -125,12 +125,13 @@ public class UploadResources {
 
 	@PostMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
-	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest) {
+	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest)
+			throws MetaloadException {
 		LOGGER.info("start delete file {}", deleteRequest.getEnclosureId());
 		confirmationServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
 				deleteRequest.getSenderMail());
-		
-		uploadServices.validateExpirationArchiveDate(deleteRequest.getEnclosureId());
+
+		uploadServices.validateExpirationDate(deleteRequest.getEnclosureId());
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
 		response.setStatus(deleteRepresentation.getStatus());
 		return deleteRepresentation;
@@ -139,11 +140,12 @@ public class UploadResources {
 	@PostMapping("/update-expired-date")
 	@Operation(method = "POST", description = "Update expired date")
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
-			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException {
+			@RequestBody @Valid DateUpdateRequest dateUpdateRequest)
+			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken(),
 				dateUpdateRequest.getSenderMail());
-		
-		uploadServices.validateExpirationArchiveDate(dateUpdateRequest.getEnclosureId());
+
+		uploadServices.validateExpirationDate(dateUpdateRequest.getEnclosureId());
 		EnclosureRepresentation enclosureRepresentation = uploadServices
 				.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getNewDate());
 		return new ResponseEntity<Object>(enclosureRepresentation, new HttpHeaders(), HttpStatus.OK);
@@ -228,8 +230,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
-		
-		uploadServices.validateExpirationArchiveDate(addNewRecipientRequest.getEnclosureId());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -243,8 +245,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
-		
-		uploadServices.validateExpirationArchiveDate(addNewRecipientRequest.getEnclosureId());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -258,8 +260,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
-		
-		uploadServices.validateExpirationArchiveDate(addNewRecipientRequest.getEnclosureId());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.resendDonwloadLink(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
