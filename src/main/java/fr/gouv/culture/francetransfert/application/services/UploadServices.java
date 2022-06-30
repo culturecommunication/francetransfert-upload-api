@@ -105,6 +105,38 @@ public class UploadServices {
 	@Autowired
 	private CaptchaService captchaService;
 
+	private LocalDate validateDownloadArchiveAuthorizationPublic(String enclosureId)
+			throws MetaloadException, UploadException {
+
+		LocalDate archiveDate;
+		String dateString = RedisUtils.getEnclosureValue(redisManager, enclosureId,
+				EnclosureKeysEnum.EXPIRED_TIMESTAMP_ARCHIVE.getKey());
+
+		archiveDate = DateUtils.convertStringToLocalDate(dateString);
+		if (LocalDate.now().isAfter(archiveDate) && StringUtils.isNotBlank(dateString)) {
+			throw new UploadException("Vous ne pouvez plus modifier ces fichiers archivés", enclosureId);
+		}
+
+		boolean deleted = Boolean.parseBoolean(
+				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
+		if (deleted) {
+			throw new UploadException("Vous ne pouvez plus accéder à ces fichiers", enclosureId);
+		}
+		return archiveDate;
+	}
+
+	private LocalDate validateDownloadExpiredAuthorizationPublic(String enclosureId)
+			throws MetaloadException, UploadException {
+		LocalDate expirationDate = DateUtils.convertStringToLocalDate(
+				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()));
+		boolean deleted = Boolean.parseBoolean(
+				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.DELETED.getKey()));
+		if (deleted) {
+			throw new UploadException("Vous ne pouvez plus accéder à ces fichiers", enclosureId);
+		}
+		return expirationDate;
+	}
+
 	public DeleteRepresentation deleteFile(String enclosureId) {
 		DeleteRepresentation deleteRepresentation = new DeleteRepresentation();
 		try {
@@ -292,7 +324,9 @@ public class UploadServices {
 
 	public FileInfoRepresentation getInfoPlis(String enclosureId) throws MetaloadException, UploadException {
 		// validate Enclosure download right
-		LocalDate expirationDate = validateDownloadAuthorizationPublic(enclosureId);
+		LocalDate expirationDate = validateDownloadExpiredAuthorizationPublic(enclosureId);
+		LocalDate expirationArchiveDate = validateDownloadArchiveAuthorizationPublic(enclosureId);
+
 		try {
 
 			String passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId,
@@ -308,13 +342,26 @@ public class UploadServices {
 			List<RecipientInfo> deletedRecipients = new ArrayList<>();
 
 			int downloadCount = getSenderInfoPlis(enclosureId, recipientsMails, deletedRecipients);
-			
+
 			FileInfoRepresentation fileInfoRepresentation = infoPlis(enclosureId, expirationDate);
 			fileInfoRepresentation.setDeletedRecipients(deletedRecipients);
 			fileInfoRepresentation.setRecipientsMails(recipientsMails);
 			fileInfoRepresentation.setPublicLink(publicLink);
 			fileInfoRepresentation.setWithPassword(withPassword);
 			fileInfoRepresentation.setDownloadCount(downloadCount);
+
+			boolean archive = false;
+			boolean expired = false;
+
+			if (LocalDate.now().isAfter(expirationDate)) {
+				expired = true;
+				archive = true;
+				fileInfoRepresentation.setArchiveUntilDate(expirationArchiveDate);
+			}
+
+			fileInfoRepresentation.setArchive(archive);
+			fileInfoRepresentation.setExpired(expired);
+
 			return fileInfoRepresentation;
 		} catch (Exception e) {
 			throw new UploadException(
@@ -341,8 +388,6 @@ public class UploadServices {
 		}
 		return downloadCount;
 	}
-	
-
 
 	public FileInfoRepresentation getInfoPlisForReciever(String enclosureId) throws MetaloadException, UploadException {
 		// validate Enclosure download right
@@ -666,7 +711,7 @@ public class UploadServices {
 		return expirationDate;
 	}
 
-	private LocalDate validateExpirationDate(String enclosureId) throws MetaloadException {
+	public LocalDate validateExpirationDate(String enclosureId) throws MetaloadException {
 		LocalDate expirationDate = DateUtils.convertStringToLocalDate(
 				RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey()));
 		if (LocalDate.now().isAfter(expirationDate)) {
