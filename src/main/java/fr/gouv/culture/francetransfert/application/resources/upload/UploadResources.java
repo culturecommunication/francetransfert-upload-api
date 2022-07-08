@@ -42,6 +42,7 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
 import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
@@ -182,6 +183,29 @@ public class UploadResources {
 		enclosureRepresentation.setSenderToken(cookieTocken);
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
+	}
+	
+	//---
+	@PostMapping("/validate-data")
+	@Operation(method = "POST", description = "validate data")
+	public Boolean validateCode(HttpServletResponse response,
+			@RequestParam("senderMail") String senderMail, @Valid @RequestBody ValidateData metadata) {
+		
+		boolean passwordChecked =  uploadServices.validPassword(metadata.getPassword());
+		boolean typeChecked = uploadServices.validType(metadata.getTypePli());
+		if(typeChecked) {
+			boolean recipientChecked = uploadServices.validRecipient(metadata.getTypePli(), metadata.getRecipientEmails());
+		}
+		boolean recipientSenderChecked = uploadServices.validRecipientSender(metadata.getSenderEmail(), metadata.getRecipientEmails(), metadata.getTypePli());
+		
+		boolean langueCourrielChecked = uploadServices.validLangueCourriel(metadata.getLanguage());
+		boolean dateFormatChecked = uploadServices.validDateFormat(metadata.getExpireDelay());
+		boolean datePeriodChecked = uploadServices.validPeriodFormat(metadata.getExpireDelay());
+		boolean protectionArchiveChecked = uploadServices.validProtectionArchive(metadata.getProtectionArchive());
+		
+		
+		return true;
+
 	}
 
 	@GetMapping("/file-info")

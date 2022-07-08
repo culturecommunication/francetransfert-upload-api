@@ -8,7 +8,9 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +47,7 @@ import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
@@ -195,6 +198,9 @@ public class UploadServices {
 
 		try {
 
+			//---
+			Map<String, String> enclosureMap = redisManager
+					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
 			redisManager.validateToken(senderId, senderToken);
 			if ((flowChunkNumber % chunkModulo) == 0) {
 				redisManager.extendTokenValidity(senderId, senderToken);
@@ -218,6 +224,11 @@ public class UploadServices {
 			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
 				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
 				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
+				
+				//---
+				enclosureMap.put(StatutEnum.EN_COURS.getKey(), "010-ECC");
+				enclosureMap.put(StatutEnum.EN_COURS.getValue(),  "En cours de chargement");
+
 			}
 
 			String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
@@ -237,6 +248,10 @@ public class UploadServices {
 				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
 						partETags);
 				if (succesUpload != null) {
+					//---
+					enclosureMap.put(StatutEnum.EN_COURS.getKey(), "012-CHT");
+					enclosureMap.put(StatutEnum.EN_COURS.getValue(), "Chargement terminé");
+					
 					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
@@ -250,6 +265,10 @@ public class UploadServices {
 						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
+				}else {
+					//---
+					enclosureMap.put(StatutEnum.EN_COURS.getKey(), "011-ECH");
+					enclosureMap.put(StatutEnum.EN_COURS.getValue(), "Erreur lors du chargement du pli");
 				}
 			}
 			return isUploaded;
@@ -780,5 +799,108 @@ public class UploadServices {
 			metadat.setSubject("");
 		}
 	}
+	
+	//---
+	public boolean validPassword(String password){
+		if (base64CryptoService.validatePassword(password.trim())) {
+			return true;
+		}
+	return false;
+	}
+	
+	//---
+	public boolean validType(String typePli){
+		
+		String[] typeArray = new String[]{"mail", "link"};
+
+		List<String> typeList = new ArrayList<>(Arrays.asList(typeArray));
+			
+		return typeList.contains(typePli);
+	}
+	//---
+	public boolean validRecipientSender(String senderEmail,List<String> recipientEmails, String typePli){
+		
+		boolean validSender = stringUploadUtils.isValidEmailIgni(senderEmail.toLowerCase());
+		boolean validRecipients = false;
+		if (typePli == "mail" && !CollectionUtils.isEmpty(recipientEmails)) {
+			validRecipients = recipientEmails.stream().noneMatch(x -> {
+
+				return !stringUploadUtils.isValidEmailIgni(x);
+
+			});
+		}
+		if (validSender || validRecipients) {
+			return true;
+		}
+		else
+			return false;
+
+	}
+	//---
+	public boolean validRecipient(String typePli, List<String> recipientEmails){
+		
+		if(typePli == "mail" && CollectionUtils.isNotEmpty(recipientEmails)) {
+			return true;
+		}
+		else
+		return false;
+	}
+	//---
+	public boolean validLangueCourriel(Locale langue){
+		
+		String[] langueArray = new String[]{"fr", "en"}; //fr-FR en-US
+
+		List<String> langueList = new ArrayList<>(Arrays.asList(langueArray));
+			
+		return langueList.contains(langue);
+	}
+	//---
+	public boolean validDateFormat(LocalDate expireDelay){
+		
+		if(expireDelay.getClass().getSimpleName() == "LocalDate") {
+			
+			return true;
+		}
+		
+		return false;
+	}
+	//---
+	public boolean validPeriodFormat(LocalDate expireDelay){
+		
+		LocalDate now = LocalDate.now();
+
+		long daysBetween = ChronoUnit.DAYS.between(expireDelay, now);
+		
+		if( daysBetween <= 90 && !LocalDate.now().isAfter(expireDelay)) {
+			
+			return true;
+		}
+		
+		return false;
+	}
+	//---
+	public boolean validProtectionArchive(Boolean protectionArchive){
+		
+	if(protectionArchive.getClass().getSimpleName() == "Boolean") {
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public boolean isBoolean(String value) {
+	    return value != null && Arrays.stream(new String[]{"true", "false", "1", "0"})
+	            .anyMatch(b -> b.equalsIgnoreCase(value));
+	}
+	
+	
+	
+	/*public boolean validDateFormat(int expireDelay){
+		
+		LocalDate expirationDate = DateUtils.convertStringToLocalDate(expireDelay.toString());
+	}*/
+
+	
 
 }
