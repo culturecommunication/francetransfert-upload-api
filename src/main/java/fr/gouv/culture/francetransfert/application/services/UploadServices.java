@@ -8,7 +8,6 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -800,107 +799,9 @@ public class UploadServices {
 		}
 	}
 	
-	//---
-	public boolean validPassword(String password){
-		if (base64CryptoService.validatePassword(password.trim())) {
-			return true;
-		}
-	return false;
-	}
-	
-	//---
-	public boolean validType(String typePli){
-		
-		String[] typeArray = new String[]{"mail", "link"};
-
-		List<String> typeList = new ArrayList<>(Arrays.asList(typeArray));
-			
-		return typeList.contains(typePli);
-	}
-	//---
-	public boolean validRecipientSender(String senderEmail,List<String> recipientEmails, String typePli){
-		
-		boolean validSender = stringUploadUtils.isValidEmailIgni(senderEmail.toLowerCase());
-		boolean validRecipients = false;
-		if (typePli == "mail" && !CollectionUtils.isEmpty(recipientEmails)) {
-			validRecipients = recipientEmails.stream().noneMatch(x -> {
-
-				return !stringUploadUtils.isValidEmailIgni(x);
-
-			});
-		}
-		if (validSender || validRecipients) {
-			return true;
-		}
-		else
-			return false;
-
-	}
-	//---
-	public boolean validRecipient(String typePli, List<String> recipientEmails){
-		
-		if(typePli == "mail" && CollectionUtils.isNotEmpty(recipientEmails)) {
-			return true;
-		}
-		else
-		return false;
-	}
-	//---
-	public boolean validLangueCourriel(Locale langue){
-		
-		String[] langueArray = new String[]{"fr", "en"}; //fr-FR en-US
-
-		List<String> langueList = new ArrayList<>(Arrays.asList(langueArray));
-			
-		return langueList.contains(langue);
-	}
-	//---
-	public boolean validDateFormat(LocalDate expireDelay){
-		
-		if(expireDelay.getClass().getSimpleName() == "LocalDate") {
-			
-			return true;
-		}
-		
-		return false;
-	}
-	//---
-	public boolean validPeriodFormat(LocalDate expireDelay){
-		
-		LocalDate now = LocalDate.now();
-
-		long daysBetween = ChronoUnit.DAYS.between(expireDelay, now);
-		
-		if( daysBetween <= 90 && !LocalDate.now().isAfter(expireDelay)) {
-			
-			return true;
-		}
-		
-		return false;
-	}
-	//---
-	public boolean validProtectionArchive(Boolean protectionArchive){
-		
-	if(protectionArchive.getClass().getSimpleName() == "Boolean") {
-			
-			return true;
-		}
-		
-		return false;
-	}
-	
 	public boolean isBoolean(String value) {
 	    return value != null && Arrays.stream(new String[]{"true", "false", "1", "0"})
 	            .anyMatch(b -> b.equalsIgnoreCase(value));
 	}
-	
-	
-	
-	/*public boolean validDateFormat(int expireDelay){
-		
-		LocalDate expirationDate = DateUtils.convertStringToLocalDate(expireDelay.toString());
-	}*/
-
-	
 
 }
