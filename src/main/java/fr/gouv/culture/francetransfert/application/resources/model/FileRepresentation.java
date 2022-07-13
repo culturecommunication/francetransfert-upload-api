@@ -24,6 +24,5 @@ public class FileRepresentation extends DataRepresentation {
 	@NotBlank
 	private String fid;
 
-	@NotBlank
 	private long size;
 }
