@@ -197,7 +197,7 @@ public class UploadServices {
 
 		try {
 
-			//---
+			// ---
 			Map<String, String> enclosureMap = redisManager
 					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
 			redisManager.validateToken(senderId, senderToken);
@@ -223,10 +223,10 @@ public class UploadServices {
 			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
 				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
 				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
-				
-				//---
-				enclosureMap.put(StatutEnum.EN_COURS.getKey(), "010-ECC");
-				enclosureMap.put(StatutEnum.EN_COURS.getValue(),  "En cours de chargement");
+
+				// ---
+				enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode());
+				enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord());
 
 			}
 
@@ -247,10 +247,10 @@ public class UploadServices {
 				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
 						partETags);
 				if (succesUpload != null) {
-					//---
-					enclosureMap.put(StatutEnum.EN_COURS.getKey(), "012-CHT");
-					enclosureMap.put(StatutEnum.EN_COURS.getValue(), "Chargement terminé");
-					
+					// ---
+					enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode());
+					enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord());
+
 					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
 							enclosureId);
@@ -264,10 +264,10 @@ public class UploadServices {
 						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
-				}else {
-					//---
-					enclosureMap.put(StatutEnum.EN_COURS.getKey(), "011-ECH");
-					enclosureMap.put(StatutEnum.EN_COURS.getValue(), "Erreur lors du chargement du pli");
+				} else {
+					// ---
+					enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode());
+					enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord());
 				}
 			}
 			return isUploaded;
@@ -798,10 +798,10 @@ public class UploadServices {
 			metadat.setSubject("");
 		}
 	}
-	
+
 	public boolean isBoolean(String value) {
-	    return value != null && Arrays.stream(new String[]{"true", "false", "1", "0"})
-	            .anyMatch(b -> b.equalsIgnoreCase(value));
+		return value != null
+				&& Arrays.stream(new String[] { "true", "false", "1", "0" }).anyMatch(b -> b.equalsIgnoreCase(value));
 	}
 
 }

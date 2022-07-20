@@ -7,10 +7,7 @@
 
 package fr.gouv.culture.francetransfert.domain.utils;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Period;
-import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +73,6 @@ public class RedisForUploadUtils {
 			LocalDateTime expiredDate = getExpiredTimeStamp(metadata.getExpireDelay());
 			LOGGER.debug("enclosure expire date: {}", expiredDate);
 			map.put(EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey(), expiredDate.toString());
-			
 
 			LOGGER.debug("password: *******");
 			map.put(EnclosureKeysEnum.PASSWORD.getKey(), metadata.getPassword());
@@ -118,12 +114,10 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.PUBLIC_LINK.getKey(), metadata.getPublicLink().toString());
 			LOGGER.debug("Create Public Link Download Count");
 			map.put(EnclosureKeysEnum.PUBLIC_DOWNLOAD_COUNT.getKey(), "0");
-			//---
-			map.put(StatutEnum.EN_COURS.getKey(), "000-INI");
-			map.put(StatutEnum.EN_COURS.getValue(), "Initialisé");
+			// ---
+			map.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.INI.getCode());
+			map.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.INI.getWord());
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
-
-
 
 			hashEnclosureInfo.put(ENCLOSURE_HASH_GUID_KEY, guidEnclosure);
 			hashEnclosureInfo.put(ENCLOSURE_HASH_EXPIRATION_DATE_KEY, expiredDate.toLocalDate().toString());
@@ -177,7 +171,8 @@ public class RedisForUploadUtils {
 					mapRecipient.put(RecipientKeysEnum.PASSWORD_TRY_COUNT.getKey(), "0");
 					mapRecipient.put(RecipientKeysEnum.LOGIC_DELETE.getKey(), "0");
 					redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENT.getKey(guidRecipient), mapRecipient);
-					//redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient), mapRecipients);
+					// redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient),
+					// mapRecipients);
 					LOGGER.debug("mail_recepient : {} => recepient id: {}", recipientMail, guidRecipient);
 				});
 				// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
@@ -209,9 +204,9 @@ public class RedisForUploadUtils {
 			LOGGER.debug("mail_recepient : {} => recepient id: {}", email, guidRecipient);
 			// enclosure:enclosureId:recipients:emails-ids => HASH <mail_recepient,
 			// idRecepient>
-			
-			
-			//redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient), mapRecipients);
+
+			// redisManager.insertHASH(RedisKeysEnum.FT_Download_Date.getKey(guidRecipient),
+			// mapRecipients);
 			redisManager.insertHASH(RedisKeysEnum.FT_RECIPIENTS.getKey(enclosureId), mapRecipients);
 			return guidRecipient;
 		} catch (Exception e) {
