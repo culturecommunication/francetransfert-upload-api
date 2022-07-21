@@ -51,8 +51,8 @@ public class HeathCheckResources {
 			String remoteAddr = request.getHeader("X-FORWARDED-FOR");
 			if (remoteAddr == null || "".equals(remoteAddr)) {
 				remoteAddr = request.getRemoteAddr();
-				LOGGER.warn("Test remote addr : {}", remoteAddr);
 			}
+			LOGGER.warn("Test remote addr : {}", remoteAddr);
 		}
 
 		if (apiKeyConfig.equals(apiKey)) {
