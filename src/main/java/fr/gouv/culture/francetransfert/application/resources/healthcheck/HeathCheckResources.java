@@ -7,6 +7,8 @@
 
 package fr.gouv.culture.francetransfert.application.resources.healthcheck;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +44,17 @@ public class HeathCheckResources {
 
 	@GetMapping("/")
 	@Operation(method = "Get", description = "HeathCheck")
-	public ResponseEntity<HealthCheckRepresentation> healthCheck(@RequestHeader("X-Api-Key") String apiKey)
-			throws UploadException {
+	public ResponseEntity<HealthCheckRepresentation> healthCheck(@RequestHeader("X-Api-Key") String apiKey,
+			HttpServletRequest request) throws UploadException {
+
+		if (request != null) {
+			String remoteAddr = request.getHeader("X-FORWARDED-FOR");
+			if (remoteAddr == null || "".equals(remoteAddr)) {
+				remoteAddr = request.getRemoteAddr();
+				LOGGER.warn("Test remote addr : {}", remoteAddr);
+			}
+		}
+
 		if (apiKeyConfig.equals(apiKey)) {
 			HealthCheckRepresentation heathStatus = healthCheckService.healthCheck();
 			if (heathStatus.isFtError()) {
