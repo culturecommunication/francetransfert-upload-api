@@ -1,3 +1,10 @@
+/*
+  * Copyright (c) Ministère de la Culture (2022) 
+  * 
+  * SPDX-License-Identifier: Apache-2.0 
+  * License-Filename: LICENSE.txt 
+  */
+
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
 import java.util.ArrayList;
@@ -125,10 +132,13 @@ public class UploadResources {
 
 	@PostMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
-	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest) {
+	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest)
+			throws MetaloadException {
 		LOGGER.info("start delete file {}", deleteRequest.getEnclosureId());
 		confirmationServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
 				deleteRequest.getSenderMail());
+
+		uploadServices.validateExpirationDate(deleteRequest.getEnclosureId());
 		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
 		response.setStatus(deleteRepresentation.getStatus());
 		return deleteRepresentation;
@@ -137,9 +147,12 @@ public class UploadResources {
 	@PostMapping("/update-expired-date")
 	@Operation(method = "POST", description = "Update expired date")
 	public ResponseEntity<Object> updateTimeStamp(HttpServletResponse response,
-			@RequestBody @Valid DateUpdateRequest dateUpdateRequest) throws UnauthorizedAccessException {
+			@RequestBody @Valid DateUpdateRequest dateUpdateRequest)
+			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getToken(),
 				dateUpdateRequest.getSenderMail());
+
+		uploadServices.validateExpirationDate(dateUpdateRequest.getEnclosureId());
 		EnclosureRepresentation enclosureRepresentation = uploadServices
 				.updateExpiredTimeStamp(dateUpdateRequest.getEnclosureId(), dateUpdateRequest.getNewDate());
 		return new ResponseEntity<Object>(enclosureRepresentation, new HttpHeaders(), HttpStatus.OK);
@@ -170,6 +183,8 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
+	
+	//---
 
 	@GetMapping("/file-info")
 	@Operation(method = "GET", description = "Download Info without URL ")
@@ -224,6 +239,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.addNewRecipientToMetaDataInRedis(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -237,6 +254,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.logicDeleteRecipient(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
@@ -250,6 +269,8 @@ public class UploadResources {
 			throws UnauthorizedAccessException, MetaloadException {
 		confirmationServices.validateAdminToken(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getToken(), addNewRecipientRequest.getSenderMail());
+
+		uploadServices.validateExpirationDate(addNewRecipientRequest.getEnclosureId());
 		boolean res = uploadServices.resendDonwloadLink(addNewRecipientRequest.getEnclosureId(),
 				addNewRecipientRequest.getNewRecipient());
 		response.setStatus(HttpStatus.OK.value());
