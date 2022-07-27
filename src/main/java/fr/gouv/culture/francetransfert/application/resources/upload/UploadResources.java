@@ -7,8 +7,12 @@
 
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -21,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +46,10 @@ import fr.gouv.culture.francetransfert.application.resources.model.DeleteRequest
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
 import fr.gouv.culture.francetransfert.application.services.ConfigService;
 import fr.gouv.culture.francetransfert.application.services.ConfirmationServices;
 import fr.gouv.culture.francetransfert.application.services.RateServices;
@@ -309,5 +317,91 @@ public class UploadResources {
 	public ConfigRepresentation getConfig() {
 		return configService.getConfig();
 	}
+	
 
+		@PostMapping("/validate-data")
+		@Operation(method = "POST", description = "validate data")
+		public List<InitialisationInfo> validateCode(HttpServletResponse response, HttpServletRequest request,
+				@Valid @RequestBody ValidateData metadata) {
+					
+			List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
+
+			if (request != null) {
+				String headerAddr = request.getHeader("X-API-KEY");
+				InitialisationInfo headerAddressChecked =  uploadServices.validDomainHeader(headerAddr, metadata.getSenderEmail());
+				listStatutPlis.add(headerAddressChecked);
+				
+	            String remoteAddr = request.getHeader("X-FORWARDED-FOR");
+	            if (remoteAddr == null || "".equals(remoteAddr)) {
+	                remoteAddr = request.getRemoteAddr();
+	            }
+				InitialisationInfo ipAddressChecked = uploadServices.validIpAddress(headerAddr, remoteAddr);	
+				listStatutPlis.add(ipAddressChecked);
+				
+
+				listStatutPlis.removeIf(Objects::isNull);
+
+				
+				if(listStatutPlis == null || listStatutPlis.isEmpty()) {
+					InitialisationInfo passwordChecked =  uploadServices.validPassword(metadata.getPassword());	
+					InitialisationInfo typeChecked = uploadServices.validType(metadata.getTypePli());
+					if(typeChecked == null) {
+						InitialisationInfo recipientSenderChecked = uploadServices.validRecipientSender(metadata.getSenderEmail(), metadata.getRecipientEmails(), metadata.getTypePli());
+						listStatutPlis.add(recipientSenderChecked);
+					}
+					
+					InitialisationInfo langueCourrielChecked = uploadServices.validLangueCourriel(metadata.getLanguage());					
+					InitialisationInfo dateFormatChecked = uploadServices.validDateFormat(metadata.getExpireDelay());
+					InitialisationInfo datePeriodChecked = uploadServices.validPeriodFormat(metadata.getExpireDelay());
+					InitialisationInfo protectionArchiveChecked = uploadServices.validProtectionArchive(metadata.getProtectionArchive());
+					InitialisationInfo idNameDirsChecked = uploadServices.validIdNameDirs(metadata.getRootDirs());
+					InitialisationInfo idNameFilesChecked = uploadServices.validIdNameFiles(metadata.getRootFiles());
+					InitialisationInfo pathDirsChecked = uploadServices.validPathDirs(metadata.getRootDirs());
+					InitialisationInfo pathFilesChecked = uploadServices.validPathFiles(metadata.getRootFiles());
+					InitialisationInfo SizePackageChecked = uploadServices.validSizePackage(metadata.getRootFiles(), metadata.getRootDirs());
+					
+					listStatutPlis.add(passwordChecked);
+					listStatutPlis.add(typeChecked);
+					listStatutPlis.add(langueCourrielChecked);
+					listStatutPlis.add(dateFormatChecked);
+					listStatutPlis.add(datePeriodChecked);
+					listStatutPlis.add(protectionArchiveChecked);
+					listStatutPlis.add(idNameDirsChecked);
+					listStatutPlis.add(idNameFilesChecked);					
+					listStatutPlis.add(pathDirsChecked);
+					listStatutPlis.add(pathFilesChecked);
+					listStatutPlis.add(SizePackageChecked);
+					listStatutPlis.removeIf(Objects::isNull);
+					
+					if(listStatutPlis == null || listStatutPlis.isEmpty()) {
+						InitialisationInfo validPackage = new InitialisationInfo();
+						StatusRepresentation statutPli = new StatusRepresentation();
+						statutPli.setCodeStatutPli("000-INI");
+						statutPli.setLibelleStatutPli("Pli créé avec ses métadonnées uniquement");
+						validPackage.setStatutPli(statutPli);
+						
+						LocalDate now = LocalDate.now();
+						int daysBetween = (int) ChronoUnit.DAYS.between(metadata.getExpireDelay(), now);
+						
+						FranceTransfertDataRepresentation data = FranceTransfertDataRepresentation.builder().password(metadata.getPassword())
+								.senderEmail(metadata.getSenderEmail()).recipientEmails(metadata.getRecipientEmails())
+								.expireDelay(daysBetween).zipPassword(metadata.getZipPassword())
+								.language(metadata.getLanguage()).rootFiles(metadata.getRootFiles()).rootDirs(metadata.getRootDirs())
+								.passwordGenerated(false).publicLink(false).build();
+
+						EnclosureRepresentation dataRedis =  uploadServices.createMetaDataEnclosureInRedis(data);
+						validPackage.setIdPli(dataRedis.getEnclosureId()); 
+
+
+						
+						listStatutPlis.add(validPackage);
+					}
+
+				}
+	        }
+					
+			
+			return listStatutPlis;
+		}
+			
 }

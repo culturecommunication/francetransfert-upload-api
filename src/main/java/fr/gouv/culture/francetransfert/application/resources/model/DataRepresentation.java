@@ -19,4 +19,6 @@ import javax.validation.constraints.NotBlank;
 public class DataRepresentation {
     @NotBlank
     private String name;
+    
+    private String logicalPath;
 }

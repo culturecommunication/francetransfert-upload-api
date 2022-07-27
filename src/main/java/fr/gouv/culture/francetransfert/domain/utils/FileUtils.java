@@ -72,24 +72,57 @@ public class FileUtils {
 		}
 	}
 
-	public static long getEnclosureTotalSize(FranceTransfertDataRepresentation metadata) {
+	
+	//---
+	public static long getEnclosureTotalSize(List<FileRepresentation> rootFiles, List<DirectoryRepresentation> rootDirs) {
 		long size = 0;
-		for (DirectoryRepresentation rootDir : metadata.getRootDirs()) {
+		for (DirectoryRepresentation rootDir : rootDirs) {
 			size = size + rootDir.getTotalSize();
 		}
 
-		for (FileRepresentation rootFile : metadata.getRootFiles()) {
+		for (FileRepresentation rootFile : rootFiles) {
 			size = size + rootFile.getSize();
 		}
 		return size;
 	}
-
-	public static boolean getSizeFileOver(FranceTransfertDataRepresentation metadata, long fileSize) {
-		for (FileRepresentation rootFile : metadata.getRootFiles()) {
+	
+	//---
+	public static boolean getSizeFileOver(List<FileRepresentation> rootFiles, long fileSize) {
+		for (FileRepresentation rootFile : rootFiles) {
 			if (rootFile.getSize() > fileSize) {
 				return true;
 			}
 		}
 		return false;
+	}
+	
+	public static boolean getSizeDirFileOver(List<DirectoryRepresentation> rootDirs, long fileSize) {
+		for (DirectoryRepresentation rootDir : rootDirs) {
+			if(rootDir.getDirs().isEmpty()) {
+				if(getSizeFileOver(rootDir.getFiles(), fileSize)) {
+					return true;	
+				}			
+			}else {
+				if(!getSizeFileOver(rootDir.getFiles(), fileSize)) {
+					if( getSizeDirFileOver(rootDir.getDirs(),fileSize)) {
+						return true;
+					}
+				}else {
+					return true;			
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	//---
+	public static Map<String, String> RootFilesValidation(List<FileRepresentation> rootFiles) {
+		Map<String, String> files = new HashMap<>();
+		if (!CollectionUtils.isEmpty(rootFiles)) {
+			files = rootFiles.stream()
+					.collect(Collectors.toMap(file -> file.getName(), file -> String.valueOf(file.getFid())));
+		}
+		return files;
 	}
 }

@@ -43,6 +43,7 @@ import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
+import fr.gouv.culture.francetransfert.domain.exceptions.ValidationException;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 /**
@@ -231,5 +232,16 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), errorType, errorId),
 				HttpStatus.BAD_REQUEST);
 	}
+	
+	//---
+	@ExceptionHandler(ValidationException.class)
+	public ResponseEntity<Object> handleValidationException(ValidationException ex) {
+		LOG.error("Handle error type UploadExcption : " + ex.getMessage(), ex);
+		LOG.error("libelleErreur : {} -- CodeChamp : {} -- NumErreur : {} -- message: {}", ex.getLibelleErreur(), ex.getCodeChamp(), ex.getNumErreur(), ex.getMessage(), ex);
+		return new ResponseEntity<>(new ApiValidationError(HttpStatus.BAD_REQUEST.value(), ex.getLibelleErreur(), ex.getCodeChamp(), ex.getNumErreur()),
+				HttpStatus.BAD_REQUEST);
+	}
+	
+
 
 }
