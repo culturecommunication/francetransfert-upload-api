@@ -191,8 +191,8 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
-	
-	//---
+
+	// ---
 
 	@GetMapping("/file-info")
 	@Operation(method = "GET", description = "Download Info without URL ")
@@ -317,91 +317,90 @@ public class UploadResources {
 	public ConfigRepresentation getConfig() {
 		return configService.getConfig();
 	}
-	
 
-		@PostMapping("/validate-data")
-		@Operation(method = "POST", description = "validate data")
-		public List<InitialisationInfo> validateCode(HttpServletResponse response, HttpServletRequest request,
-				@Valid @RequestBody ValidateData metadata) {
-					
-			List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
+	@PostMapping("/validate-data")
+	@Operation(method = "POST", description = "validate data")
+	public List<InitialisationInfo> validateCode(HttpServletResponse response, HttpServletRequest request,
+			@Valid @RequestBody ValidateData metadata) {
 
-			if (request != null) {
-				String headerAddr = request.getHeader("X-API-KEY");
-				InitialisationInfo headerAddressChecked =  uploadServices.validDomainHeader(headerAddr, metadata.getSenderEmail());
-				listStatutPlis.add(headerAddressChecked);
-				
-	            String remoteAddr = request.getHeader("X-FORWARDED-FOR");
-	            if (remoteAddr == null || "".equals(remoteAddr)) {
-	                remoteAddr = request.getRemoteAddr();
-	            }
-				InitialisationInfo ipAddressChecked = uploadServices.validIpAddress(headerAddr, remoteAddr);	
-				listStatutPlis.add(ipAddressChecked);
-				
+		List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
 
+		if (request != null) {
+			String headerAddr = request.getHeader("X-API-KEY");
+			InitialisationInfo headerAddressChecked = uploadServices.validDomainHeader(headerAddr,
+					metadata.getSenderEmail());
+			listStatutPlis.add(headerAddressChecked);
+
+			String remoteAddr = request.getHeader("X-FORWARDED-FOR");
+			if (remoteAddr == null || "".equals(remoteAddr)) {
+				remoteAddr = request.getRemoteAddr();
+			}
+			InitialisationInfo ipAddressChecked = uploadServices.validIpAddress(headerAddr, remoteAddr);
+			listStatutPlis.add(ipAddressChecked);
+
+			listStatutPlis.removeIf(Objects::isNull);
+
+			if (listStatutPlis == null || listStatutPlis.isEmpty()) {
+				InitialisationInfo passwordChecked = uploadServices.validPassword(metadata.getPassword());
+				InitialisationInfo typeChecked = uploadServices.validType(metadata.getTypePli());
+				if (typeChecked == null) {
+					InitialisationInfo recipientSenderChecked = uploadServices.validRecipientSender(
+							metadata.getSenderEmail(), metadata.getRecipientEmails(), metadata.getTypePli());
+					listStatutPlis.add(recipientSenderChecked);
+				}
+
+				InitialisationInfo langueCourrielChecked = uploadServices.validLangueCourriel(metadata.getLanguage());
+				InitialisationInfo dateFormatChecked = uploadServices.validDateFormat(metadata.getExpireDelay());
+				InitialisationInfo datePeriodChecked = uploadServices.validPeriodFormat(metadata.getExpireDelay());
+				InitialisationInfo protectionArchiveChecked = uploadServices
+						.validProtectionArchive(metadata.getProtectionArchive());
+				InitialisationInfo idNameDirsChecked = uploadServices.validIdNameDirs(metadata.getRootDirs());
+				InitialisationInfo idNameFilesChecked = uploadServices.validIdNameFiles(metadata.getRootFiles());
+				InitialisationInfo pathDirsChecked = uploadServices.validPathDirs(metadata.getRootDirs());
+				InitialisationInfo pathFilesChecked = uploadServices.validPathFiles(metadata.getRootFiles());
+				InitialisationInfo SizePackageChecked = uploadServices.validSizePackage(metadata.getRootFiles(),
+						metadata.getRootDirs());
+
+				listStatutPlis.add(passwordChecked);
+				listStatutPlis.add(typeChecked);
+				listStatutPlis.add(langueCourrielChecked);
+				listStatutPlis.add(dateFormatChecked);
+				listStatutPlis.add(datePeriodChecked);
+				listStatutPlis.add(protectionArchiveChecked);
+				listStatutPlis.add(idNameDirsChecked);
+				listStatutPlis.add(idNameFilesChecked);
+				listStatutPlis.add(pathDirsChecked);
+				listStatutPlis.add(pathFilesChecked);
+				listStatutPlis.add(SizePackageChecked);
 				listStatutPlis.removeIf(Objects::isNull);
 
-				
-				if(listStatutPlis == null || listStatutPlis.isEmpty()) {
-					InitialisationInfo passwordChecked =  uploadServices.validPassword(metadata.getPassword());	
-					InitialisationInfo typeChecked = uploadServices.validType(metadata.getTypePli());
-					if(typeChecked == null) {
-						InitialisationInfo recipientSenderChecked = uploadServices.validRecipientSender(metadata.getSenderEmail(), metadata.getRecipientEmails(), metadata.getTypePli());
-						listStatutPlis.add(recipientSenderChecked);
-					}
-					
-					InitialisationInfo langueCourrielChecked = uploadServices.validLangueCourriel(metadata.getLanguage());					
-					InitialisationInfo dateFormatChecked = uploadServices.validDateFormat(metadata.getExpireDelay());
-					InitialisationInfo datePeriodChecked = uploadServices.validPeriodFormat(metadata.getExpireDelay());
-					InitialisationInfo protectionArchiveChecked = uploadServices.validProtectionArchive(metadata.getProtectionArchive());
-					InitialisationInfo idNameDirsChecked = uploadServices.validIdNameDirs(metadata.getRootDirs());
-					InitialisationInfo idNameFilesChecked = uploadServices.validIdNameFiles(metadata.getRootFiles());
-					InitialisationInfo pathDirsChecked = uploadServices.validPathDirs(metadata.getRootDirs());
-					InitialisationInfo pathFilesChecked = uploadServices.validPathFiles(metadata.getRootFiles());
-					InitialisationInfo SizePackageChecked = uploadServices.validSizePackage(metadata.getRootFiles(), metadata.getRootDirs());
-					
-					listStatutPlis.add(passwordChecked);
-					listStatutPlis.add(typeChecked);
-					listStatutPlis.add(langueCourrielChecked);
-					listStatutPlis.add(dateFormatChecked);
-					listStatutPlis.add(datePeriodChecked);
-					listStatutPlis.add(protectionArchiveChecked);
-					listStatutPlis.add(idNameDirsChecked);
-					listStatutPlis.add(idNameFilesChecked);					
-					listStatutPlis.add(pathDirsChecked);
-					listStatutPlis.add(pathFilesChecked);
-					listStatutPlis.add(SizePackageChecked);
-					listStatutPlis.removeIf(Objects::isNull);
-					
-					if(listStatutPlis == null || listStatutPlis.isEmpty()) {
-						InitialisationInfo validPackage = new InitialisationInfo();
-						StatusRepresentation statutPli = new StatusRepresentation();
-						statutPli.setCodeStatutPli("000-INI");
-						statutPli.setLibelleStatutPli("Pli créé avec ses métadonnées uniquement");
-						validPackage.setStatutPli(statutPli);
-						
-						LocalDate now = LocalDate.now();
-						int daysBetween = (int) ChronoUnit.DAYS.between(metadata.getExpireDelay(), now);
-						
-						FranceTransfertDataRepresentation data = FranceTransfertDataRepresentation.builder().password(metadata.getPassword())
-								.senderEmail(metadata.getSenderEmail()).recipientEmails(metadata.getRecipientEmails())
-								.expireDelay(daysBetween).zipPassword(metadata.getZipPassword())
-								.language(metadata.getLanguage()).rootFiles(metadata.getRootFiles()).rootDirs(metadata.getRootDirs())
-								.passwordGenerated(false).publicLink(false).build();
+				if (listStatutPlis == null || listStatutPlis.isEmpty()) {
+					InitialisationInfo validPackage = new InitialisationInfo();
+					StatusRepresentation statutPli = new StatusRepresentation();
+					statutPli.setCodeStatutPli("000-INI");
+					statutPli.setLibelleStatutPli("Pli créé avec ses métadonnées uniquement");
+					validPackage.setStatutPli(statutPli);
 
-						EnclosureRepresentation dataRedis =  uploadServices.createMetaDataEnclosureInRedis(data);
-						validPackage.setIdPli(dataRedis.getEnclosureId()); 
+					LocalDate now = LocalDate.now();
+					int daysBetween = (int) ChronoUnit.DAYS.between(metadata.getExpireDelay(), now);
 
+					FranceTransfertDataRepresentation data = FranceTransfertDataRepresentation.builder()
+							.password(metadata.getPassword()).senderEmail(metadata.getSenderEmail())
+							.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
+							.zipPassword(metadata.getZipPassword()).language(metadata.getLanguage())
+							.rootFiles(metadata.getRootFiles()).rootDirs(metadata.getRootDirs())
+							.passwordGenerated(false).publicLink(false).build();
 
-						
-						listStatutPlis.add(validPackage);
-					}
+					EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
+					validPackage.setIdPli(dataRedis.getEnclosureId());
 
+					listStatutPlis.add(validPackage);
 				}
-	        }
-					
-			
-			return listStatutPlis;
+
+			}
 		}
-			
+
+		return listStatutPlis;
+	}
+
 }

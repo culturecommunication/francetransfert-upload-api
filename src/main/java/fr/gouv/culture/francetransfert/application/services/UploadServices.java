@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -101,8 +100,8 @@ public class UploadServices {
 	private int chunkModulo;
 
 	@Value("#{${api.key}}")
-	Map<String, Map<String,String[]>> apiKey;
-	
+	Map<String, Map<String, String[]>> apiKey;
+
 	@Autowired
 	private ConfirmationServices confirmationServices;
 
@@ -804,34 +803,33 @@ public class UploadServices {
 		return value != null
 				&& Arrays.stream(new String[] { "true", "false", "1", "0" }).anyMatch(b -> b.equalsIgnoreCase(value));
 	}
-	
-	
 
-	public InitialisationInfo validPassword(String password){
+	public InitialisationInfo validPassword(String password) {
 		InitialisationInfo passwordInfo = null;
 		if (!base64CryptoService.validatePassword(password.trim())) {
 			passwordInfo = new InitialisationInfo();
 			passwordInfo.setCodeChamp("preferences.motDePasse");
 			passwordInfo.setNumErreur("ERR_FT01_012");
-			passwordInfo.setLibelleErreur("Le mot de passe doit respecter les critères de robustesse et caractères autorisés : 12 caractères minimum - 20 caractères maximum - Au moins 3 lettres minuscules (a-z non accentué) - Au moins 3 lettres majuscules (A-Z non accentué) - Au moins 3 chiffres - Au moins 3 caractères spéciaux (!@#$%^&*()_-:+) - aucun caractère spécial non supporté\r\n");
+			passwordInfo.setLibelleErreur(
+					"Le mot de passe doit respecter les critères de robustesse et caractères autorisés : 12 caractères minimum - 20 caractères maximum - Au moins 3 lettres minuscules (a-z non accentué) - Au moins 3 lettres majuscules (A-Z non accentué) - Au moins 3 chiffres - Au moins 3 caractères spéciaux (!@#$%^&*()_-:+) - aucun caractère spécial non supporté\r\n");
 		}
-	return passwordInfo;
+		return passwordInfo;
 	}
-	
-	
-	public InitialisationInfo validType(String typePli){
-		
+
+	public InitialisationInfo validType(String typePli) {
+
 		InitialisationInfo typeInfo = null;
-		String[] typeArray = new String[]{"mail", "link"};
+		String[] typeArray = new String[] { "mail", "link" };
 		List<String> typeList = new ArrayList<>(Arrays.asList(typeArray));
-		if( typePli != null && !typePli.isEmpty()) {
-			if(!typeList.contains(typePli)) {
+		if (typePli != null && !typePli.isEmpty()) {
+			if (!typeList.contains(typePli)) {
 				typeInfo = new InitialisationInfo();
 				typeInfo.setCodeChamp("typePli");
 				typeInfo.setNumErreur("ERR_FT01_002");
-				typeInfo.setLibelleErreur("La valeur fournie pour le champ typePli doit appartenir à la liste de valeur « Liste des types de pli »");
+				typeInfo.setLibelleErreur(
+						"La valeur fournie pour le champ typePli doit appartenir à la liste de valeur « Liste des types de pli »");
 			}
-		}else {
+		} else {
 			typeInfo = new InitialisationInfo();
 			typeInfo.setCodeChamp("typePli");
 			typeInfo.setNumErreur("ERR_FT01_001");
@@ -840,264 +838,262 @@ public class UploadServices {
 
 		return typeInfo;
 	}
-	
-	public InitialisationInfo validRecipientSender(String senderEmail,List<String> recipientEmails, String typePli){
 
+	public InitialisationInfo validRecipientSender(String senderEmail, List<String> recipientEmails, String typePli) {
 
 		InitialisationInfo recipientSenderInfo = null;
-		
-		if(StringUtils.isNotEmpty(senderEmail)) {
-			if(stringUploadUtils.isValidEmail(senderEmail)) { 
+
+		if (StringUtils.isNotEmpty(senderEmail)) {
+			if (stringUploadUtils.isValidEmail(senderEmail)) {
 				boolean validSender = stringUploadUtils.isValidEmailIgni(senderEmail.toLowerCase());
-				if(validSender) {
+				if (validSender) {
 					if (typePli.equals("mail")) {
-						if(CollectionUtils.isNotEmpty(recipientEmails)) {
+						if (CollectionUtils.isNotEmpty(recipientEmails)) {
 							boolean validFormatRecipients = false;
-							
+
 							validFormatRecipients = recipientEmails.stream().noneMatch(x -> {
 								return !stringUploadUtils.isValidEmail(x);
-								});
-							if(!validFormatRecipients) {
+							});
+							if (!validFormatRecipients) {
 								recipientSenderInfo = new InitialisationInfo();
 								recipientSenderInfo.setCodeChamp("ERR_FT01_009");
 								recipientSenderInfo.setNumErreur("destinataires.courrielDestinataire");
-								recipientSenderInfo.setLibelleErreur("Le courriel destinataire doit respecter le format d’un courriel");
+								recipientSenderInfo.setLibelleErreur(
+										"Le courriel destinataire doit respecter le format d’un courriel");
 							}
-						}else {
+						} else {
 							recipientSenderInfo = new InitialisationInfo();
 							recipientSenderInfo.setCodeChamp("destinataires");
 							recipientSenderInfo.setNumErreur("ERR_FT01_007");
-							recipientSenderInfo.setLibelleErreur("Une liste de destinataires est obligatoire si le type de Pli est « courriel »");
+							recipientSenderInfo.setLibelleErreur(
+									"Une liste de destinataires est obligatoire si le type de Pli est « courriel »");
 						}
 					}
-				}else {
+				} else {
 					recipientSenderInfo = new InitialisationInfo();
 					recipientSenderInfo.setCodeChamp("courrielExpediteur");
 					recipientSenderInfo.setNumErreur("ERR_FT01_004");
-					recipientSenderInfo.setLibelleErreur("Le domaine de messagerie du courriel expéditeur doit être celui d’un agent de l’Etat");
+					recipientSenderInfo.setLibelleErreur(
+							"Le domaine de messagerie du courriel expéditeur doit être celui d’un agent de l’Etat");
 				}
-			}else {
+			} else {
 				recipientSenderInfo = new InitialisationInfo();
 				recipientSenderInfo.setCodeChamp("courrielExpediteur");
 				recipientSenderInfo.setNumErreur("ERR_FT01_006");
 				recipientSenderInfo.setLibelleErreur("Le courriel expéditeur doit respecter le format d’un courriel");
 			}
-		}else {
+		} else {
 			recipientSenderInfo = new InitialisationInfo();
 			recipientSenderInfo.setCodeChamp("courrielExpediteur");
 			recipientSenderInfo.setNumErreur("ERR_FT01_004");
 			recipientSenderInfo.setLibelleErreur("Le courriel expéditeur est obligatoire");
 		}
 
-		
-			return recipientSenderInfo;
+		return recipientSenderInfo;
 
 	}
-	
-	
 
-	
-	public InitialisationInfo validLangueCourriel(Locale langue){
-		
+	public InitialisationInfo validLangueCourriel(Locale langue) {
+
 		InitialisationInfo langueCourrielInfo = null;
-		String[] langueArray = new String[]{"fr_FR", "en_US"};
+		String[] langueArray = new String[] { "fr_FR", "en_GB" };
 		List<String> langueList = new ArrayList<>(Arrays.asList(langueArray));
-		if(!langueList.contains(langue.toString())) {
+		if (!langueList.contains(langue.toString())) {
 			langueCourrielInfo = new InitialisationInfo();
 			langueCourrielInfo.setCodeChamp("preferences.langueCourriel");
 			langueCourrielInfo.setNumErreur("ERR_FT01_014");
-			langueCourrielInfo.setLibelleErreur("La valeur fournie pour le champ langueCourriel doit appartenir à la liste de valeur « Liste des langues de courriel »");		
+			langueCourrielInfo.setLibelleErreur(
+					"La valeur fournie pour le champ langueCourriel doit appartenir à la liste de valeur « Liste des langues de courriel »");
 		}
 		return langueCourrielInfo;
 	}
-	
-	public InitialisationInfo validDateFormat(LocalDate expireDelay){
-		
+
+	public InitialisationInfo validDateFormat(LocalDate expireDelay) {
+
 		InitialisationInfo dateFormatInfo = null;
-		if(!expireDelay.getClass().getSimpleName().equals("LocalDate")) {	
+		if (!expireDelay.getClass().getSimpleName().equals("LocalDate")) {
 			dateFormatInfo = new InitialisationInfo();
 			dateFormatInfo.setCodeChamp("preferences.dateValidite");
 			dateFormatInfo.setNumErreur("ERR_FT01_011");
 			dateFormatInfo.setLibelleErreur("La date de fin de validité doit respecter le format d’une date");
 		}
-		
+
 		return dateFormatInfo;
 	}
-	
-	public InitialisationInfo validPeriodFormat(LocalDate expireDelay){
-		
+
+	public InitialisationInfo validPeriodFormat(LocalDate expireDelay) {
+
 		InitialisationInfo periodFormatInfo = null;
 		LocalDate now = LocalDate.now();
-		
+
 		long daysBetween = ChronoUnit.DAYS.between(now, expireDelay);
-		if( daysBetween > 90 || daysBetween <= 0 || LocalDate.now().isAfter(expireDelay)) {	
+		if (daysBetween > 90 || daysBetween <= 0 || LocalDate.now().isAfter(expireDelay)) {
 			periodFormatInfo = new InitialisationInfo();
 			periodFormatInfo.setCodeChamp("preferences.dateValidite");
 			periodFormatInfo.setNumErreur("ERR_FT01_010");
-			periodFormatInfo.setLibelleErreur("La date de fin de validité du pli doit être comprise entre J+1 et J+90 jours");
+			periodFormatInfo
+					.setLibelleErreur("La date de fin de validité du pli doit être comprise entre J+1 et J+90 jours");
 		}
-		
+
 		return periodFormatInfo;
 	}
-	
-	public InitialisationInfo validProtectionArchive(Boolean protectionArchive){
-		
-	InitialisationInfo protectionArchiveInfo = null;
-		if(!protectionArchive.getClass().getSimpleName().equals("Boolean")) {	
+
+	public InitialisationInfo validProtectionArchive(Boolean protectionArchive) {
+
+		InitialisationInfo protectionArchiveInfo = null;
+		if (!protectionArchive.getClass().getSimpleName().equals("Boolean")) {
 			protectionArchiveInfo = new InitialisationInfo();
-			protectionArchiveInfo.setCodeChamp("preferences.protectionArchive");		
+			protectionArchiveInfo.setCodeChamp("preferences.protectionArchive");
 			protectionArchiveInfo.setNumErreur("ERR_FT01_016");
 			protectionArchiveInfo.setLibelleErreur("Le champ protectionArchive doit respecter le format d’un booléen");
 		}
-		
+
 		return protectionArchiveInfo;
 	}
-	
-	
-	public InitialisationInfo validSizePackage(List<FileRepresentation> rootFiles, List<DirectoryRepresentation> rootDirs){
-	
-		
-	InitialisationInfo SizePackageInfo = null;
-	
-		if(CollectionUtils.isNotEmpty(rootFiles) || CollectionUtils.isNotEmpty(rootDirs)) {
-			if(FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) == 0) {
+
+	public InitialisationInfo validSizePackage(List<FileRepresentation> rootFiles,
+			List<DirectoryRepresentation> rootDirs) {
+
+		InitialisationInfo SizePackageInfo = null;
+
+		if (CollectionUtils.isNotEmpty(rootFiles) || CollectionUtils.isNotEmpty(rootDirs)) {
+			if (FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) == 0) {
 				SizePackageInfo = new InitialisationInfo();
-				SizePackageInfo.setCodeChamp("fichiers.tailleFichier");		
+				SizePackageInfo.setCodeChamp("fichiers.tailleFichier");
 				SizePackageInfo.setNumErreur("ERR_FT01_020");
 				SizePackageInfo.setLibelleErreur("La taille de fichier est obligatoire");
-			}else {
-				if(FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) > uploadLimitSize) {
+			} else {
+				if (FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) > uploadLimitSize) {
 					SizePackageInfo = new InitialisationInfo();
-					SizePackageInfo.setCodeChamp("fichiers.tailleFichier");		
+					SizePackageInfo.setCodeChamp("fichiers.tailleFichier");
 					SizePackageInfo.setNumErreur("ERR_FT01_022");
-					SizePackageInfo.setLibelleErreur("La taille totale du pli ne peut pas dépasser 21 474 836 480 (20 Go)");
-				}
-				else{
-						if (FileUtils.getSizeFileOver(rootFiles, uploadFileLimitSize) || FileUtils.getSizeDirFileOver(rootDirs, uploadFileLimitSize)) {
+					SizePackageInfo
+							.setLibelleErreur("La taille totale du pli ne peut pas dépasser 21 474 836 480 (20 Go)");
+				} else {
+					if (FileUtils.getSizeFileOver(rootFiles, uploadFileLimitSize)
+							|| FileUtils.getSizeDirFileOver(rootDirs, uploadFileLimitSize)) {
 						SizePackageInfo = new InitialisationInfo();
-						SizePackageInfo.setCodeChamp("fichiers.tailleFichier");		
+						SizePackageInfo.setCodeChamp("fichiers.tailleFichier");
 						SizePackageInfo.setNumErreur("RG_FT01_021");
-						SizePackageInfo.setLibelleErreur("La taille de chaque fichier ne peut pas dépasser 2 147 483 648 octets (2 Go)");
-						}				
+						SizePackageInfo.setLibelleErreur(
+								"La taille de chaque fichier ne peut pas dépasser 2 147 483 648 octets (2 Go)");
+					}
 
 				}
 			}
-		}else {
+		} else {
 			SizePackageInfo = new InitialisationInfo();
-			SizePackageInfo.setCodeChamp("fichiers");		
+			SizePackageInfo.setCodeChamp("fichiers");
 			SizePackageInfo.setNumErreur("ERR_FT01_018");
 			SizePackageInfo.setLibelleErreur("Au moins un fichier doit être fourni");
 		}
 		return SizePackageInfo;
 	}
-	
-	
-	public InitialisationInfo validPathFiles(List<FileRepresentation> rootFiles){
-		
-	InitialisationInfo validFiles = null;
-	boolean pathCheck = false;
+
+	public InitialisationInfo validPathFiles(List<FileRepresentation> rootFiles) {
+
+		InitialisationInfo validFiles = null;
+		boolean pathCheck = false;
 		for (FileRepresentation rootFile : rootFiles) {
 			pathCheck = StringUtils.isNotEmpty(rootFile.getPath());
-			if(!pathCheck) {
+			if (!pathCheck) {
 				validFiles = new InitialisationInfo();
-				validFiles.setCodeChamp("fichiers.cheminRelatif");		
+				validFiles.setCodeChamp("fichiers.cheminRelatif");
 				validFiles.setNumErreur("ERR_FT01_024");
 				validFiles.setLibelleErreur("Le chemin relatif d’accès au fichier est obligatoire");
 				return validFiles;
 			}
 		}
-	
+
 		return validFiles;
 	}
-	
-	public InitialisationInfo validPathDirs(List<DirectoryRepresentation> rootDirs){
-		
-	InitialisationInfo validDirs = null;
 
-	for (DirectoryRepresentation rootDir : rootDirs) {		
-		validDirs = validPathFiles(rootDir.getFiles());
-	}
+	public InitialisationInfo validPathDirs(List<DirectoryRepresentation> rootDirs) {
+
+		InitialisationInfo validDirs = null;
+
+		for (DirectoryRepresentation rootDir : rootDirs) {
+			validDirs = validPathFiles(rootDir.getFiles());
+		}
 		return validDirs;
 	}
-	
-	public InitialisationInfo validIdNameFiles(List<FileRepresentation> rootFiles){
-		
-	InitialisationInfo validFiles = null;
-	Map<String, String> filesMap = FileUtils.RootFilesValidation(rootFiles);
-	boolean idCheck = false;
-	boolean nameCheck = false;
 
-	
-	for (Map.Entry<String, String> currentFile : filesMap.entrySet()) {
-		idCheck = StringUtils.isNotEmpty(currentFile.getValue());
-		nameCheck = StringUtils.isNotEmpty(currentFile.getKey());
-		if(!idCheck) {
-			validFiles = new InitialisationInfo();
-			validFiles.setCodeChamp("fichiers.idFichier");		
-			validFiles.setNumErreur("ERR_FT01_023");
-			validFiles.setLibelleErreur("L’identifiant de fichier est obligatoire");
-			return validFiles;
-		}else {
-			if(!nameCheck) {
+	public InitialisationInfo validIdNameFiles(List<FileRepresentation> rootFiles) {
+
+		InitialisationInfo validFiles = null;
+		Map<String, String> filesMap = FileUtils.RootFilesValidation(rootFiles);
+		boolean idCheck = false;
+		boolean nameCheck = false;
+
+		for (Map.Entry<String, String> currentFile : filesMap.entrySet()) {
+			idCheck = StringUtils.isNotEmpty(currentFile.getValue());
+			nameCheck = StringUtils.isNotEmpty(currentFile.getKey());
+			if (!idCheck) {
 				validFiles = new InitialisationInfo();
-				validFiles.setCodeChamp("fichiers.nomFichier");		
-				validFiles.setNumErreur("RG_FT01_019");
-				validFiles.setLibelleErreur("Le nom de fichier est obligatoire"); 
+				validFiles.setCodeChamp("fichiers.idFichier");
+				validFiles.setNumErreur("ERR_FT01_023");
+				validFiles.setLibelleErreur("L’identifiant de fichier est obligatoire");
 				return validFiles;
+			} else {
+				if (!nameCheck) {
+					validFiles = new InitialisationInfo();
+					validFiles.setCodeChamp("fichiers.nomFichier");
+					validFiles.setNumErreur("RG_FT01_019");
+					validFiles.setLibelleErreur("Le nom de fichier est obligatoire");
+					return validFiles;
+				}
 			}
 		}
-	}
 
 		return validFiles;
 	}
-	
-	
-	public InitialisationInfo validIdNameDirs(List<DirectoryRepresentation> rootDirs){
-		
-	InitialisationInfo validDirs = null;
 
-	for (DirectoryRepresentation rootDir : rootDirs) {		
-		validDirs = validIdNameFiles(rootDir.getFiles());
-	}
+	public InitialisationInfo validIdNameDirs(List<DirectoryRepresentation> rootDirs) {
+
+		InitialisationInfo validDirs = null;
+
+		for (DirectoryRepresentation rootDir : rootDirs) {
+			validDirs = validIdNameFiles(rootDir.getFiles());
+		}
 		return validDirs;
 	}
-	
-	public InitialisationInfo validDomainHeader(String headerAddr, String sender){
-		
-	InitialisationInfo validDomainHeader = null;
 
-	 String[] domaine = apiKey.get(headerAddr).get("domaine");//get domain from properties
-	 String senderDomaine = sender.substring(sender.indexOf("@") + 1);
+	public InitialisationInfo validDomainHeader(String headerAddr, String sender) {
 
-	 if(!StringUtils.contains(domaine[0], senderDomaine)) {
-		 validDomainHeader = new InitialisationInfo();
-		 validDomainHeader.setCodeChamp("courrielExpediteur");		
-		 validDomainHeader.setNumErreur("RG_FT01_003");
-		 validDomainHeader.setLibelleErreur("Le courriel expéditeur doit être du même domaine de messagerie que celui fourni dans le Header"); 		 
-	 }
-	 
+		InitialisationInfo validDomainHeader = null;
+
+		String[] domaine = apiKey.get(headerAddr).get("domaine");// get domain from properties
+		String senderDomaine = sender.substring(sender.indexOf("@") + 1);
+
+		if (!StringUtils.contains(domaine[0], senderDomaine)) {
+			validDomainHeader = new InitialisationInfo();
+			validDomainHeader.setCodeChamp("courrielExpediteur");
+			validDomainHeader.setNumErreur("RG_FT01_003");
+			validDomainHeader.setLibelleErreur(
+					"Le courriel expéditeur doit être du même domaine de messagerie que celui fourni dans le Header");
+		}
+
 		return validDomainHeader;
 	}
-	
-	public InitialisationInfo validIpAddress(String headerAddr, String remoteAddr){
-		
-	InitialisationInfo validIpAddress = null;
 
-	//String ips = apiKey.get(headerAddr).get("ips").toString();
-	IpAddressMatcher ipAddressMatcher = new IpAddressMatcher("127.0.0.1");
-	if(!ipAddressMatcher.matches(remoteAddr)) { //if(!StringUtils.contains(remoteAddr, ips)){
-		validIpAddress = new InitialisationInfo();
-		validIpAddress.setCodeChamp("courrielExpediteur");		
-		validIpAddress.setNumErreur("RG_FT01_003");
-		validIpAddress.setLibelleErreur("L'adresse ip de l'expéditeur doit être valider"); 		
-	}
-    LOGGER.warn("Test remote addr : {}", remoteAddr);
-	 
+	public InitialisationInfo validIpAddress(String headerAddr, String remoteAddr) {
+
+		InitialisationInfo validIpAddress = null;
+
+		String[] ips = apiKey.get(headerAddr).get("ips");
+		boolean ipMatch = Arrays.stream(ips).anyMatch(ip -> {
+			IpAddressMatcher ipAddressMatcher = new IpAddressMatcher(ip);
+			return ipAddressMatcher.matches(remoteAddr);
+		});
+
+		if (!ipMatch) {
+			validIpAddress = new InitialisationInfo();
+			validIpAddress.setCodeChamp("courrielExpediteur");
+			validIpAddress.setNumErreur("RG_FT01_003");
+			validIpAddress.setLibelleErreur("L'adresse ip de l'expéditeur doit être valider");
+		}
+
 		return validIpAddress;
 	}
-
-
-
-	
 
 }
