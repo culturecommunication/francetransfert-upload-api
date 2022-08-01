@@ -318,5 +318,32 @@ public class UploadResources {
 	public ConfigRepresentation getConfig() {
 		return configService.getConfig();
 	}
+	
+	
+	//---
+	@PostMapping("/upload-data")
+	@Operation(method = "POST", description = "upload data")
+	public List<FranceTransfertDataRepresentation> uploadData(HttpServletResponse response, HttpServletRequest request,
+			 @RequestParam("flowChunkNumber") int flowChunkNumber,
+				@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("flowChunkSize") long flowChunkSize,
+				@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
+				@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
+				@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
+				@RequestParam("senderToken") String senderToken, 
+			@Valid  FranceTransfertDataRepresentation metadata) {
+		uploadServices.checkChunkNumber(flowChunkNumber);	
+		uploadServices.checkTotalChunks(flowTotalChunks);
+		if(uploadServices.checkChunkNumber(flowChunkNumber) && uploadServices.checkTotalChunks(flowTotalChunks)) {
+		uploadServices.checkTotalChunkNumber(flowChunkNumber, flowTotalChunks);
+		}
+		uploadServices.checkFlowChunkSize(flowChunkSize);
+		uploadServices.validateSenderIdPli(enclosureId, metadata.getSenderEmail());
+		List<FranceTransfertDataRepresentation> listStatutPlis = new ArrayList<FranceTransfertDataRepresentation>();
+
+
+				
+		
+		return listStatutPlis;
+	}
 
 }
