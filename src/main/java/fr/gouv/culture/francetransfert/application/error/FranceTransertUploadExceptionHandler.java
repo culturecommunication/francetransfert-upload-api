@@ -233,15 +233,6 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 				HttpStatus.BAD_REQUEST);
 	}
 	
-	//---
-	@ExceptionHandler(ValidationException.class)
-	public ResponseEntity<Object> handleValidationException(ValidationException ex) {
-		LOG.error("Handle error type UploadExcption : " + ex.getMessage(), ex);
-		LOG.error("libelleErreur : {} -- CodeChamp : {} -- NumErreur : {} -- message: {}", ex.getLibelleErreur(), ex.getCodeChamp(), ex.getNumErreur(), ex.getMessage(), ex);
-		return new ResponseEntity<>(new ApiValidationError(HttpStatus.BAD_REQUEST.value(), ex.getLibelleErreur(), ex.getCodeChamp(), ex.getNumErreur()),
-				HttpStatus.BAD_REQUEST);
-	}
-	
 
 
 }
