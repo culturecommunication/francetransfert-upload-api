@@ -20,15 +20,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
+
 
 @Getter
 @Setter
@@ -36,22 +31,20 @@ import java.util.Locale;
 @NoArgsConstructor
 @Builder
 public class ValidateData {
-	
    
    private String typePli;
+   @JsonProperty("courrielExpediteur")
    private String senderEmail;
+   @JsonProperty("destinataires")
    private List<String> recipientEmails;
-   private LocalDate expireDelay;	
-   private String password;
-   private Boolean zipPassword;
-   private Locale language;
-   private Boolean protectionArchive;
-   @Valid
-   private List<FileRepresentation> rootFiles;
-   @Valid
-   private List<DirectoryRepresentation> rootDirs;
+   private String message;
+   private String objet;
+   private PreferencesRepresentation preferences;	
 
-   
+   @Valid
+   @JsonProperty("fichiers")
+   private List<FileRepresentation> rootFiles;
+      
 }
 
 

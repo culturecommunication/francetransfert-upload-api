@@ -11,6 +11,8 @@ import lombok.*;
 
 import javax.validation.constraints.NotBlank;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -18,7 +20,7 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class DataRepresentation {
     @NotBlank
+	@JsonProperty("nomFichier")
     private String name;
-    
-    private String logicalPath;
+   
 }

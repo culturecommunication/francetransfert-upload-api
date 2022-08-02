@@ -50,10 +50,13 @@ import fr.gouv.culture.francetransfert.application.resources.model.ConfigReprese
 import fr.gouv.culture.francetransfert.application.resources.model.DateUpdateRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRequest;
+import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.PreferencesRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
@@ -96,6 +99,7 @@ public class ValidResources {
 			@Valid @RequestBody ValidateData metadata) {
 
 		List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
+		PreferencesRepresentation preferences = metadata.getPreferences();
 
 		if (request != null) {
 			String headerAddr = request.getHeader(KEY);
@@ -113,7 +117,7 @@ public class ValidResources {
 			listStatutPlis.removeIf(Objects::isNull);
 
 			if (listStatutPlis == null || listStatutPlis.isEmpty()) {
-				InitialisationInfo passwordChecked = validationMailService.validPassword(metadata.getPassword());
+				InitialisationInfo passwordChecked = validationMailService.validPassword(preferences.getPassword());
 				InitialisationInfo typeChecked = validationMailService.validType(metadata.getTypePli());
 				if (typeChecked == null) {
 					InitialisationInfo recipientSenderChecked = validationMailService.validRecipientSender(
@@ -121,17 +125,13 @@ public class ValidResources {
 					listStatutPlis.add(recipientSenderChecked);
 				}
 
-				InitialisationInfo langueCourrielChecked = validationMailService.validLangueCourriel(metadata.getLanguage());
-				InitialisationInfo dateFormatChecked = validationMailService.validDateFormat(metadata.getExpireDelay());
-				InitialisationInfo datePeriodChecked = validationMailService.validPeriodFormat(metadata.getExpireDelay());
+				InitialisationInfo langueCourrielChecked = validationMailService.validLangueCourriel(preferences.getLanguage());
+				InitialisationInfo dateFormatChecked = validationMailService.validDateFormat(preferences.getExpireDelay());
+				InitialisationInfo datePeriodChecked = validationMailService.validPeriodFormat(preferences.getExpireDelay());
 				InitialisationInfo protectionArchiveChecked = validationMailService
-						.validProtectionArchive(metadata.getProtectionArchive());
-				InitialisationInfo idNameDirsChecked = validationMailService.validIdNameDirs(metadata.getRootDirs());
+						.validProtectionArchive(preferences.getProtectionArchive());
 				InitialisationInfo idNameFilesChecked = validationMailService.validIdNameFiles(metadata.getRootFiles());
-				InitialisationInfo pathDirsChecked = validationMailService.validPathDirs(metadata.getRootDirs());
-				InitialisationInfo pathFilesChecked = validationMailService.validPathFiles(metadata.getRootFiles());
-				InitialisationInfo SizePackageChecked = validationMailService.validSizePackage(metadata.getRootFiles(),
-						metadata.getRootDirs());
+				InitialisationInfo SizePackageChecked = validationMailService.validSizePackage(metadata.getRootFiles());
 
 				listStatutPlis.add(passwordChecked);
 				listStatutPlis.add(typeChecked);
@@ -139,10 +139,7 @@ public class ValidResources {
 				listStatutPlis.add(dateFormatChecked);
 				listStatutPlis.add(datePeriodChecked);
 				listStatutPlis.add(protectionArchiveChecked);
-				listStatutPlis.add(idNameDirsChecked);
 				listStatutPlis.add(idNameFilesChecked);
-				listStatutPlis.add(pathDirsChecked);
-				listStatutPlis.add(pathFilesChecked);
 				listStatutPlis.add(SizePackageChecked);
 				listStatutPlis.removeIf(Objects::isNull);
 
@@ -154,14 +151,16 @@ public class ValidResources {
 					validPackage.setStatutPli(statutPli);
 
 					LocalDate now = LocalDate.now();
-					int daysBetween = (int) ChronoUnit.DAYS.between(metadata.getExpireDelay(), now);
+					int daysBetween = (int) ChronoUnit.DAYS.between(preferences.getExpireDelay(), now);
+
+					List<DirectoryRepresentation> rootDirs = new ArrayList<DirectoryRepresentation>();
 
 					FranceTransfertDataRepresentation data = FranceTransfertDataRepresentation.builder()
-							.password(metadata.getPassword()).senderEmail(metadata.getSenderEmail())
+							.password(preferences.getPassword()).senderEmail(metadata.getSenderEmail())
 							.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
-							.zipPassword(metadata.getZipPassword()).language(metadata.getLanguage())
-							.rootFiles(metadata.getRootFiles()).rootDirs(metadata.getRootDirs())
-							.passwordGenerated(false).publicLink(false).build();
+							.language(preferences.getLanguage()).rootFiles(metadata.getRootFiles()).rootDirs(rootDirs)
+							.zipPassword(false)
+							.passwordGenerated(preferences.getProtectionArchive()).publicLink(false).build();
 
 					EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
 					validPackage.setIdPli(dataRedis.getEnclosureId());

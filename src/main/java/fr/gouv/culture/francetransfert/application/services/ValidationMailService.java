@@ -204,27 +204,25 @@ public class ValidationMailService {
 		return protectionArchiveInfo;
 	}
 
-	public InitialisationInfo validSizePackage(List<FileRepresentation> rootFiles,
-			List<DirectoryRepresentation> rootDirs) {
+	public InitialisationInfo validSizePackage(List<FileRepresentation> rootFiles) {
 
 		InitialisationInfo SizePackageInfo = null;
 
-		if (CollectionUtils.isNotEmpty(rootFiles) || CollectionUtils.isNotEmpty(rootDirs)) {
-			if (FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) == 0) {
+		if (CollectionUtils.isNotEmpty(rootFiles)) {
+			if (FileUtils.getEnclosureTotalFileSize(rootFiles) == 0) {
 				SizePackageInfo = new InitialisationInfo();
 				SizePackageInfo.setCodeChamp(ValidationErrorEnum.FT020.getCodeChamp());
 				SizePackageInfo.setNumErreur(ValidationErrorEnum.FT020.getNumErreur());
 				SizePackageInfo.setLibelleErreur(ValidationErrorEnum.FT020.getLibelleErreur());
 			} else {
-				if (FileUtils.getEnclosureTotalSize(rootFiles, rootDirs) > uploadLimitSize) {
+				if (FileUtils.getEnclosureTotalFileSize(rootFiles) > uploadLimitSize) {
 					SizePackageInfo = new InitialisationInfo();
 					SizePackageInfo.setCodeChamp(ValidationErrorEnum.FT022.getCodeChamp());
 					SizePackageInfo.setNumErreur(ValidationErrorEnum.FT022.getNumErreur());
 					SizePackageInfo
 							.setLibelleErreur(ValidationErrorEnum.FT022.getLibelleErreur());
 				} else {
-					if (FileUtils.getSizeFileOver(rootFiles, uploadFileLimitSize)
-							|| FileUtils.getSizeDirFileOver(rootDirs, uploadFileLimitSize)) {
+					if (FileUtils.getSizeFileOver(rootFiles, uploadFileLimitSize)) {
 						SizePackageInfo = new InitialisationInfo();
 						SizePackageInfo.setCodeChamp(ValidationErrorEnum.FT021.getCodeChamp());
 						SizePackageInfo.setNumErreur(ValidationErrorEnum.FT021.getNumErreur());
@@ -240,34 +238,6 @@ public class ValidationMailService {
 			SizePackageInfo.setLibelleErreur(ValidationErrorEnum.FT018.getLibelleErreur());
 		}
 		return SizePackageInfo;
-	}
-
-	public InitialisationInfo validPathFiles(List<FileRepresentation> rootFiles) {
-
-		InitialisationInfo validFiles = null;
-		boolean pathCheck = false;
-		for (FileRepresentation rootFile : rootFiles) {
-			pathCheck = StringUtils.isNotEmpty(rootFile.getPath());
-			if (!pathCheck) {
-				validFiles = new InitialisationInfo();
-				validFiles.setCodeChamp(ValidationErrorEnum.FT024.getCodeChamp());
-				validFiles.setNumErreur(ValidationErrorEnum.FT024.getNumErreur());
-				validFiles.setLibelleErreur(ValidationErrorEnum.FT024.getLibelleErreur());
-				return validFiles;
-			}
-		}
-
-		return validFiles;
-	}
-
-	public InitialisationInfo validPathDirs(List<DirectoryRepresentation> rootDirs) {
-
-		InitialisationInfo validDirs = null;
-
-		for (DirectoryRepresentation rootDir : rootDirs) {
-			validDirs = validPathFiles(rootDir.getFiles());
-		}
-		return validDirs;
 	}
 
 	public InitialisationInfo validIdNameFiles(List<FileRepresentation> rootFiles) {
@@ -300,15 +270,6 @@ public class ValidationMailService {
 		return validFiles;
 	}
 
-	public InitialisationInfo validIdNameDirs(List<DirectoryRepresentation> rootDirs) {
-
-		InitialisationInfo validDirs = null;
-
-		for (DirectoryRepresentation rootDir : rootDirs) {
-			validDirs = validIdNameFiles(rootDir.getFiles());
-		}
-		return validDirs;
-	}
 
 	public InitialisationInfo validDomainHeader(String headerAddr, String sender) {
 

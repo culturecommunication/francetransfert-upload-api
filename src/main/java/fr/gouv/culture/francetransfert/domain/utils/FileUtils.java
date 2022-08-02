@@ -72,6 +72,14 @@ public class FileUtils {
 		}
 	}
 
+	//---
+	public static long getEnclosureTotalFileSize(List<FileRepresentation> rootFiles) {
+		long size = 0;
+		for (FileRepresentation rootFile : rootFiles) {
+			size = size + rootFile.getSize();
+		}
+		return size;
+	}
 	
 	//---
 	public static long getEnclosureTotalSize(List<FileRepresentation> rootFiles, List<DirectoryRepresentation> rootDirs) {
