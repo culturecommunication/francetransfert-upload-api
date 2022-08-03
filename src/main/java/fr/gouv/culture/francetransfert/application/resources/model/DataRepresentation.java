@@ -7,11 +7,14 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import lombok.*;
-
 import javax.validation.constraints.NotBlank;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -19,8 +22,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 //@Builder
 @NoArgsConstructor
 public class DataRepresentation {
-    @NotBlank
-	@JsonProperty("nomFichier")
-    private String name;
-   
+	@NotBlank
+	@JsonAlias("nomFichier")
+	private String name;
+
 }
