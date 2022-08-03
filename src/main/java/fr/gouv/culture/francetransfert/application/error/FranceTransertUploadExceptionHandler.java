@@ -34,6 +34,7 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
 import fr.gouv.culture.francetransfert.domain.exceptions.BusinessDomainException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
@@ -43,7 +44,6 @@ import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException
 import fr.gouv.culture.francetransfert.domain.exceptions.MaxTryException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UnauthorizedMailAddressException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
-import fr.gouv.culture.francetransfert.domain.exceptions.ValidationException;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 /**
@@ -232,7 +232,12 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), errorType, errorId),
 				HttpStatus.BAD_REQUEST);
 	}
-	
 
+	@ExceptionHandler(ApiValidationException.class)
+	public ResponseEntity<ApiValidationErrorReturn> ApiValidationException(ApiValidationException ex) {
+		ApiValidationErrorReturn ret = new ApiValidationErrorReturn();
+		ret.setErreurs(ex.getErreurs());
+		return new ResponseEntity<ApiValidationErrorReturn>(ret, HttpStatus.UNPROCESSABLE_ENTITY);
+	}
 
 }

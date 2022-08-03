@@ -12,22 +12,23 @@
   * License-Filename: LICENSE.txt 
   */
 
-package fr.gouv.culture.francetransfert.application.resources.model;
+package fr.gouv.culture.francetransfert.application.error;
+
+import java.util.List;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+/**
+ * The type Api validation error.
+ * 
+ */
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class InitialisationInfo {
+public class ApiValidationErrorReturn {
 
-	private String idPli;
-	private StatusRepresentation statutPli;
+	private List<ApiValidationError> erreurs;
 
 }

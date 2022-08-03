@@ -8,7 +8,6 @@
 package fr.gouv.culture.francetransfert.application.services;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,7 +37,6 @@ import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepr
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateCodeResponse;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
@@ -49,6 +46,7 @@ import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.SourceEnum;
 import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
@@ -330,7 +328,7 @@ public class UploadServices {
 				if (metadata.getLanguage() != null) {
 					language = metadata.getLanguage().toString();
 				}
-
+				metadata.setSource(SourceEnum.PRIVATE.getValue());
 				boolean isRequiredToGeneratedCode = generateCode(metadata.getSenderEmail(), token, language);
 				if (!isRequiredToGeneratedCode) {
 					return createMetaDataEnclosureInRedis(metadata);
@@ -803,6 +801,5 @@ public class UploadServices {
 		return value != null
 				&& Arrays.stream(new String[] { "true", "false", "1", "0" }).anyMatch(b -> b.equalsIgnoreCase(value));
 	}
-
 
 }

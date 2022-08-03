@@ -9,7 +9,7 @@ package fr.gouv.culture.francetransfert.application.resources.model;
 
 import javax.validation.constraints.NotBlank;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,8 +24,8 @@ import lombok.Setter;
 public class FileRepresentation extends DataRepresentation {
 
 	@NotBlank
-	@JsonProperty("idFichier")
+	@JsonAlias("idFichier")
 	private String fid;
-	@JsonProperty("tailleFichier")
+	@JsonAlias("tailleFichier")
 	private long size;
 }
