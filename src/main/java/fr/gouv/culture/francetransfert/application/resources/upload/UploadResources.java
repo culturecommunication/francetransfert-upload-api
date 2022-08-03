@@ -323,7 +323,7 @@ public class UploadResources {
 	//---
 	@PostMapping("/upload-data")
 	@Operation(method = "POST", description = "upload data")
-	public List<FranceTransfertDataRepresentation> uploadData(HttpServletResponse response, HttpServletRequest request,
+	public List<InitialisationInfo> uploadData(HttpServletResponse response, HttpServletRequest request,
 			 @RequestParam("flowChunkNumber") int flowChunkNumber,
 				@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("flowChunkSize") long flowChunkSize,
 				@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
@@ -331,6 +331,9 @@ public class UploadResources {
 				@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 				@RequestParam("senderToken") String senderToken, 
 			@Valid  FranceTransfertDataRepresentation metadata) {
+		
+		List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
+		
 		uploadServices.checkChunkNumber(flowChunkNumber);	
 		uploadServices.checkTotalChunks(flowTotalChunks);
 		if(uploadServices.checkChunkNumber(flowChunkNumber) && uploadServices.checkTotalChunks(flowTotalChunks)) {
@@ -338,7 +341,6 @@ public class UploadResources {
 		}
 		uploadServices.checkFlowChunkSize(flowChunkSize);
 		uploadServices.validateSenderIdPli(enclosureId, metadata.getSenderEmail());
-		List<FranceTransfertDataRepresentation> listStatutPlis = new ArrayList<FranceTransfertDataRepresentation>();
 
 
 				
