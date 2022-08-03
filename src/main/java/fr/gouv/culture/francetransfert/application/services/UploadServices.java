@@ -200,8 +200,6 @@ public class UploadServices {
 			throws MetaloadException, StorageException {
 
 		try {
-			Map<String, String> enclosureMap = redisManager
-					.hmgetAllString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId));
 			redisManager.validateToken(senderId, senderToken);
 			if ((flowChunkNumber % chunkModulo) == 0) {
 				redisManager.extendTokenValidity(senderId, senderToken);
@@ -225,9 +223,10 @@ public class UploadServices {
 			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
 				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
 				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
-				enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode());
-				enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord());
-
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
 			}
 
 			String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
@@ -247,8 +246,10 @@ public class UploadServices {
 				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
 						partETags);
 				if (succesUpload != null) {
-					enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode());
-					enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord());
+					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode(), -1);
+					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord(), -1);
 
 					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
@@ -264,8 +265,10 @@ public class UploadServices {
 						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
 					}
 				} else {
-					enclosureMap.put(EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode());
-					enclosureMap.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord());
+					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
+					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
 				}
 			}
 			return isUploaded;
