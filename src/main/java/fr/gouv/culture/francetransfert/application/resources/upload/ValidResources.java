@@ -159,8 +159,8 @@ public class ValidResources {
 							.password(preferences.getPassword()).senderEmail(metadata.getSenderEmail())
 							.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
 							.language(preferences.getLanguage()).rootFiles(metadata.getRootFiles()).rootDirs(rootDirs)
-							.zipPassword(false)
-							.passwordGenerated(preferences.getProtectionArchive()).publicLink(false).build();
+							.zipPassword(preferences.getProtectionArchive())
+							.publicLink(false).build();
 
 					EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
 					validPackage.setIdPli(dataRedis.getEnclosureId());
