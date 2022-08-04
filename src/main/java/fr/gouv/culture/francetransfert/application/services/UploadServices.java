@@ -454,11 +454,10 @@ public class UploadServices {
 
 	public RecipientInfo buildRecipient(String email, String enclosureId) throws MetaloadException {
 		String recipientId = RedisUtils.getRecipientId(redisManager, enclosureId, email);
-		Map<String, String> recipientMap = redisManager.hmgetAllString(RedisKeysEnum.FT_RECIPIENT.getKey(recipientId));
 		Set<String> downloadDate = redisManager.smembersString(RedisKeysEnum.FT_Download_Date.getKey(recipientId));
 		ArrayList<String> downloadDates = new ArrayList<String>(downloadDate);
 		int nbDownload = RedisUtils.getNumberOfDownloadsPerRecipient(redisManager, recipientId);
-		boolean deleted = Integer.parseInt(recipientMap.get(RecipientKeysEnum.LOGIC_DELETE.getKey())) == 1;
+		boolean deleted = RedisUtils.isRecipientDeleted(redisManager, recipientId);
 		RecipientInfo recipient = new RecipientInfo(email, nbDownload, deleted, downloadDates);
 		return recipient;
 	}
