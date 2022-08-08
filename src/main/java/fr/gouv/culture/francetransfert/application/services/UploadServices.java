@@ -757,7 +757,7 @@ public class UploadServices {
 		}
 	}
 
-	private void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
+	public void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
 		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
 		storageManager.deleteFilesWithPrefix(bucketName, prefix);
 	}
@@ -807,83 +807,6 @@ public class UploadServices {
 				&& Arrays.stream(new String[] { "true", "false", "1", "0" }).anyMatch(b -> b.equalsIgnoreCase(value));
 	}
 	
-	public boolean checkChunkNumber(Integer flowChunkNumber) {
 
-		//flowChuncksCounter?
-		//String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		if(flowChunkNumber.equals(null)) {
-			if(flowChunkNumber > 0 && flowChunkNumber == (int)flowChunkNumber) {
-			}else {
-				//Le numéro de morceau du fichier doit être un entier supérieur à 0
-			}
-		}else {
-			//morceauFichier	Le numéro de morceau du fichier est obligatoire	RG_FT02_008	ERR_FT02_008
-		}
-
-		return true;
-	}
-	
-	public boolean checkTotalChunks(Integer flowTotalChunks) {
-
-		//flowChuncksCounter?
-		//String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		if(flowTotalChunks.equals(null)) {
-			if(flowTotalChunks > 0 && flowTotalChunks == (int)flowTotalChunks) {
-			}else {
-				//Le nombre total de morceaux du fichier doit être un entier supérieur à 0
-			}
-		}else {
-			//Le nombre total de morceaux du fichier est obligatoire
-		}
-
-		return true;
-	}
-	
-	public boolean checkTotalChunkNumber(Integer flowChunkNumber,Integer flowTotalChunks) {
-
-
-				if(flowChunkNumber > flowTotalChunks) {
-					//Le numéro de morceau du fichier doit être inférieur ou égal au nombre total de morceaux du fichier
-				}
-		return true;
-	}
-	
-	
-	public boolean checkFlowChunkSize(long flowChunkSize) {
-
-		//flowChuncksCounter?
-		//String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		if( !Objects.isNull(flowChunkSize)) {
-			if(flowChunkSize > 0 && flowChunkSize == (long)flowChunkSize) {
-			}else {
-				//La taille du morceau du fichier doit être un entier supérieur à 0
-			}
-		}else {
-			//La taille du morceau du fichier est obligatoire
-		}
-
-		return true;
-	}
-
-	//La taille du morceau du fichier est obligatoire
-	
-	
-	public void validateSenderIdPli(String enclosureId, String senderMail) {
-
-
-		if (StringUtils.isNotBlank(senderMail)) {
-			try {
-				//redisManager.validateToken(senderMail, token);
-				String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
-				if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
-					//Le courriel expéditeur et l’identifiant de pli indiqués dans la requête doivent correspondre à un pli connu de France transfert
-				}
-			} catch (Exception e) {
-				throw new UnauthorizedAccessException("Invalid Token");
-			}
-		} else {
-			//Le courriel expéditeur est obligatoire
-		}
-	} 
 
 }

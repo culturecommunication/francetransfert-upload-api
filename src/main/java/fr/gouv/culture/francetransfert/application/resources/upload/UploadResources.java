@@ -108,6 +108,7 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
+				
 		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
 		response.setStatus(HttpStatus.OK.value());
@@ -119,7 +120,6 @@ public class UploadResources {
 	@Operation(method = "POST", description = "sender Info ")
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
 			@RequestBody FranceTransfertDataRepresentation metadata) {
-		LOGGER.info("--------------metadata--------------- {} ", metadata.getRootDirs());
 		LOGGER.info("start upload enclosure ");
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());
@@ -317,35 +317,6 @@ public class UploadResources {
 	@Operation(method = "GET", description = "Get Config")
 	public ConfigRepresentation getConfig() {
 		return configService.getConfig();
-	}
-	
-	
-	//---
-	@PostMapping("/upload-data")
-	@Operation(method = "POST", description = "upload data")
-	public List<InitialisationInfo> uploadData(HttpServletResponse response, HttpServletRequest request,
-			 @RequestParam("flowChunkNumber") int flowChunkNumber,
-				@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("flowChunkSize") long flowChunkSize,
-				@RequestParam("flowTotalSize") long flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
-				@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
-				@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
-				@RequestParam("senderToken") String senderToken, 
-			@Valid  FranceTransfertDataRepresentation metadata) {
-		
-		List<InitialisationInfo> listStatutPlis = new ArrayList<InitialisationInfo>();
-		
-		uploadServices.checkChunkNumber(flowChunkNumber);	
-		uploadServices.checkTotalChunks(flowTotalChunks);
-		if(uploadServices.checkChunkNumber(flowChunkNumber) && uploadServices.checkTotalChunks(flowTotalChunks)) {
-		uploadServices.checkTotalChunkNumber(flowChunkNumber, flowTotalChunks);
-		}
-		uploadServices.checkFlowChunkSize(flowChunkSize);
-		uploadServices.validateSenderIdPli(enclosureId, metadata.getSenderEmail());
-
-
-				
-		
-		return listStatutPlis;
 	}
 
 }
