@@ -109,7 +109,7 @@ public class UploadResources {
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
 				
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
+		uploadServices.processPrivateUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
 		response.setStatus(HttpStatus.OK.value());
 		// throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while

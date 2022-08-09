@@ -33,8 +33,6 @@ import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.model.PartETag;
-
 import fr.gouv.culture.francetransfert.application.error.ApiValidationError;
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
@@ -48,27 +46,19 @@ import fr.gouv.culture.francetransfert.application.resources.model.StatusReprese
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateUpload;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.FileKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
-import fr.gouv.culture.francetransfert.core.enums.RedisQueueEnum;
 import fr.gouv.culture.francetransfert.core.enums.SourceEnum;
 import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
 import fr.gouv.culture.francetransfert.core.enums.TypePliEnum;
 import fr.gouv.culture.francetransfert.core.enums.ValidationErrorEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
-import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
-import fr.gouv.culture.francetransfert.domain.utils.RedisForUploadUtils;
-import fr.gouv.culture.francetransfert.core.services.MimeService;
-import fr.gouv.culture.francetransfert.core.services.RedisManager;
-import fr.gouv.culture.francetransfert.core.services.StorageManager;
-
 
 @Service
 public class ValidationMailService {
@@ -77,10 +67,10 @@ public class ValidationMailService {
 
 	@Value("${upload.token.chunkModulo:20}")
 	private int chunkModulo;
-	
+
 	@Value("${bucket.prefix}")
 	private String bucketPrefix;
-	
+
 	@Value("${upload.limit}")
 	private long uploadLimitSize;
 
@@ -98,15 +88,9 @@ public class ValidationMailService {
 
 	@Autowired
 	private UploadServices uploadServices;
-	
+
 	@Autowired
 	private RedisManager redisManager;
-	
-	@Autowired
-	private MimeService mimeService;
-	
-	@Autowired
-	private StorageManager storageManager;
 
 	public InitialisationInfo validateMailData(ValidateData metadata, String headerAddr, String remoteAddr)
 			throws ApiValidationException {
@@ -398,14 +382,11 @@ public class ValidationMailService {
 		}
 
 	}
-	
-	
-	
-	//------------Upload API-------------
-	
-	
-	public InitialisationInfo validateUpload(ValidateUpload metadata, String headerAddr, String remoteAddr, String senderId, String flowIdentifier)
-			throws ApiValidationException, MetaloadException, StorageException {
+
+	// ------------Upload API-------------
+
+	public InitialisationInfo validateUpload(ValidateUpload metadata, String headerAddr, String remoteAddr,
+			String senderId, String flowIdentifier) throws ApiValidationException, MetaloadException, StorageException {
 
 		if (StringUtils.isBlank(headerAddr)) {
 			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
@@ -413,10 +394,8 @@ public class ValidationMailService {
 
 		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
 
-
 		validDomainHeader(headerAddr, metadata.getSenderEmail());
 		validIpAddress(headerAddr, remoteAddr);
-
 
 		ApiValidationError idNameFilesChecked = validIdNameFile(metadata.getRootFiles());
 		ApiValidationError totalChunksChecked = checkTotalChunks(metadata.getFlowChunkNumber());
@@ -424,9 +403,11 @@ public class ValidationMailService {
 		ApiValidationError fileContentChecked = checkFileContent(metadata.getFichier());
 		ApiValidationError packageStatusChecked = checkPackageStatus(metadata.getEnclosureId());
 		ApiValidationError flowChunkSizeChecked = checkFlowChunkSize(metadata.getFlowChunkSize());
-		ApiValidationError totalChunkNumberChecked = checkTotalChunkNumber(metadata.getFlowChunkNumber(), metadata.getFlowTotalChunks());
-		
-		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(), metadata.getSenderEmail());
+		ApiValidationError totalChunkNumberChecked = checkTotalChunkNumber(metadata.getFlowChunkNumber(),
+				metadata.getFlowTotalChunks());
+
+		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
+				metadata.getSenderEmail());
 
 		errorList.add(idNameFilesChecked);
 		errorList.add(totalChunksChecked);
@@ -436,11 +417,12 @@ public class ValidationMailService {
 		errorList.add(flowChunkSizeChecked);
 		errorList.add(totalChunkNumberChecked);
 		errorList.add(senderIdPliChecked);
-		
+
 		errorList.removeIf(Objects::isNull);
 
 		if (CollectionUtils.isEmpty(errorList)) {
-			processUploadApi(metadata.getFlowChunkNumber(), metadata.getFlowTotalChunks(), flowIdentifier, metadata.getFichier(), metadata.getEnclosureId(), senderId);
+			processUploadApi(metadata.getFlowChunkNumber(), metadata.getFlowTotalChunks(), flowIdentifier,
+					metadata.getFichier(), metadata.getEnclosureId(), senderId);
 			InitialisationInfo validPackage = new InitialisationInfo();
 			StatusRepresentation statutPli = new StatusRepresentation();
 			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
@@ -454,48 +436,46 @@ public class ValidationMailService {
 			throw new ApiValidationException(errorList);
 		}
 	}
-	
-	
+
 	public ApiValidationError validIdNameFile(FileRepresentation rootFile) {
 
 		ApiValidationError validFiles = null;
 		boolean idCheck = false;
 		boolean nameCheck = false;
 
-			idCheck = StringUtils.isNotEmpty(rootFile.getFid());
-			nameCheck = StringUtils.isNotEmpty(rootFile.getName());
-			if (!idCheck) {
+		idCheck = StringUtils.isNotEmpty(rootFile.getFid());
+		nameCheck = StringUtils.isNotEmpty(rootFile.getName());
+		if (!idCheck) {
+			validFiles = new ApiValidationError();
+			validFiles.setCodeChamp(ValidationErrorEnum.FT023.getCodeChamp());
+			validFiles.setNumErreur(ValidationErrorEnum.FT023.getNumErreur());
+			validFiles.setLibelleErreur(ValidationErrorEnum.FT023.getLibelleErreur());
+			return validFiles;
+		} else {
+			if (!nameCheck) {
 				validFiles = new ApiValidationError();
-				validFiles.setCodeChamp(ValidationErrorEnum.FT023.getCodeChamp());
-				validFiles.setNumErreur(ValidationErrorEnum.FT023.getNumErreur());
-				validFiles.setLibelleErreur(ValidationErrorEnum.FT023.getLibelleErreur());
+				validFiles.setCodeChamp(ValidationErrorEnum.FT019.getCodeChamp());
+				validFiles.setNumErreur(ValidationErrorEnum.FT019.getNumErreur());
+				validFiles.setLibelleErreur(ValidationErrorEnum.FT019.getLibelleErreur());
 				return validFiles;
-			} else {
-				if (!nameCheck) {
-					validFiles = new ApiValidationError();
-					validFiles.setCodeChamp(ValidationErrorEnum.FT019.getCodeChamp());
-					validFiles.setNumErreur(ValidationErrorEnum.FT019.getNumErreur());
-					validFiles.setLibelleErreur(ValidationErrorEnum.FT019.getLibelleErreur());
-					return validFiles;
-				}
 			}
-		
+		}
 
 		return validFiles;
 	}
-	
+
 	public ApiValidationError checkChunkNumber(Integer flowChunkNumber) {
 
 		ApiValidationError validChunkNumber = null;
-		if(flowChunkNumber.equals(null)) {
-			if(flowChunkNumber > 0 && flowChunkNumber == (int)flowChunkNumber) {
-			}else {
+		if (flowChunkNumber.equals(null)) {
+			if (flowChunkNumber > 0 && flowChunkNumber == (int) flowChunkNumber) {
+			} else {
 				validChunkNumber = new ApiValidationError();
 				validChunkNumber.setCodeChamp(ValidationErrorEnum.FT2010.getCodeChamp());
 				validChunkNumber.setNumErreur(ValidationErrorEnum.FT2010.getNumErreur());
 				validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT2010.getLibelleErreur());
 			}
-		}else {
+		} else {
 			validChunkNumber = new ApiValidationError();
 			validChunkNumber.setCodeChamp(ValidationErrorEnum.FT208.getCodeChamp());
 			validChunkNumber.setNumErreur(ValidationErrorEnum.FT208.getNumErreur());
@@ -504,18 +484,18 @@ public class ValidationMailService {
 
 		return validChunkNumber;
 	}
-	
+
 	public ApiValidationError checkTotalChunks(Integer flowTotalChunks) {
 
 		ApiValidationError validTotalChunks = null;
-		if(!flowTotalChunks.equals(null)) {
-			if(flowTotalChunks <= 0 || flowTotalChunks != (int)flowTotalChunks) {
+		if (!flowTotalChunks.equals(null)) {
+			if (flowTotalChunks <= 0 || flowTotalChunks != (int) flowTotalChunks) {
 				validTotalChunks = new ApiValidationError();
 				validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2012.getCodeChamp());
 				validTotalChunks.setNumErreur(ValidationErrorEnum.FT2012.getNumErreur());
 				validTotalChunks.setLibelleErreur(ValidationErrorEnum.FT2012.getLibelleErreur());
 			}
-		}else {
+		} else {
 			validTotalChunks = new ApiValidationError();
 			validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2011.getCodeChamp());
 			validTotalChunks.setNumErreur(ValidationErrorEnum.FT2011.getNumErreur());
@@ -524,31 +504,30 @@ public class ValidationMailService {
 
 		return validTotalChunks;
 	}
-	
+
 	public ApiValidationError checkTotalChunkNumber(Integer flowChunkNumber, Integer flowTotalChunks) {
 
 		ApiValidationError validTotalChunksNumber = null;
-				if(flowChunkNumber > flowTotalChunks) {
-					validTotalChunksNumber = new ApiValidationError();
-					validTotalChunksNumber.setCodeChamp(ValidationErrorEnum.FT209.getCodeChamp());
-					validTotalChunksNumber.setNumErreur(ValidationErrorEnum.FT209.getNumErreur());
-					validTotalChunksNumber.setLibelleErreur(ValidationErrorEnum.FT209.getLibelleErreur());
-				}
+		if (flowChunkNumber > flowTotalChunks) {
+			validTotalChunksNumber = new ApiValidationError();
+			validTotalChunksNumber.setCodeChamp(ValidationErrorEnum.FT209.getCodeChamp());
+			validTotalChunksNumber.setNumErreur(ValidationErrorEnum.FT209.getNumErreur());
+			validTotalChunksNumber.setLibelleErreur(ValidationErrorEnum.FT209.getLibelleErreur());
+		}
 		return validTotalChunksNumber;
 	}
-	
-	
+
 	public ApiValidationError checkFlowChunkSize(long flowChunkSize) {
-		
+
 		ApiValidationError validFlowChunkSize = null;
-		if( !Objects.isNull(flowChunkSize)) {
-			if(flowChunkSize <= 0) {
+		if (!Objects.isNull(flowChunkSize)) {
+			if (flowChunkSize <= 0) {
 				validFlowChunkSize = new ApiValidationError();
 				validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2014.getCodeChamp());
 				validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2014.getNumErreur());
 				validFlowChunkSize.setLibelleErreur(ValidationErrorEnum.FT2014.getLibelleErreur());
 			}
-		}else {
+		} else {
 			validFlowChunkSize = new ApiValidationError();
 			validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2013.getCodeChamp());
 			validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2013.getNumErreur());
@@ -557,18 +536,18 @@ public class ValidationMailService {
 
 		return validFlowChunkSize;
 	}
-	
+
 	public ApiValidationError checkFileSize(long fileSize) {
 
 		ApiValidationError validFileSize = null;
-		if(!Objects.isNull(fileSize)) {
-				if(fileSize <= 0) {
-					validFileSize = new ApiValidationError();
-					validFileSize.setCodeChamp(ValidationErrorEnum.FT2018.getCodeChamp());
-					validFileSize.setNumErreur(ValidationErrorEnum.FT2018.getNumErreur());
-					validFileSize.setLibelleErreur(ValidationErrorEnum.FT2018.getLibelleErreur());
-				}
-		}else {
+		if (!Objects.isNull(fileSize)) {
+			if (fileSize <= 0) {
+				validFileSize = new ApiValidationError();
+				validFileSize.setCodeChamp(ValidationErrorEnum.FT2018.getCodeChamp());
+				validFileSize.setNumErreur(ValidationErrorEnum.FT2018.getNumErreur());
+				validFileSize.setLibelleErreur(ValidationErrorEnum.FT2018.getLibelleErreur());
+			}
+		} else {
 			validFileSize = new ApiValidationError();
 			validFileSize.setCodeChamp(ValidationErrorEnum.FT2019.getCodeChamp());
 			validFileSize.setNumErreur(ValidationErrorEnum.FT2019.getNumErreur());
@@ -577,37 +556,33 @@ public class ValidationMailService {
 		return validFileSize;
 	}
 
-	
 	public ApiValidationError checkFileContent(MultipartFile file) {
 
 		ApiValidationError validFileContent = null;
-				if(file.isEmpty()) {
-					validFileContent = new ApiValidationError();
-					validFileContent.setCodeChamp(ValidationErrorEnum.FT2016.getCodeChamp());
-					validFileContent.setNumErreur(ValidationErrorEnum.FT2016.getNumErreur());
-					validFileContent.setLibelleErreur(ValidationErrorEnum.FT2016.getLibelleErreur());
-				}
+		if (file.isEmpty()) {
+			validFileContent = new ApiValidationError();
+			validFileContent.setCodeChamp(ValidationErrorEnum.FT2016.getCodeChamp());
+			validFileContent.setNumErreur(ValidationErrorEnum.FT2016.getNumErreur());
+			validFileContent.setLibelleErreur(ValidationErrorEnum.FT2016.getLibelleErreur());
+		}
 		return validFileContent;
 	}
-	
-	
+
 	public ApiValidationError checkPackageStatus(String enclosureId) throws MetaloadException {
 
 		ApiValidationError validPackageStatus = null;
 		Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, enclosureId);
 		String statusCode = enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey());
-	   if(!statusCode.equals(StatutEnum.INI.getCode()) && !statusCode.equals(StatutEnum.ECC.getCode())) {
+		if (!statusCode.equals(StatutEnum.INI.getCode()) && !statusCode.equals(StatutEnum.ECC.getCode())) {
 			validPackageStatus = new ApiValidationError();
 			validPackageStatus.setCodeChamp(ValidationErrorEnum.FT2017.getCodeChamp());
 			validPackageStatus.setNumErreur(ValidationErrorEnum.FT2017.getNumErreur());
 			validPackageStatus.setLibelleErreur(ValidationErrorEnum.FT2017.getLibelleErreur());
 		}
-				
+
 		return validPackageStatus;
 	}
-	
-	
-	
+
 	public ApiValidationError validateSenderIdPli(String enclosureId, String senderMail) {
 
 		ApiValidationError validSenderIdPli = null;
@@ -629,82 +604,19 @@ public class ValidationMailService {
 			validSenderIdPli.setNumErreur(ValidationErrorEnum.FT05.getNumErreur());
 			validSenderIdPli.setLibelleErreur(ValidationErrorEnum.FT05.getLibelleErreur());
 		}
-		
+
 		return validSenderIdPli;
-	} 
-	
-	
-	public Boolean processUploadApi(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+	}
+
+	public boolean processUploadApi(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
 			MultipartFile multipartFile, String enclosureId, String senderId)
 			throws MetaloadException, StorageException {
 
 		try {
-			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
-				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
-				uploadServices.cleanEnclosure(enclosureId);
-				throw new ExtensionNotFoundException(
-						"Extension file no authorised for file " + multipartFile.getOriginalFilename());
-			}
-			LOGGER.debug("Extension file authorised");
+			boolean isUploaded = uploadServices.uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier,
+					multipartFile, enclosureId, senderId);
 
-			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-			if (uploadServices.chunkExists(flowChunkNumber, hashFid)) {
-				return true;
-			}
-			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
-			Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
-			String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
-			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
-				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
-				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
-				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
-				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-						EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
-			}
-
-			String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
-
-			Boolean isUploaded = false;
-
-			LOGGER.debug("Osu bucket name: {}", bucketName);
-			PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber,
-					fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
-			String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
-			LOGGER.debug("PartETag added {} for: {}", partETagToString, hashFid);
-			long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
-			isUploaded = true;
-			LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
-			if (flowTotalChunks == flowChuncksCounter) {
-				List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
-				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
-						partETags);
-				if (succesUpload != null) {
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode(), -1);
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord(), -1);
-
-					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
-					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
-							enclosureId);
-					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
-							uploadFilesCounter);
-					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
-						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
-						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
-						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
-					}
-				} else {
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
-				}
-			}
 			return isUploaded;
-		} catch (ExtensionNotFoundException e) {
-			throw e;
 		} catch (Exception e) {
 			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
 					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
@@ -712,6 +624,5 @@ public class ValidationMailService {
 					enclosureId, e);
 		}
 	}
-	
 
 }
