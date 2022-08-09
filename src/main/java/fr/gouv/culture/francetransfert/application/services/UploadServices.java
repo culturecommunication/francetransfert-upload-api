@@ -7,6 +7,7 @@
 
 package fr.gouv.culture.francetransfert.application.services;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -195,82 +196,25 @@ public class UploadServices {
 		}
 	}
 
-	public Boolean processUpload(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+	public boolean processPrivateUpload(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
 			MultipartFile multipartFile, String enclosureId, String senderId, String senderToken)
 			throws MetaloadException, StorageException {
 
 		try {
+
 			redisManager.validateToken(senderId, senderToken);
 			if ((flowChunkNumber % chunkModulo) == 0) {
 				redisManager.extendTokenValidity(senderId, senderToken);
 			}
 
-			if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
-				LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
-				cleanEnclosure(enclosureId);
-				throw new ExtensionNotFoundException(
-						"Extension file no authorised for file " + multipartFile.getOriginalFilename());
-			}
-			LOGGER.debug("Extension file authorised");
+			Boolean isUploaded = uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier, multipartFile,
+					enclosureId, senderId);
 
-			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-			if (chunkExists(flowChunkNumber, hashFid)) {
-				return true; // multipart is uploaded
-			}
-			String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
-			Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
-			String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
-			if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
-				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
-				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
-				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
-				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-						EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
+			long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
+			if ((uploadFilesCounter % chunkModulo) == 0 && StringUtils.isNotBlank(senderToken)) {
+				redisManager.extendTokenValidity(senderId, senderToken);
 			}
 
-			String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
-
-			Boolean isUploaded = false;
-
-			LOGGER.debug("Osu bucket name: {}", bucketName);
-			PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber,
-					fileNameWithPath, multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
-			String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
-			LOGGER.debug("PartETag added {} for: {}", partETagToString, hashFid);
-			long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
-			isUploaded = true;
-			LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
-			if (flowTotalChunks == flowChuncksCounter) {
-				List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
-				String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
-						partETags);
-				if (succesUpload != null) {
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode(), -1);
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord(), -1);
-
-					LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
-					long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager,
-							enclosureId);
-					if ((uploadFilesCounter % chunkModulo) == 0) {
-						redisManager.extendTokenValidity(senderId, senderToken);
-					}
-					LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId,
-							uploadFilesCounter);
-					if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
-						redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
-						RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
-						LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
-					}
-				} else {
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
-					redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-							EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
-				}
-			}
 			return isUploaded;
 		} catch (ExtensionNotFoundException e) {
 			throw e;
@@ -285,6 +229,91 @@ public class UploadServices {
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
 		}
+	}
+
+	public boolean uploadFile(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+			MultipartFile multipartFile, String enclosureId, String senderId)
+			throws MetaloadException, StorageException, IOException {
+
+		checkExtension(multipartFile, enclosureId);
+
+		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
+		if (chunkExists(flowChunkNumber, hashFid)) {
+			return true; // multipart is uploaded
+		}
+
+		String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
+		Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
+		String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
+		if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
+			String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
+			RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
+		}
+		String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
+
+		boolean isUploaded = false;
+
+		LOGGER.debug("Osu bucket name: {}", bucketName);
+		PartETag partETag = storageManager.uploadMultiPartFileToOsuBucket(bucketName, flowChunkNumber, fileNameWithPath,
+				multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
+		String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
+		LOGGER.debug("PartETag added {} for: {}", partETagToString, hashFid);
+		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
+		isUploaded = true;
+		LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
+		if (flowTotalChunks == flowChuncksCounter) {
+			isUploaded = finishUploadFile(enclosureId, senderId, hashFid, bucketName, fileNameWithPath, uploadOsuId);
+		}
+		return isUploaded;
+	}
+
+	private boolean finishUploadFile(String enclosureId, String senderId, String hashFid, String bucketName,
+			String fileNameWithPath, String uploadOsuId) throws StorageException, MetaloadException {
+		List<PartETag> partETags = RedisForUploadUtils.getPartEtags(redisManager, hashFid);
+		String succesUpload = storageManager.completeMultipartUpload(bucketName, fileNameWithPath, uploadOsuId,
+				partETags);
+		boolean isUpload = false;
+		if (succesUpload != null) {
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
+			LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
+			long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
+			LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId, uploadFilesCounter);
+			if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
+				redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
+				RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
+				LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.CHT.getCode(), -1);
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.CHT.getWord(), -1);
+			}
+			isUpload = true;
+		} else {
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
+			isUpload = false;
+		}
+		return isUpload;
+	}
+
+	private void checkExtension(MultipartFile multipartFile, String enclosureId)
+			throws MetaloadException, StorageException {
+		if (!mimeService.isAuthorisedMimeTypeFromFileName(multipartFile.getOriginalFilename())) {
+			LOGGER.error("Extension file no authorised for file {}", multipartFile.getOriginalFilename());
+			cleanEnclosure(enclosureId);
+			throw new ExtensionNotFoundException(
+					"Extension file no authorised for file " + multipartFile.getOriginalFilename());
+		}
+		LOGGER.debug("Extension file authorised");
 	}
 
 	public boolean chunkExists(int flowChunkNumber, String hashFid) {
@@ -754,7 +783,7 @@ public class UploadServices {
 		}
 	}
 
-	private void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
+	public void cleanEnclosure(String prefix) throws MetaloadException, StorageException {
 		String bucketName = RedisUtils.getBucketName(redisManager, prefix, bucketPrefix);
 		storageManager.deleteFilesWithPrefix(bucketName, prefix);
 	}

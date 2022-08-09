@@ -108,7 +108,8 @@ public class UploadResources {
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
 		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
+				
+		uploadServices.processPrivateUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
 				senderToken);
 		response.setStatus(HttpStatus.OK.value());
 		// throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while
@@ -119,7 +120,6 @@ public class UploadResources {
 	@Operation(method = "POST", description = "sender Info ")
 	public EnclosureRepresentation senderInfo(HttpServletRequest request, HttpServletResponse response,
 			@RequestBody FranceTransfertDataRepresentation metadata) {
-		LOGGER.info("--------------metadata--------------- {} ", metadata.getRootDirs());
 		LOGGER.info("start upload enclosure ");
 		String token = metadata.getSenderToken();
 		metadata.setConfirmedSenderId(metadata.getSenderId());

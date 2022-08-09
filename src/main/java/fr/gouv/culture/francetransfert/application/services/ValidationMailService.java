@@ -31,8 +31,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import fr.gouv.culture.francetransfert.application.error.ApiValidationError;
+import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
@@ -42,19 +44,32 @@ import fr.gouv.culture.francetransfert.application.resources.model.Initialisatio
 import fr.gouv.culture.francetransfert.application.resources.model.PreferencesRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
+import fr.gouv.culture.francetransfert.application.resources.model.ValidateUpload;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.SourceEnum;
 import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
 import fr.gouv.culture.francetransfert.core.enums.TypePliEnum;
 import fr.gouv.culture.francetransfert.core.enums.ValidationErrorEnum;
+import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
+import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
 import fr.gouv.culture.francetransfert.domain.utils.FileUtils;
 
 @Service
 public class ValidationMailService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ValidationMailService.class);
+
+	@Value("${upload.token.chunkModulo:20}")
+	private int chunkModulo;
+
+	@Value("${bucket.prefix}")
+	private String bucketPrefix;
 
 	@Value("${upload.limit}")
 	private long uploadLimitSize;
@@ -73,6 +88,9 @@ public class ValidationMailService {
 
 	@Autowired
 	private UploadServices uploadServices;
+
+	@Autowired
+	private RedisManager redisManager;
 
 	public InitialisationInfo validateMailData(ValidateData metadata, String headerAddr, String remoteAddr)
 			throws ApiValidationException {
@@ -130,7 +148,7 @@ public class ValidationMailService {
 					.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
 					.language(preferences.getLanguage()).rootFiles(metadata.getRootFiles()).rootDirs(rootDirs)
 					.zipPassword(preferences.getProtectionArchive()).source(SourceEnum.PUBLIC.getValue())
-					.publicLink(TypePliEnum.COURRIEL.getKey().equalsIgnoreCase(metadata.getTypePli())).build();
+					.publicLink(TypePliEnum.LINK.getKey().equalsIgnoreCase(metadata.getTypePli())).build();
 
 			EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
 			validPackage.setIdPli(dataRedis.getEnclosureId());
@@ -363,6 +381,248 @@ public class ValidationMailService {
 			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
+	}
+
+	// ------------Upload API-------------
+
+	public InitialisationInfo validateUpload(ValidateUpload metadata, String headerAddr, String remoteAddr,
+			String senderId, String flowIdentifier) throws ApiValidationException, MetaloadException, StorageException {
+
+		if (StringUtils.isBlank(headerAddr)) {
+			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+		}
+
+		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
+
+		validDomainHeader(headerAddr, metadata.getSenderEmail());
+		validIpAddress(headerAddr, remoteAddr);
+
+		ApiValidationError idNameFilesChecked = validIdNameFile(metadata.getRootFiles());
+		ApiValidationError totalChunksChecked = checkTotalChunks(metadata.getFlowChunkNumber());
+		ApiValidationError fileSizeChecked = checkFileSize(metadata.getRootFiles().getSize());
+		ApiValidationError fileContentChecked = checkFileContent(metadata.getFichier());
+		ApiValidationError packageStatusChecked = checkPackageStatus(metadata.getEnclosureId());
+		ApiValidationError flowChunkSizeChecked = checkFlowChunkSize(metadata.getFlowChunkSize());
+		ApiValidationError totalChunkNumberChecked = checkTotalChunkNumber(metadata.getFlowChunkNumber(),
+				metadata.getFlowTotalChunks());
+
+		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
+				metadata.getSenderEmail());
+
+		errorList.add(idNameFilesChecked);
+		errorList.add(totalChunksChecked);
+		errorList.add(fileSizeChecked);
+		errorList.add(fileContentChecked);
+		errorList.add(packageStatusChecked);
+		errorList.add(flowChunkSizeChecked);
+		errorList.add(totalChunkNumberChecked);
+		errorList.add(senderIdPliChecked);
+
+		errorList.removeIf(Objects::isNull);
+
+		if (CollectionUtils.isEmpty(errorList)) {
+			processUploadApi(metadata.getFlowChunkNumber(), metadata.getFlowTotalChunks(), flowIdentifier,
+					metadata.getFichier(), metadata.getEnclosureId(), senderId);
+			InitialisationInfo validPackage = new InitialisationInfo();
+			StatusRepresentation statutPli = new StatusRepresentation();
+			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
+			statutPli.setCodeStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey()));
+			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
+			validPackage.setStatutPli(statutPli);
+			validPackage.setIdPli(metadata.getEnclosureId());
+			return validPackage;
+
+		} else {
+			throw new ApiValidationException(errorList);
+		}
+	}
+
+	public ApiValidationError validIdNameFile(FileRepresentation rootFile) {
+
+		ApiValidationError validFiles = null;
+		boolean idCheck = false;
+		boolean nameCheck = false;
+
+		idCheck = StringUtils.isNotEmpty(rootFile.getFid());
+		nameCheck = StringUtils.isNotEmpty(rootFile.getName());
+		if (!idCheck) {
+			validFiles = new ApiValidationError();
+			validFiles.setCodeChamp(ValidationErrorEnum.FT023.getCodeChamp());
+			validFiles.setNumErreur(ValidationErrorEnum.FT023.getNumErreur());
+			validFiles.setLibelleErreur(ValidationErrorEnum.FT023.getLibelleErreur());
+			return validFiles;
+		} else {
+			if (!nameCheck) {
+				validFiles = new ApiValidationError();
+				validFiles.setCodeChamp(ValidationErrorEnum.FT019.getCodeChamp());
+				validFiles.setNumErreur(ValidationErrorEnum.FT019.getNumErreur());
+				validFiles.setLibelleErreur(ValidationErrorEnum.FT019.getLibelleErreur());
+				return validFiles;
+			}
+		}
+
+		return validFiles;
+	}
+
+	public ApiValidationError checkChunkNumber(Integer flowChunkNumber) {
+
+		ApiValidationError validChunkNumber = null;
+		if (flowChunkNumber.equals(null)) {
+			if (flowChunkNumber > 0 && flowChunkNumber == (int) flowChunkNumber) {
+			} else {
+				validChunkNumber = new ApiValidationError();
+				validChunkNumber.setCodeChamp(ValidationErrorEnum.FT2010.getCodeChamp());
+				validChunkNumber.setNumErreur(ValidationErrorEnum.FT2010.getNumErreur());
+				validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT2010.getLibelleErreur());
+			}
+		} else {
+			validChunkNumber = new ApiValidationError();
+			validChunkNumber.setCodeChamp(ValidationErrorEnum.FT208.getCodeChamp());
+			validChunkNumber.setNumErreur(ValidationErrorEnum.FT208.getNumErreur());
+			validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT208.getLibelleErreur());
+		}
+
+		return validChunkNumber;
+	}
+
+	public ApiValidationError checkTotalChunks(Integer flowTotalChunks) {
+
+		ApiValidationError validTotalChunks = null;
+		if (!flowTotalChunks.equals(null)) {
+			if (flowTotalChunks <= 0 || flowTotalChunks != (int) flowTotalChunks) {
+				validTotalChunks = new ApiValidationError();
+				validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2012.getCodeChamp());
+				validTotalChunks.setNumErreur(ValidationErrorEnum.FT2012.getNumErreur());
+				validTotalChunks.setLibelleErreur(ValidationErrorEnum.FT2012.getLibelleErreur());
+			}
+		} else {
+			validTotalChunks = new ApiValidationError();
+			validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2011.getCodeChamp());
+			validTotalChunks.setNumErreur(ValidationErrorEnum.FT2011.getNumErreur());
+			validTotalChunks.setLibelleErreur(ValidationErrorEnum.FT2011.getLibelleErreur());
+		}
+
+		return validTotalChunks;
+	}
+
+	public ApiValidationError checkTotalChunkNumber(Integer flowChunkNumber, Integer flowTotalChunks) {
+
+		ApiValidationError validTotalChunksNumber = null;
+		if (flowChunkNumber > flowTotalChunks) {
+			validTotalChunksNumber = new ApiValidationError();
+			validTotalChunksNumber.setCodeChamp(ValidationErrorEnum.FT209.getCodeChamp());
+			validTotalChunksNumber.setNumErreur(ValidationErrorEnum.FT209.getNumErreur());
+			validTotalChunksNumber.setLibelleErreur(ValidationErrorEnum.FT209.getLibelleErreur());
+		}
+		return validTotalChunksNumber;
+	}
+
+	public ApiValidationError checkFlowChunkSize(long flowChunkSize) {
+
+		ApiValidationError validFlowChunkSize = null;
+		if (!Objects.isNull(flowChunkSize)) {
+			if (flowChunkSize <= 0) {
+				validFlowChunkSize = new ApiValidationError();
+				validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2014.getCodeChamp());
+				validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2014.getNumErreur());
+				validFlowChunkSize.setLibelleErreur(ValidationErrorEnum.FT2014.getLibelleErreur());
+			}
+		} else {
+			validFlowChunkSize = new ApiValidationError();
+			validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2013.getCodeChamp());
+			validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2013.getNumErreur());
+			validFlowChunkSize.setLibelleErreur(ValidationErrorEnum.FT2013.getLibelleErreur());
+		}
+
+		return validFlowChunkSize;
+	}
+
+	public ApiValidationError checkFileSize(long fileSize) {
+
+		ApiValidationError validFileSize = null;
+		if (!Objects.isNull(fileSize)) {
+			if (fileSize <= 0) {
+				validFileSize = new ApiValidationError();
+				validFileSize.setCodeChamp(ValidationErrorEnum.FT2018.getCodeChamp());
+				validFileSize.setNumErreur(ValidationErrorEnum.FT2018.getNumErreur());
+				validFileSize.setLibelleErreur(ValidationErrorEnum.FT2018.getLibelleErreur());
+			}
+		} else {
+			validFileSize = new ApiValidationError();
+			validFileSize.setCodeChamp(ValidationErrorEnum.FT2019.getCodeChamp());
+			validFileSize.setNumErreur(ValidationErrorEnum.FT2019.getNumErreur());
+			validFileSize.setLibelleErreur(ValidationErrorEnum.FT2019.getLibelleErreur());
+		}
+		return validFileSize;
+	}
+
+	public ApiValidationError checkFileContent(MultipartFile file) {
+
+		ApiValidationError validFileContent = null;
+		if (file.isEmpty()) {
+			validFileContent = new ApiValidationError();
+			validFileContent.setCodeChamp(ValidationErrorEnum.FT2016.getCodeChamp());
+			validFileContent.setNumErreur(ValidationErrorEnum.FT2016.getNumErreur());
+			validFileContent.setLibelleErreur(ValidationErrorEnum.FT2016.getLibelleErreur());
+		}
+		return validFileContent;
+	}
+
+	public ApiValidationError checkPackageStatus(String enclosureId) throws MetaloadException {
+
+		ApiValidationError validPackageStatus = null;
+		Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, enclosureId);
+		String statusCode = enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey());
+		if (!statusCode.equals(StatutEnum.INI.getCode()) && !statusCode.equals(StatutEnum.ECC.getCode())) {
+			validPackageStatus = new ApiValidationError();
+			validPackageStatus.setCodeChamp(ValidationErrorEnum.FT2017.getCodeChamp());
+			validPackageStatus.setNumErreur(ValidationErrorEnum.FT2017.getNumErreur());
+			validPackageStatus.setLibelleErreur(ValidationErrorEnum.FT2017.getLibelleErreur());
+		}
+
+		return validPackageStatus;
+	}
+
+	public ApiValidationError validateSenderIdPli(String enclosureId, String senderMail) {
+
+		ApiValidationError validSenderIdPli = null;
+		if (StringUtils.isNotBlank(senderMail)) {
+			try {
+				String senderEnclosureMail = RedisUtils.getEmailSenderEnclosure(redisManager, enclosureId);
+				if (!StringUtils.equalsIgnoreCase(senderMail, senderEnclosureMail)) {
+					validSenderIdPli = new ApiValidationError();
+					validSenderIdPli.setCodeChamp(ValidationErrorEnum.FT205.getCodeChamp());
+					validSenderIdPli.setNumErreur(ValidationErrorEnum.FT205.getNumErreur());
+					validSenderIdPli.setLibelleErreur(ValidationErrorEnum.FT205.getLibelleErreur());
+				}
+			} catch (Exception e) {
+				throw new UnauthorizedAccessException("Invalid enclosureId");
+			}
+		} else {
+			validSenderIdPli = new ApiValidationError();
+			validSenderIdPli.setCodeChamp(ValidationErrorEnum.FT05.getCodeChamp());
+			validSenderIdPli.setNumErreur(ValidationErrorEnum.FT05.getNumErreur());
+			validSenderIdPli.setLibelleErreur(ValidationErrorEnum.FT05.getLibelleErreur());
+		}
+
+		return validSenderIdPli;
+	}
+
+	public boolean processUploadApi(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
+			MultipartFile multipartFile, String enclosureId, String senderId)
+			throws MetaloadException, StorageException {
+
+		try {
+			boolean isUploaded = uploadServices.uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier,
+					multipartFile, enclosureId, senderId);
+
+			return isUploaded;
+		} catch (Exception e) {
+			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
+					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
+			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
+					enclosureId, e);
+		}
 	}
 
 }
