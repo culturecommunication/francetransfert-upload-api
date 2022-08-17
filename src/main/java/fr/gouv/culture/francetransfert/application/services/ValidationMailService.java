@@ -18,12 +18,11 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.LocaleUtils;
@@ -48,7 +47,6 @@ import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfe
 import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.PackageInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.PreferencesRepresentation;
-import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfoApi;
 import fr.gouv.culture.francetransfert.application.resources.model.StatusInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
@@ -76,10 +74,9 @@ public class ValidationMailService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ValidationMailService.class);
 
-
 	@Value("${url.download.api}")
 	private String urlDownloadApi;
-	
+
 	@Value("${upload.token.chunkModulo:20}")
 	private int chunkModulo;
 
@@ -639,12 +636,9 @@ public class ValidationMailService {
 					enclosureId, e);
 		}
 	}
-	
-	
-	
-	//----------Récupération du statut d’un pli API--------------
-	
-	
+
+	// ----------Récupération du statut d’un pli API--------------
+
 	public InitialisationInfo getStatusPli(StatusInfo metadata, String headerAddr, String remoteAddr)
 			throws ApiValidationException, MetaloadException {
 
@@ -656,7 +650,6 @@ public class ValidationMailService {
 
 		validDomainHeader(headerAddr, metadata.getSenderMail());
 		validIpAddress(headerAddr, remoteAddr);
-
 
 		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
 				metadata.getSenderMail());
@@ -673,7 +666,6 @@ public class ValidationMailService {
 			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
 			validPackage.setStatutPli(statutPli);
 
-
 			validPackage.setIdPli(metadata.getEnclosureId());
 
 			return validPackage;
@@ -682,8 +674,7 @@ public class ValidationMailService {
 			throw new ApiValidationException(errorList);
 		}
 	}
-	
-	
+
 	public PackageInfoRepresentation getInfoPli(StatusInfo metadata, String headerAddr, String remoteAddr)
 			throws ApiValidationException, MetaloadException, StatException {
 
@@ -696,14 +687,9 @@ public class ValidationMailService {
 		validDomainHeader(headerAddr, metadata.getSenderMail());
 		validIpAddress(headerAddr, remoteAddr);
 
-		FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(metadata.getEnclosureId());
-		
-		
-		
-		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(), metadata.getSenderMail());
+		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
+				metadata.getSenderMail());
 		ApiValidationError statutPliChecked = validateStatutPli(metadata.getEnclosureId());
-
-	
 
 		errorList.add(senderIdPliChecked);
 		errorList.add(statutPliChecked);
@@ -713,80 +699,64 @@ public class ValidationMailService {
 			PackageInfoRepresentation data = new PackageInfoRepresentation();
 			StatusRepresentation statutPli = new StatusRepresentation();
 			PreferencesRepresentation preferences = new PreferencesRepresentation();
-			
-			List<RecipientInfoApi> destinataires = new ArrayList<RecipientInfoApi>();			
+
+			List<RecipientInfoApi> destinataires = new ArrayList<RecipientInfoApi>();
 			List<FileRepresentationApi> files = new ArrayList<FileRepresentationApi>();
 
-			
 			String passwordUnHashed = "";
 			String link = "";
-			String typePli = "COU";
+			String typePli = TypePliEnum.COURRIEL.name();
 			Locale language;
 			language = LocaleUtils.toLocale(RedisUtils.getEnclosureValue(redisManager, metadata.getEnclosureId(),
 					EnclosureKeysEnum.LANGUAGE.getKey()));
-			
-			if(fileInfoRepresentation.isPublicLink()) {
-				typePli = "LIE";
-				link =  urlDownloadApi + "download-info-public?enclosure=" + metadata.getEnclosureId();
+
+			FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(metadata.getEnclosureId());
+
+			if (fileInfoRepresentation.isPublicLink()) {
+				typePli = TypePliEnum.LINK.name();
+				link = urlDownloadApi + metadata.getEnclosureId();
 			}
 
 			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
 			statutPli.setCodeStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey()));
 			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
-			passwordUnHashed = getUnhashedPassword(metadata.getEnclosureId());			
-			
-			List<RecipientInfo> destinatairesList = fileInfoRepresentation.getRecipientsMails();		
-			for (RecipientInfo destinataireList : destinatairesList) {
-				RecipientInfoApi destinataire = new RecipientInfoApi();
-				destinataire.setRecipientMail(destinataireList.getRecipientMail());
-				destinataire.setNumberOfDownloadPerRecipient(destinataireList.getNumberOfDownloadPerRecipient());
-				destinataire.setDownloadDates(destinataireList.getDownloadDates());
-				
-				destinataires.add(destinataire);
-			}
-			
-			List<FileRepresentation> filesList = fileInfoRepresentation.getRootFiles();			
-			for (FileRepresentation fileList : filesList) {
-				FileRepresentationApi file = new FileRepresentationApi();
-				
-				String flowIdentifier = fileList.getName().replaceAll("\\W", "");
-				flowIdentifier = fileList.getSize() + "-" + flowIdentifier;
-				
-				file.setFid(flowIdentifier);
-				file.setSize(fileList.getSize());
-				file.setName(fileList.getName());
+			passwordUnHashed = getUnhashedPassword(metadata.getEnclosureId());
 
-				files.add(file);
-			}
-					
-			preferences = PreferencesRepresentation.builder().language(language)
-					.password(passwordUnHashed).protectionArchive(fileInfoRepresentation.isWithPassword())
+			destinataires.addAll(fileInfoRepresentation.getRecipientsMails().stream().map(dest -> {
+				return new RecipientInfoApi(dest);
+			}).collect(Collectors.toList()));
+
+			files.addAll(fileInfoRepresentation.getRootFiles().stream().map(file -> {
+				return new FileRepresentationApi(file);
+			}).collect(Collectors.toList()));
+
+			preferences = PreferencesRepresentation.builder().language(language).password(passwordUnHashed)
+					.protectionArchive(fileInfoRepresentation.isWithPassword())
 					.expireDelay(fileInfoRepresentation.getValidUntilDate()).build();
 
-			
-		  data = PackageInfoRepresentation.builder().idPli(metadata.getEnclosureId()).statutPli(statutPli).typePli(typePli)
-					 .courrielExpediteur(fileInfoRepresentation.getSenderEmail()).destinataires(destinataires)
-					 .objet(fileInfoRepresentation.getSubject()).message(fileInfoRepresentation.getMessage())
-					.preferences(preferences).fichiers(files).lienTelechargementPublic(link).build();
-					 
-		  redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(metadata.getEnclosureId()),
-					EnclosureKeysEnum.INFOPLI.getKey(), "true", -1);
+			data = PackageInfoRepresentation.builder().idPli(metadata.getEnclosureId()).statutPli(statutPli)
+					.typePli(typePli).courrielExpediteur(fileInfoRepresentation.getSenderEmail())
+					.destinataires(destinataires).objet(fileInfoRepresentation.getSubject())
+					.message(fileInfoRepresentation.getMessage()).preferences(preferences).fichiers(files)
+					.lienTelechargementPublic(link).build();
 
-		  
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(metadata.getEnclosureId()),
+					EnclosureKeysEnum.INFOPLI.getKey(), Boolean.TRUE.toString(), -1);
+
 			return data;
 
 		} else {
 			throw new ApiValidationException(errorList);
 		}
 	}
-	
-	
+
 	public ApiValidationError validateStatutPli(String enclosureId) throws MetaloadException {
 
 		ApiValidationError validPackageStatus = null;
 		Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, enclosureId);
 		String statusCode = enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey());
-		if (!statusCode.equals(StatutEnum.PAT.getCode())) {
+		String sourceCode = enclosureRedis.get(EnclosureKeysEnum.SOURCE.getKey());
+		if (!StatutEnum.PAT.getCode().equals(statusCode) || !SourceEnum.PUBLIC.getValue().equals(sourceCode)) {
 			validPackageStatus = new ApiValidationError();
 			validPackageStatus.setCodeChamp(ValidationErrorEnum.FT406.getCodeChamp());
 			validPackageStatus.setNumErreur(ValidationErrorEnum.FT406.getNumErreur());
@@ -795,20 +765,16 @@ public class ValidationMailService {
 
 		return validPackageStatus;
 	}
-	
-	
-	
+
 	private String getUnhashedPassword(String enclosureId) throws MetaloadException, StatException {
 		String passwordRedis;
 		passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.PASSWORD.getKey());
 		if (passwordRedis != null && !StringUtils.isEmpty(passwordRedis)) {
 			return base64CryptoService.aesDecrypt(passwordRedis);
 		} else {
-			passwordRedis = null;
+			passwordRedis = "";
 			throw new UploadException("No Password for enclosure {}", enclosureId);
 		}
 	}
-
-	
 
 }

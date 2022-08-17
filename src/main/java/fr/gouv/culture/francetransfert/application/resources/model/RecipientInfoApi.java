@@ -3,8 +3,8 @@
  * 
  * SPDX-License-Identifier: Apache-2.0 
  * License-Filename: LICENSE.txt 
- */ 
- 
+ */
+
 /*
   * Copyright (c) Ministère de la Culture (2022) 
   * 
@@ -14,9 +14,7 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -33,12 +31,17 @@ import lombok.Setter;
 @Builder
 public class RecipientInfoApi {
 
+	public RecipientInfoApi(RecipientInfo recInfo) {
+		recipientMail = recInfo.getRecipientMail();
+		numberOfDownloadPerRecipient = recInfo.getNumberOfDownloadPerRecipient();
+		downloadDates = recInfo.getDownloadDates();
+	}
+
 	@JsonProperty("courrielDestinataire")
 	private String recipientMail;
 	@JsonProperty("nbTelechargements")
 	private int numberOfDownloadPerRecipient;
 	@JsonProperty("datesTelechargement")
 	private ArrayList<String> downloadDates;
-
 
 }

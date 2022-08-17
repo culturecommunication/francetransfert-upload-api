@@ -32,6 +32,6 @@ import lombok.Setter;
 public class DataRepresentationApi {
 	@NotBlank
 	@JsonProperty("nomFichier")
-	private String name;
+	protected String name;
 
 }
