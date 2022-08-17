@@ -74,14 +74,8 @@ public class ValidationMailService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ValidationMailService.class);
 
-	@Value("${url.download.api}")
-	private String urlDownloadApi;
-
-	@Value("${upload.token.chunkModulo:20}")
-	private int chunkModulo;
-
-	@Value("${bucket.prefix}")
-	private String bucketPrefix;
+	@Value("${url.download.public}")
+	private String urlDownloadPublic;
 
 	@Value("${upload.limit}")
 	private long uploadLimitSize;
@@ -714,7 +708,7 @@ public class ValidationMailService {
 
 			if (fileInfoRepresentation.isPublicLink()) {
 				typePli = TypePliEnum.LINK.name();
-				link = urlDownloadApi + metadata.getEnclosureId();
+				link = urlDownloadPublic + metadata.getEnclosureId();
 			}
 
 			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
