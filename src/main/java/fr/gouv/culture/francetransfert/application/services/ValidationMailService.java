@@ -437,7 +437,6 @@ public class ValidationMailService {
 			validPackage.setStatutPli(statutPli);
 			validPackage.setIdPli(metadata.getEnclosureId());
 			return validPackage;
-
 		} else {
 			throw new ApiValidationException(errorList);
 		}
@@ -626,6 +625,10 @@ public class ValidationMailService {
 		} catch (Exception e) {
 			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
 					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
 		}

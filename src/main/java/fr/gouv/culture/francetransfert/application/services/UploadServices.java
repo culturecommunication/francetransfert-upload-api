@@ -221,6 +221,10 @@ public class UploadServices {
 		} catch (Exception e) {
 			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
 					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
 //			try {
 //				cleanEnclosure(enclosureId);
 //			} catch (Exception e1) {
