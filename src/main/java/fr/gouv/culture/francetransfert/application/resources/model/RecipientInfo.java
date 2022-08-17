@@ -9,13 +9,18 @@ package fr.gouv.culture.francetransfert.application.resources.model;
 
 import java.util.ArrayList;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@Builder
 public class RecipientInfo {
 
 	private String recipientMail;

@@ -3,8 +3,8 @@
  * 
  * SPDX-License-Identifier: Apache-2.0 
  * License-Filename: LICENSE.txt 
- */
-
+ */ 
+ 
 /*
   * Copyright (c) Ministère de la Culture (2022) 
   * 
@@ -14,10 +14,9 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Locale;
+import javax.validation.constraints.NotBlank;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -29,16 +28,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
-public class PreferencesRepresentation {
+@NoArgsConstructor
+public class FileRepresentationApi extends DataRepresentationApi {
 
-	@JsonProperty("langueCourriel")
-	private Locale language;
-	private Boolean protectionArchive;
-	@JsonProperty("dateValidite")
-	private LocalDate expireDelay;
-	@JsonProperty("motDePasse")
-	private String password;
-
+	@NotBlank
+	@JsonProperty("idFichier")
+	private String fid;
+	@JsonProperty("tailleFichier")
+	private long size;
 }

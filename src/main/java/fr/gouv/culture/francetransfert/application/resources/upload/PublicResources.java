@@ -16,6 +16,7 @@ package fr.gouv.culture.francetransfert.application.resources.upload;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,11 +39,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.PackageInfoRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.StatusInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateUpload;
 import fr.gouv.culture.francetransfert.application.services.ValidationMailService;
+import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StatException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
+import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -109,5 +118,36 @@ public class PublicResources {
 		}
 		return validationMailService.validateUpload(metadata, headerAddr, remoteAddr, senderId, flowIdentifier);
 	}
+	
+	@PostMapping("/statutPli")
+	@Operation(method = "POST", description = "statutPli")
+	public InitialisationInfo packageStatus(HttpServletResponse response, HttpServletRequest request,
+			@Valid @RequestBody StatusInfo metadata) throws ApiValidationException, MetaloadException {
 
+		String headerAddr = request.getHeader(KEY);
+		String remoteAddr = request.getHeader(FOR);
+		if (remoteAddr == null || "".equals(remoteAddr)) {
+			remoteAddr = request.getRemoteAddr();
+		}
+		return validationMailService.getStatusPli(metadata, headerAddr, remoteAddr);
+
+	}
+
+	@GetMapping("/donneesPli")
+	@Operation(method = "GET", description = "donneesPli")
+	public PackageInfoRepresentation packageInfo(HttpServletResponse response, HttpServletRequest request,
+			@RequestParam("idPli") String idPli, @RequestParam("courrielExpediteur") String courrielExpediteur) throws ApiValidationException, MetaloadException, StatException {
+
+		String headerAddr = request.getHeader(KEY);
+		String remoteAddr = request.getHeader(FOR);
+		if (remoteAddr == null || "".equals(remoteAddr)) {
+			remoteAddr = request.getRemoteAddr();
+		}
+		
+		StatusInfo metadata = new StatusInfo();
+		metadata.setEnclosureId(idPli); 
+		metadata.setSenderMail(courrielExpediteur);
+		return validationMailService.getInfoPli(metadata, headerAddr, remoteAddr);
+
+	}
 }

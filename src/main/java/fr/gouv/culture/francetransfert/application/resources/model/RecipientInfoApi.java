@@ -3,8 +3,8 @@
  * 
  * SPDX-License-Identifier: Apache-2.0 
  * License-Filename: LICENSE.txt 
- */
-
+ */ 
+ 
 /*
   * Copyright (c) Ministère de la Culture (2022) 
   * 
@@ -15,7 +15,7 @@
 package fr.gouv.culture.francetransfert.application.resources.model;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,14 +31,14 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PreferencesRepresentation {
+public class RecipientInfoApi {
 
-	@JsonProperty("langueCourriel")
-	private Locale language;
-	private Boolean protectionArchive;
-	@JsonProperty("dateValidite")
-	private LocalDate expireDelay;
-	@JsonProperty("motDePasse")
-	private String password;
+	@JsonProperty("courrielDestinataire")
+	private String recipientMail;
+	@JsonProperty("nbTelechargements")
+	private int numberOfDownloadPerRecipient;
+	@JsonProperty("datesTelechargement")
+	private ArrayList<String> downloadDates;
+
 
 }
