@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,19 +40,26 @@ import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentationApi;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.InitialisationInfo;
+import fr.gouv.culture.francetransfert.application.resources.model.PackageInfoRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.PreferencesRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.RecipientInfoApi;
+import fr.gouv.culture.francetransfert.application.resources.model.StatusInfo;
 import fr.gouv.culture.francetransfert.application.resources.model.StatusRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateData;
 import fr.gouv.culture.francetransfert.application.resources.model.ValidateUpload;
 import fr.gouv.culture.francetransfert.core.enums.EnclosureKeysEnum;
+import fr.gouv.culture.francetransfert.core.enums.RedisKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.SourceEnum;
 import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
 import fr.gouv.culture.francetransfert.core.enums.TypePliEnum;
 import fr.gouv.culture.francetransfert.core.enums.ValidationErrorEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
+import fr.gouv.culture.francetransfert.core.exception.StatException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
@@ -65,11 +74,8 @@ public class ValidationMailService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ValidationMailService.class);
 
-	@Value("${upload.token.chunkModulo:20}")
-	private int chunkModulo;
-
-	@Value("${bucket.prefix}")
-	private String bucketPrefix;
+	@Value("${url.download.public}")
+	private String urlDownloadPublic;
 
 	@Value("${upload.limit}")
 	private long uploadLimitSize;
@@ -622,6 +628,146 @@ public class ValidationMailService {
 					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
 			throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " during file upload : " + e.getMessage(),
 					enclosureId, e);
+		}
+	}
+
+	// ----------Récupération du statut d’un pli API--------------
+
+	public InitialisationInfo getStatusPli(StatusInfo metadata, String headerAddr, String remoteAddr)
+			throws ApiValidationException, MetaloadException {
+
+		if (StringUtils.isBlank(headerAddr)) {
+			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+		}
+
+		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
+
+		validDomainHeader(headerAddr, metadata.getSenderMail());
+		validIpAddress(headerAddr, remoteAddr);
+
+		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
+				metadata.getSenderMail());
+
+		errorList.add(senderIdPliChecked);
+		errorList.removeIf(Objects::isNull);
+
+		if (CollectionUtils.isEmpty(errorList)) {
+			InitialisationInfo validPackage = new InitialisationInfo();
+			StatusRepresentation statutPli = new StatusRepresentation();
+
+			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
+			statutPli.setCodeStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey()));
+			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
+			validPackage.setStatutPli(statutPli);
+
+			validPackage.setIdPli(metadata.getEnclosureId());
+
+			return validPackage;
+
+		} else {
+			throw new ApiValidationException(errorList);
+		}
+	}
+
+	public PackageInfoRepresentation getInfoPli(StatusInfo metadata, String headerAddr, String remoteAddr)
+			throws ApiValidationException, MetaloadException, StatException {
+
+		if (StringUtils.isBlank(headerAddr)) {
+			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+		}
+
+		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
+
+		validDomainHeader(headerAddr, metadata.getSenderMail());
+		validIpAddress(headerAddr, remoteAddr);
+
+		ApiValidationError senderIdPliChecked = validateSenderIdPli(metadata.getEnclosureId(),
+				metadata.getSenderMail());
+		ApiValidationError statutPliChecked = validateStatutPli(metadata.getEnclosureId());
+
+		errorList.add(senderIdPliChecked);
+		errorList.add(statutPliChecked);
+		errorList.removeIf(Objects::isNull);
+
+		if (CollectionUtils.isEmpty(errorList)) {
+			PackageInfoRepresentation data = new PackageInfoRepresentation();
+			StatusRepresentation statutPli = new StatusRepresentation();
+			PreferencesRepresentation preferences = new PreferencesRepresentation();
+
+			List<RecipientInfoApi> destinataires = new ArrayList<RecipientInfoApi>();
+			List<FileRepresentationApi> files = new ArrayList<FileRepresentationApi>();
+
+			String passwordUnHashed = "";
+			String link = "";
+			String typePli = TypePliEnum.COURRIEL.name();
+			Locale language;
+			language = LocaleUtils.toLocale(RedisUtils.getEnclosureValue(redisManager, metadata.getEnclosureId(),
+					EnclosureKeysEnum.LANGUAGE.getKey()));
+
+			FileInfoRepresentation fileInfoRepresentation = uploadServices.getInfoPlis(metadata.getEnclosureId());
+
+			if (fileInfoRepresentation.isPublicLink()) {
+				typePli = TypePliEnum.LINK.name();
+				link = urlDownloadPublic + metadata.getEnclosureId();
+			}
+
+			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
+			statutPli.setCodeStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey()));
+			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
+			passwordUnHashed = getUnhashedPassword(metadata.getEnclosureId());
+
+			destinataires.addAll(fileInfoRepresentation.getRecipientsMails().stream().map(dest -> {
+				return new RecipientInfoApi(dest);
+			}).collect(Collectors.toList()));
+
+			files.addAll(fileInfoRepresentation.getRootFiles().stream().map(file -> {
+				return new FileRepresentationApi(file);
+			}).collect(Collectors.toList()));
+
+			preferences = PreferencesRepresentation.builder().language(language).password(passwordUnHashed)
+					.protectionArchive(fileInfoRepresentation.isWithPassword())
+					.expireDelay(fileInfoRepresentation.getValidUntilDate()).build();
+
+			data = PackageInfoRepresentation.builder().idPli(metadata.getEnclosureId()).statutPli(statutPli)
+					.typePli(typePli).courrielExpediteur(fileInfoRepresentation.getSenderEmail())
+					.destinataires(destinataires).objet(fileInfoRepresentation.getSubject())
+					.message(fileInfoRepresentation.getMessage()).preferences(preferences).fichiers(files)
+					.lienTelechargementPublic(link).build();
+
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(metadata.getEnclosureId()),
+					EnclosureKeysEnum.INFOPLI.getKey(), Boolean.TRUE.toString(), -1);
+
+			return data;
+
+		} else {
+			throw new ApiValidationException(errorList);
+		}
+	}
+
+	public ApiValidationError validateStatutPli(String enclosureId) throws MetaloadException {
+
+		ApiValidationError validPackageStatus = null;
+		Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, enclosureId);
+		String statusCode = enclosureRedis.get(EnclosureKeysEnum.STATUS_CODE.getKey());
+		String sourceCode = enclosureRedis.get(EnclosureKeysEnum.SOURCE.getKey());
+		if (!StatutEnum.PAT.getCode().equals(statusCode) || !SourceEnum.PUBLIC.getValue().equals(sourceCode)) {
+			validPackageStatus = new ApiValidationError();
+			validPackageStatus.setCodeChamp(ValidationErrorEnum.FT406.getCodeChamp());
+			validPackageStatus.setNumErreur(ValidationErrorEnum.FT406.getNumErreur());
+			validPackageStatus.setLibelleErreur(ValidationErrorEnum.FT406.getLibelleErreur());
+		}
+
+		return validPackageStatus;
+	}
+
+	private String getUnhashedPassword(String enclosureId) throws MetaloadException, StatException {
+		String passwordRedis;
+		passwordRedis = RedisUtils.getEnclosureValue(redisManager, enclosureId, EnclosureKeysEnum.PASSWORD.getKey());
+		if (passwordRedis != null && !StringUtils.isEmpty(passwordRedis)) {
+			return base64CryptoService.aesDecrypt(passwordRedis);
+		} else {
+			passwordRedis = "";
+			throw new UploadException("No Password for enclosure {}", enclosureId);
 		}
 	}
 

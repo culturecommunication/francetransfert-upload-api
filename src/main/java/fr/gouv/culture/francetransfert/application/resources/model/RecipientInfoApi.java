@@ -14,9 +14,7 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Locale;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -31,14 +29,19 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PreferencesRepresentation {
+public class RecipientInfoApi {
 
-	@JsonProperty("langueCourriel")
-	private Locale language;
-	private Boolean protectionArchive;
-	@JsonProperty("dateValidite")
-	private LocalDate expireDelay;
-	@JsonProperty("motDePasse")
-	private String password;
+	public RecipientInfoApi(RecipientInfo recInfo) {
+		recipientMail = recInfo.getRecipientMail();
+		numberOfDownloadPerRecipient = recInfo.getNumberOfDownloadPerRecipient();
+		downloadDates = recInfo.getDownloadDates();
+	}
+
+	@JsonProperty("courrielDestinataire")
+	private String recipientMail;
+	@JsonProperty("nbTelechargements")
+	private int numberOfDownloadPerRecipient;
+	@JsonProperty("datesTelechargement")
+	private ArrayList<String> downloadDates;
 
 }

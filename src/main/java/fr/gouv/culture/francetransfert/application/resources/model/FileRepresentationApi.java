@@ -14,9 +14,7 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Locale;
+import javax.validation.constraints.NotBlank;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -29,16 +27,21 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
-public class PreferencesRepresentation {
+@NoArgsConstructor
+public class FileRepresentationApi extends DataRepresentationApi {
 
-	@JsonProperty("langueCourriel")
-	private Locale language;
-	private Boolean protectionArchive;
-	@JsonProperty("dateValidite")
-	private LocalDate expireDelay;
-	@JsonProperty("motDePasse")
-	private String password;
+	public FileRepresentationApi(FileRepresentation file) {
+		String flowIdentifier = file.getName().replaceAll("\\W", "");
+		flowIdentifier = file.getSize() + "-" + flowIdentifier;
+		fid = flowIdentifier;
+		size = file.getSize();
+		name = file.getName();
+	}
 
+	@NotBlank
+	@JsonProperty("idFichier")
+	private String fid;
+	@JsonProperty("tailleFichier")
+	private long size;
 }
