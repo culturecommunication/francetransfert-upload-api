@@ -282,10 +282,6 @@ public class UploadServices {
 				partETags);
 		boolean isUpload = false;
 		if (succesUpload != null) {
-			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
-			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
 			LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
 			long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
 			LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId, uploadFilesCounter);
