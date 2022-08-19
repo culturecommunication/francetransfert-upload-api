@@ -210,7 +210,8 @@ public class UploadServices {
 			Boolean isUploaded = uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier, multipartFile,
 					enclosureId, senderId);
 
-			long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
+			long uploadFilesCounter = Long.parseLong(redisManager.getHgetString(
+					RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.UPLOAD_NB_FILES_DONE.getKey()));
 			if ((uploadFilesCounter % chunkModulo) == 0 && StringUtils.isNotBlank(senderToken)) {
 				redisManager.extendTokenValidity(senderId, senderToken);
 			}
@@ -269,6 +270,7 @@ public class UploadServices {
 		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
 		isUploaded = true;
 		LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
+		LOGGER.info("Uploading File {} - {}/{}", flowIdentifier, flowChuncksCounter, flowTotalChunks);
 		if (flowTotalChunks == flowChuncksCounter) {
 			isUploaded = finishUploadFile(enclosureId, senderId, hashFid, bucketName, fileNameWithPath, uploadOsuId);
 		}
@@ -282,10 +284,15 @@ public class UploadServices {
 				partETags);
 		boolean isUpload = false;
 		if (succesUpload != null) {
-			LOGGER.info("Finish upload File for enclosure {} ==> {} ", enclosureId, fileNameWithPath);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
+			int fileCount = RedisUtils.getFilesIds(redisManager, enclosureId).size();
 			long uploadFilesCounter = RedisUtils.incrementCounterOfUploadFilesEnclosure(redisManager, enclosureId);
-			LOGGER.info("Counter of successful upload files for enclosure {} : {} ", enclosureId, uploadFilesCounter);
-			if (RedisUtils.getFilesIds(redisManager, enclosureId).size() == uploadFilesCounter) {
+			LOGGER.info("Finish upload File {}/{} for enclosure {} ==> {} ", uploadFilesCounter, fileCount, enclosureId,
+					fileNameWithPath);
+			if (fileCount == uploadFilesCounter) {
 				redisManager.publishFT(RedisQueueEnum.ZIP_QUEUE.getValue(), enclosureId);
 				RedisUtils.addPliToDay(redisManager, senderId, enclosureId);
 				LOGGER.info("Finish upload enclosure ==> {} ", enclosureId);
