@@ -392,7 +392,8 @@ public class ValidationMailService {
 				new String[0]);
 		String senderDomaine = stringUploadUtils.extractDomainNameFromEmailAddress(sender);
 
-		if (domaine.length > 0 && !StringUtils.containsIgnoreCase(domaine[0], senderDomaine)) {
+		if (domaine.length == 0 || StringUtils.isBlank(senderDomaine)
+				|| !StringUtils.containsIgnoreCase(domaine[0], senderDomaine)) {
 			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
