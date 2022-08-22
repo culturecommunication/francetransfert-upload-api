@@ -168,7 +168,7 @@ public class ValidationMailService {
 
 	public ApiValidationError validPassword(String password) {
 		ApiValidationError passwordInfo = null;
-		if (!base64CryptoService.validatePassword(password.trim())) {
+		if (StringUtils.isNotBlank(password) && !base64CryptoService.validatePassword(password.trim())) {
 			passwordInfo = new ApiValidationError();
 			passwordInfo.setCodeChamp(ValidationErrorEnum.FT012.getCodeChamp());
 			passwordInfo.setNumErreur(ValidationErrorEnum.FT012.getNumErreur());
