@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 import fr.gouv.culture.francetransfert.application.error.ApiValidationError;
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
+import fr.gouv.culture.francetransfert.application.error.UnauthorizedApiAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
@@ -386,25 +388,27 @@ public class ValidationMailService {
 	public void validDomainHeader(String headerAddr, String sender) {
 
 		// get domain from properties
-		String[] domaine = apiKey.get(headerAddr).get("domaine");
+		String[] domaine = apiKey.getOrDefault(headerAddr, new HashMap<String, String[]>()).getOrDefault("domaine",
+				new String[0]);
 		String senderDomaine = stringUploadUtils.extractDomainNameFromEmailAddress(sender);
 
-		if (!StringUtils.containsIgnoreCase(domaine[0], senderDomaine)) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+		if (domaine.length > 0 && !StringUtils.containsIgnoreCase(domaine[0], senderDomaine)) {
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 	}
 
 	public void validIpAddress(String headerAddr, String remoteAddr) {
 
-		String[] ips = apiKey.get(headerAddr).get("ips");
+		String[] ips = apiKey.getOrDefault(headerAddr, new HashMap<String, String[]>()).getOrDefault("ips",
+				new String[0]);
 		boolean ipMatch = Arrays.stream(ips).anyMatch(ip -> {
 			IpAddressMatcher ipAddressMatcher = new IpAddressMatcher(ip);
 			return ipAddressMatcher.matches(remoteAddr);
 		});
 
 		if (!ipMatch) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 	}

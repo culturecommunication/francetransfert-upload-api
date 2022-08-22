@@ -92,6 +92,13 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
 	}
 
+	@ExceptionHandler(UnauthorizedApiAccessException.class)
+	protected ResponseEntity<Void> handleUnauthorizedAccessException(UnauthorizedApiAccessException ex) {
+		LOG.error("Handle error UnauthorizedApiAccessException : " + ex.getMessage(), ex);
+		LOG.error("UnauthorizedAccessException : " + ex.getMessage(), ex);
+		return new ResponseEntity<Void>(null, new HttpHeaders(), HttpStatus.FORBIDDEN);
+	}
+
 	@ExceptionHandler(DomainNotFoundException.class)
 	public ResponseEntity<Object> handleDomainNotFoundException(Exception ex) {
 		LOG.error("Handle error DomainNotFoundException : " + ex.getMessage(), ex);

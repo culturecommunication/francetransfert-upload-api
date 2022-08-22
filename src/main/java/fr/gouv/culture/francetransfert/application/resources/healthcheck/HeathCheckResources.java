@@ -47,14 +47,6 @@ public class HeathCheckResources {
 	public ResponseEntity<HealthCheckRepresentation> healthCheck(@RequestHeader("X-Api-Key") String apiKey,
 			HttpServletRequest request) throws UploadException {
 
-		if (request != null) {
-			String remoteAddr = request.getHeader("X-FORWARDED-FOR");
-			if (remoteAddr == null || "".equals(remoteAddr)) {
-				remoteAddr = request.getRemoteAddr();
-			}
-			LOGGER.warn("Test remote addr : {}", remoteAddr);
-		}
-
 		if (apiKeyConfig.equals(apiKey)) {
 			HealthCheckRepresentation heathStatus = healthCheckService.healthCheck();
 			if (heathStatus.isFtError()) {
