@@ -119,19 +119,13 @@ public class ValidationMailService {
 			errorList.add(recipientSenderChecked);
 		}
 
-		ApiValidationError langueCourrielChecked = validLangueCourriel(preferences.getLanguage());
-		ApiValidationError dateFormatChecked = validDateFormat(preferences.getExpireDelay());
-		ApiValidationError datePeriodChecked = validPeriodFormat(preferences.getExpireDelay());
-		ApiValidationError protectionArchiveChecked = validProtectionArchive(preferences.getProtectionArchive());
+		validatePreference(errorList, preferences);
+
 		ApiValidationError idNameFilesChecked = validIdNameFiles(metadata.getRootFiles());
 		ApiValidationError SizePackageChecked = validSizePackage(metadata.getRootFiles());
 
 		errorList.add(passwordChecked);
 		errorList.add(typeChecked);
-		errorList.add(langueCourrielChecked);
-		errorList.add(dateFormatChecked);
-		errorList.add(datePeriodChecked);
-		errorList.add(protectionArchiveChecked);
 		errorList.add(idNameFilesChecked);
 		errorList.add(SizePackageChecked);
 		errorList.removeIf(Objects::isNull);
@@ -164,6 +158,32 @@ public class ValidationMailService {
 		} else {
 			throw new ApiValidationException(errorList);
 		}
+	}
+
+	private void validatePreference(List<ApiValidationError> errorList, PreferencesRepresentation preferences) {
+
+		if (preferences.getLanguage() != null) {
+			ApiValidationError langueCourrielChecked = validLangueCourriel(preferences.getLanguage());
+			errorList.add(langueCourrielChecked);
+		} else {
+			preferences.setLanguage(Locale.FRANCE);
+		}
+
+		if (preferences.getExpireDelay() != null) {
+			ApiValidationError dateFormatChecked = validDateFormat(preferences.getExpireDelay());
+			errorList.add(dateFormatChecked);
+			ApiValidationError datePeriodChecked = validPeriodFormat(preferences.getExpireDelay());
+			errorList.add(datePeriodChecked);
+		} else {
+			preferences.setExpireDelay(LocalDate.now().plusDays(30));
+		}
+		if (preferences.getProtectionArchive() != null) {
+			ApiValidationError protectionArchiveChecked = validProtectionArchive(preferences.getProtectionArchive());
+			errorList.add(protectionArchiveChecked);
+		} else {
+			preferences.setProtectionArchive(Boolean.FALSE);
+		}
+
 	}
 
 	public ApiValidationError validPassword(String password) {
