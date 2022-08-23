@@ -270,7 +270,7 @@ public class UploadServices {
 		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
 		isUploaded = true;
 		LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
-		LOGGER.info("Uploading File {} - {}/{}", flowIdentifier, flowChuncksCounter, flowTotalChunks);
+		LOGGER.info("Uploading File {} - Chunk {}/{}", flowIdentifier, flowChuncksCounter, flowTotalChunks);
 		if (flowTotalChunks == flowChuncksCounter) {
 			isUploaded = finishUploadFile(enclosureId, senderId, hashFid, bucketName, fileNameWithPath, uploadOsuId);
 		}
