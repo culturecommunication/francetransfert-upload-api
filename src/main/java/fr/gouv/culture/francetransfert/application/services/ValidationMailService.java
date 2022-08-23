@@ -104,7 +104,7 @@ public class ValidationMailService {
 			throws ApiValidationException {
 
 		if (StringUtils.isBlank(headerAddr)) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
