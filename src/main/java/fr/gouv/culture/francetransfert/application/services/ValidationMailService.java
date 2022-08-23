@@ -38,7 +38,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import fr.gouv.culture.francetransfert.application.error.ApiValidationError;
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
-import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessException;
 import fr.gouv.culture.francetransfert.application.error.UnauthorizedApiAccessException;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
@@ -420,7 +419,7 @@ public class ValidationMailService {
 			String senderId, String flowIdentifier) throws ApiValidationException, MetaloadException, StorageException {
 
 		if (StringUtils.isBlank(headerAddr)) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
@@ -626,7 +625,7 @@ public class ValidationMailService {
 					validSenderIdPli.setLibelleErreur(ValidationErrorEnum.FT205.getLibelleErreur());
 				}
 			} catch (Exception e) {
-				throw new UnauthorizedAccessException("Invalid enclosureId");
+				throw new UnauthorizedApiAccessException("Invalid enclosureId");
 			}
 		} else {
 			validSenderIdPli = new ApiValidationError();
@@ -665,7 +664,7 @@ public class ValidationMailService {
 			throws ApiValidationException, MetaloadException {
 
 		if (StringUtils.isBlank(headerAddr)) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
@@ -701,7 +700,7 @@ public class ValidationMailService {
 			throws ApiValidationException, MetaloadException, StatException {
 
 		if (StringUtils.isBlank(headerAddr)) {
-			throw new UnauthorizedAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
+			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
 		}
 
 		List<ApiValidationError> errorList = new ArrayList<ApiValidationError>();
