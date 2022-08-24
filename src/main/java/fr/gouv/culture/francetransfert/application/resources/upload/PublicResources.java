@@ -107,7 +107,8 @@ public class PublicResources {
 	@GetMapping("/statutPli")
 	@Operation(method = "GET", description = "statutPli")
 	public InitialisationInfo packageStatus(HttpServletResponse response, HttpServletRequest request,
-			@RequestParam("idPli") String enclosureId, @RequestParam("courrielExpediteur") String senderMail)
+			@RequestParam(value = "idPli", required = false) String enclosureId,
+			@RequestParam(value = "courrielExpediteur", required = false) String senderMail)
 			throws ApiValidationException, MetaloadException {
 
 		String headerAddr = request.getHeader(KEY);
@@ -123,7 +124,8 @@ public class PublicResources {
 	@GetMapping("/donneesPli")
 	@Operation(method = "GET", description = "donneesPli")
 	public PackageInfoRepresentation packageInfo(HttpServletResponse response, HttpServletRequest request,
-			@RequestParam("idPli") String idPli, @RequestParam("courrielExpediteur") String courrielExpediteur)
+			@RequestParam(value = "idPli", required = false) String enclosureId,
+			@RequestParam(value = "courrielExpediteur", required = false) String senderMail)
 			throws ApiValidationException, MetaloadException, StatException {
 
 		String headerAddr = request.getHeader(KEY);
@@ -133,8 +135,8 @@ public class PublicResources {
 		}
 
 		StatusInfo metadata = new StatusInfo();
-		metadata.setEnclosureId(idPli);
-		metadata.setSenderMail(courrielExpediteur);
+		metadata.setEnclosureId(enclosureId);
+		metadata.setSenderMail(senderMail);
 		return validationMailService.getInfoPli(metadata, headerAddr, remoteAddr);
 
 	}
