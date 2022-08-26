@@ -178,8 +178,12 @@ public class UploadServices {
 			Boolean isUploaded = uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier, multipartFile,
 					enclosureId, senderId);
 
-			long uploadFilesCounter = Long.parseLong(redisManager.getHgetString(
-					RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId), EnclosureKeysEnum.UPLOAD_NB_FILES_DONE.getKey()));
+			String upCountFile = redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.UPLOAD_NB_FILES_DONE.getKey());
+			if (StringUtils.isBlank(upCountFile)) {
+				upCountFile = "0";
+			}
+			long uploadFilesCounter = Long.parseLong(upCountFile);
 			if ((uploadFilesCounter % chunkModulo) == 0 && StringUtils.isNotBlank(senderToken)) {
 				redisManager.extendTokenValidity(senderId, senderToken);
 			}
