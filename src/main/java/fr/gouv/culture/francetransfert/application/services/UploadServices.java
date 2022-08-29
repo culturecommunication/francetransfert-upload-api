@@ -222,7 +222,10 @@ public class UploadServices {
 		String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
 		Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
 		String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
-		if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
+
+		Long chunkCount = RedisUtils.getCounterOfChunkIteration(redisManager, hashFid);
+
+		if (chunkCount == 0) {
 			String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
 			RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
 			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
@@ -239,8 +242,9 @@ public class UploadServices {
 				multipartFile.getInputStream(), multipartFile.getSize(), uploadOsuId);
 		String partETagToString = RedisForUploadUtils.addToPartEtags(redisManager, partETag, hashFid);
 		LOGGER.debug("PartETag added {} for: {}", partETagToString, hashFid);
-		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
 		isUploaded = true;
+		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
+		RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid);
 		LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
 		LOGGER.info("Uploading File {} - Chunk {}/{}", flowIdentifier, flowChuncksCounter, flowTotalChunks);
 		if (flowTotalChunks == flowChuncksCounter) {
