@@ -223,15 +223,20 @@ public class UploadServices {
 		Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
 		String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
 
-		Long chunkCount = RedisUtils.getCounterOfChunkIteration(redisManager, hashFid);
+		if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
+			try {
+				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
+				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
+				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+						EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
+			} catch (Exception e) {
+				redisManager.hsetString(RedisKeysEnum.FT_FILE.getKey(hashFid),
+						FileKeysEnum.MUL_CHUNKS_ITERATION.getKey(), "0", -1);
+				throw e;
+			}
 
-		if (chunkCount == 0) {
-			String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
-			RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
-			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
-			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
-					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECC.getWord(), -1);
 		}
 		String uploadOsuId = RedisForUploadUtils.getUploadIdBlocking(redisManager, hashFid);
 
@@ -244,7 +249,6 @@ public class UploadServices {
 		LOGGER.debug("PartETag added {} for: {}", partETagToString, hashFid);
 		isUploaded = true;
 		long flowChuncksCounter = RedisUtils.incrementCounterOfUploadChunksPerFile(redisManager, hashFid);
-		RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid);
 		LOGGER.debug("FlowChuncksCounter in redis {}", flowChuncksCounter);
 		LOGGER.info("Uploading File {} - Chunk {}/{}", flowIdentifier, flowChuncksCounter, flowTotalChunks);
 		if (flowTotalChunks == flowChuncksCounter) {
@@ -283,7 +287,7 @@ public class UploadServices {
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			boolean validRecipientsIgni = false;
-			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+			if (!metadata.getPublicLink().booleanValue() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 				validRecipientsIgni = metadata.getRecipientEmails().stream().noneMatch(x -> {
 					return !stringUploadUtils.isValidEmailIgni(x);
 				});
