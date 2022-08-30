@@ -764,7 +764,7 @@ public class UploadServices {
 					LOGGER.debug("verify token in redis");
 					redisManager.validateToken(senderMail, token);
 					redisManager.extendTokenValidity(senderMail, token);
-				} catch (UploadException e) {
+				} catch (MetaloadException e) {
 					confirmationServices.generateCodeConfirmation(senderMail, currentLanguage);
 					result = true;
 					LOGGER.info("generate confirmation code for sender mail {}", senderMail);
