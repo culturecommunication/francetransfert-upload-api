@@ -236,7 +236,7 @@ public class UploadServices {
 		if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
 			try {
 				String uploadID = storageManager.generateUploadIdOsu(bucketName, fileNameWithPath);
-				RedisForUploadUtils.AddToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
+				RedisForUploadUtils.addToFileMultipartUploadIdContainer(redisManager, uploadID, hashFid);
 				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
 						EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECC.getCode(), -1);
 				redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
