@@ -30,7 +30,7 @@ import lombok.Setter;
 //@Builder
 @NoArgsConstructor
 public class DataRepresentationApi {
-	@NotBlank
+	
 	@JsonProperty("nomFichier")
 	protected String name;
 

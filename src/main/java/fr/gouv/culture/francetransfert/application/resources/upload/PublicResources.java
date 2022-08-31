@@ -70,8 +70,8 @@ public class PublicResources {
 	}
 
 	// ---
-	@PostMapping("/uploadPli")
-	@Operation(method = "POST", description = "uploadPli")
+	@PostMapping("/chargementPli")
+	@Operation(method = "POST", description = "chargementPli")
 	public InitialisationInfo uploadData(HttpServletResponse response, HttpServletRequest request,
 			@RequestParam("numMorceauFichier") int flowChunkNumber,
 			@RequestParam("totalMorceauxFichier") int flowTotalChunks,

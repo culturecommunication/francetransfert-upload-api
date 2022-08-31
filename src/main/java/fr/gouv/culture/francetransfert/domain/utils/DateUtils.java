@@ -27,6 +27,8 @@ public class DateUtils {
     private static String DATE_ERROR_NULL ="The date must not be null";
 
     private static String infinity_Date = "2000-12-31";
+    
+	private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * <p>Checks if two date objects represent the same instant in time.</p>

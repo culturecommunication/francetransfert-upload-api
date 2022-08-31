@@ -45,5 +45,6 @@ public class FranceTransfertDataRepresentation {
 	private Boolean zipPassword;
 
 	private String source;
+	private boolean envoiMdpDestinataires;
 
 }

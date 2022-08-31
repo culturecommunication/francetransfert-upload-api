@@ -37,4 +37,9 @@ public class ApiValidationException extends Exception {
 
 	private List<ApiValidationError> erreurs;
 
+	public ApiValidationException(List<ApiValidationError> erreurs, String message) {
+		super(message);
+		this.erreurs = erreurs;
+	}
+
 }

@@ -20,6 +20,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -40,10 +42,11 @@ public class ValidateData {
    private String message;
    private String objet;
    private PreferencesRepresentation preferences;	
+   private boolean envoiMdpDestinataires;
 
    @Valid
    @JsonProperty("fichiers")
-   private List<FileRepresentation> rootFiles;
+   private List<FileRepresentationApi> rootFiles;
       
 }
 

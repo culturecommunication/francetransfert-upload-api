@@ -24,6 +24,6 @@ import lombok.Setter;
 public class DataRepresentation {
 	@NotBlank
 	@JsonAlias("nomFichier")
-	private String name;
+	protected String name;
 
 }

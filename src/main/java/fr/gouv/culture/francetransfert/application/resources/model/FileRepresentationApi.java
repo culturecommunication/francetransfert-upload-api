@@ -14,8 +14,6 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import javax.validation.constraints.NotBlank;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -39,7 +37,6 @@ public class FileRepresentationApi extends DataRepresentationApi {
 		name = file.getName();
 	}
 
-	@NotBlank
 	@JsonProperty("idFichier")
 	private String fid;
 	@JsonProperty("tailleFichier")
