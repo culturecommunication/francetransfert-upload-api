@@ -31,7 +31,7 @@ public class FileRepresentationApi extends DataRepresentationApi {
 
 	public FileRepresentationApi(FileRepresentation file) {
 		String flowIdentifier = file.getName().replaceAll("\\W", "");
-		flowIdentifier = file.getSize() + "-" + file.getName();
+		flowIdentifier = file.getSize() + "-" + flowIdentifier;
 		fid = flowIdentifier;
 		size = file.getSize();
 		name = file.getName();
