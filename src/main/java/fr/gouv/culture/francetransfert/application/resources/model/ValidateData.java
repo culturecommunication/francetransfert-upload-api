@@ -40,10 +40,11 @@ public class ValidateData {
    private String message;
    private String objet;
    private PreferencesRepresentation preferences;	
+   private Boolean envoiMdpDestinataires;
 
    @Valid
    @JsonProperty("fichiers")
-   private List<FileRepresentation> rootFiles;
+   private List<FileRepresentationApi> rootFiles;
       
 }
 

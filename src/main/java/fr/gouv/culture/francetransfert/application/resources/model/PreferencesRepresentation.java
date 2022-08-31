@@ -37,7 +37,7 @@ public class PreferencesRepresentation {
 	private Locale language;
 	private Boolean protectionArchive;
 	@JsonProperty("dateValidite")
-	private LocalDate expireDelay;
+	private String expireDelay;
 	@JsonProperty("motDePasse")
 	private String password;
 

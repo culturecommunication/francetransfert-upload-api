@@ -119,6 +119,7 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.INI.getWord());
 
 			map.put(EnclosureKeysEnum.SOURCE.getKey(), metadata.getSource());
+			map.put(EnclosureKeysEnum.ENVOIMDPDEST.getKey(), metadata.getEnvoiMdpDestinataires().toString());
 
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
 

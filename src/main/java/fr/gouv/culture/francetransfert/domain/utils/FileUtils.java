@@ -17,6 +17,7 @@ import org.springframework.util.CollectionUtils;
 import fr.gouv.culture.francetransfert.application.resources.model.DataRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentation;
+import fr.gouv.culture.francetransfert.application.resources.model.FileRepresentationApi;
 import fr.gouv.culture.francetransfert.application.resources.model.FranceTransfertDataRepresentation;
 import fr.gouv.culture.francetransfert.domain.redis.entity.FileDomain;
 
@@ -73,9 +74,9 @@ public class FileUtils {
 	}
 
 	//---
-	public static long getEnclosureTotalFileSize(List<FileRepresentation> rootFiles) {
+	public static long getEnclosureTotalFileSize(List<FileRepresentationApi> rootFiles) {
 		long size = 0;
-		for (FileRepresentation rootFile : rootFiles) {
+		for (FileRepresentationApi rootFile : rootFiles) {
 			size = size + rootFile.getSize();
 		}
 		return size;
@@ -95,6 +96,15 @@ public class FileUtils {
 	}
 	
 	//---
+	public static boolean getSizeFileOverApi(List<FileRepresentationApi> rootFiles, long fileSize) {
+		for (FileRepresentationApi rootFile : rootFiles) {
+			if (rootFile.getSize() > fileSize) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public static boolean getSizeFileOver(List<FileRepresentation> rootFiles, long fileSize) {
 		for (FileRepresentation rootFile : rootFiles) {
 			if (rootFile.getSize() > fileSize) {
@@ -125,7 +135,7 @@ public class FileUtils {
 	}
 	
 	//---
-	public static Map<String, String> RootFilesValidation(List<FileRepresentation> rootFiles) {
+	public static Map<String, String> RootFilesValidation(List<FileRepresentationApi> rootFiles) {
 		Map<String, String> files = new HashMap<>();
 		if (!CollectionUtils.isEmpty(rootFiles)) {
 			files = rootFiles.stream()

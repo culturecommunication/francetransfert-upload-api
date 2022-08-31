@@ -39,7 +39,7 @@ public class FileRepresentationApi extends DataRepresentationApi {
 		name = file.getName();
 	}
 
-	@NotBlank
+	
 	@JsonProperty("idFichier")
 	private String fid;
 	@JsonProperty("tailleFichier")
