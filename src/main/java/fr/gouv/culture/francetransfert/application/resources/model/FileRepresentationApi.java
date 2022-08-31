@@ -14,8 +14,6 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import javax.validation.constraints.NotBlank;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -33,13 +31,12 @@ public class FileRepresentationApi extends DataRepresentationApi {
 
 	public FileRepresentationApi(FileRepresentation file) {
 		String flowIdentifier = file.getName().replaceAll("\\W", "");
-		flowIdentifier = file.getSize() + "-" + flowIdentifier;
+		flowIdentifier = file.getSize() + "-" + file.getName();
 		fid = flowIdentifier;
 		size = file.getSize();
 		name = file.getName();
 	}
 
-	
 	@JsonProperty("idFichier")
 	private String fid;
 	@JsonProperty("tailleFichier")

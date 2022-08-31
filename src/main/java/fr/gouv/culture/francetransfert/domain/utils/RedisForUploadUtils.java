@@ -119,7 +119,7 @@ public class RedisForUploadUtils {
 			map.put(EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.INI.getWord());
 
 			map.put(EnclosureKeysEnum.SOURCE.getKey(), metadata.getSource());
-			map.put(EnclosureKeysEnum.ENVOIMDPDEST.getKey(), metadata.getEnvoiMdpDestinataires().toString());
+			map.put(EnclosureKeysEnum.ENVOIMDPDEST.getKey(), Boolean.toString(metadata.isEnvoiMdpDestinataires()));
 
 			redisManager.insertHASH(RedisKeysEnum.FT_ENCLOSURE.getKey(guidEnclosure), map);
 
@@ -160,7 +160,7 @@ public class RedisForUploadUtils {
 			String enclosureId) {
 		try {
 
-			if (!metadata.getPublicLink()) {
+			if (Boolean.FALSE.equals(metadata.getPublicLink())) {
 				if (CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 					throw new UploadException("Empty recipient", enclosureId);
 				}
@@ -339,7 +339,7 @@ public class RedisForUploadUtils {
 		}
 	}
 
-	public static String AddToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId,
+	public static String addToFileMultipartUploadIdContainer(RedisManager redisManager, String uploadId,
 			String hashFid) {
 		try {
 			String key = RedisKeysEnum.FT_ID_CONTAINER.getKey(hashFid);

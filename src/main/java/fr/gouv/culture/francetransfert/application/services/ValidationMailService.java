@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,12 +124,12 @@ public class ValidationMailService {
 		validatePreference(errorList, preferences);
 
 		ApiValidationError idNameFilesChecked = validIdNameFiles(metadata.getRootFiles());
-		ApiValidationError SizePackageChecked = validSizePackage(metadata.getRootFiles());
+		ApiValidationError sizePackageChecked = validSizePackage(metadata.getRootFiles());
 
 		errorList.add(passwordChecked);
 		errorList.add(typeChecked);
 		errorList.add(idNameFilesChecked);
-		errorList.add(SizePackageChecked);
+		errorList.add(sizePackageChecked);
 		errorList.removeIf(Objects::isNull);
 
 		if (CollectionUtils.isEmpty(errorList)) {
@@ -146,17 +145,18 @@ public class ValidationMailService {
 
 			List<DirectoryRepresentation> rootDirs = new ArrayList<DirectoryRepresentation>();
 			List<FileRepresentation> files = new ArrayList<FileRepresentation>();
+
 			files.addAll(metadata.getRootFiles().stream().map(file -> {
 				return new FileRepresentation(file);
 			}).collect(Collectors.toList()));
-			
+
 			FranceTransfertDataRepresentation data = FranceTransfertDataRepresentation.builder()
 					.password(preferences.getPassword()).senderEmail(metadata.getSenderEmail())
 					.subject(metadata.getObjet()).message(metadata.getMessage())
 					.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
 					.language(preferences.getLanguage()).rootFiles(files).rootDirs(rootDirs)
 					.zipPassword(preferences.getProtectionArchive()).source(SourceEnum.PUBLIC.getValue())
-					.envoiMdpDestinataires(metadata.getEnvoiMdpDestinataires())
+					.envoiMdpDestinataires(metadata.isEnvoiMdpDestinataires())
 					.publicLink(TypePliEnum.LINK.getKey().equalsIgnoreCase(metadata.getTypePli())).build();
 
 			EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
@@ -184,7 +184,7 @@ public class ValidationMailService {
 		validIpAddress(headerAddr, remoteAddr);
 
 		ApiValidationError idNameFilesChecked = validIdNameFile(metadata.getRootFiles());
-		ApiValidationError chunkNumberChecked = checkChunkNumber (metadata.getFlowChunkNumber());
+		ApiValidationError chunkNumberChecked = checkChunkNumber(metadata.getFlowChunkNumber());
 		ApiValidationError totalChunksChecked = checkTotalChunks(metadata.getFlowTotalChunks());
 		ApiValidationError fileSizeChecked = checkFileSize(metadata.getRootFiles().getSize());
 		ApiValidationError fileContentChecked = checkFileContent(metadata.getFichier());
@@ -301,7 +301,7 @@ public class ValidationMailService {
 
 			if (fileInfoRepresentation.isPublicLink()) {
 				typePli = TypePliEnum.LINK.getKey();
-				link = urlDownloadPublic  + "download-info-public?enclosure=" + metadata.getEnclosureId();
+				link = urlDownloadPublic + metadata.getEnclosureId();
 			}
 
 			Map<String, String> enclosureRedis = RedisUtils.getEnclosure(redisManager, metadata.getEnclosureId());
@@ -309,14 +309,10 @@ public class ValidationMailService {
 			statutPli.setLibelleStatutPli(enclosureRedis.get(EnclosureKeysEnum.STATUS_WORD.getKey()));
 			passwordUnHashed = getUnhashedPassword(metadata.getEnclosureId());
 
-			destinataires.addAll(fileInfoRepresentation.getRecipientsMails().stream().map(dest -> {
-				return new RecipientInfoApi(dest);
-			}).collect(Collectors.toList()));
+			destinataires.addAll(fileInfoRepresentation.getRecipientsMails().stream().map(RecipientInfoApi::new).collect(Collectors.toList()));
 
-			files.addAll(fileInfoRepresentation.getRootFiles().stream().map(file -> {
-				return new FileRepresentationApi(file);
-			}).collect(Collectors.toList()));
-			
+			files.addAll(fileInfoRepresentation.getRootFiles().stream().map(FileRepresentationApi::new).collect(Collectors.toList()));
+
 			String zipPassword = RedisUtils.getEnclosureValue(redisManager, metadata.getEnclosureId(),
 					EnclosureKeysEnum.PASSWORD_ZIP.getKey());
 
@@ -342,13 +338,21 @@ public class ValidationMailService {
 
 	private boolean processUploadApi(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
 			MultipartFile multipartFile, String enclosureId, String senderId)
-			throws MetaloadException, StorageException {
+			throws MetaloadException, StorageException, ApiValidationException {
 
 		try {
 			boolean isUploaded = uploadServices.uploadFile(flowChunkNumber, flowTotalChunks, flowIdentifier,
 					multipartFile, enclosureId, senderId);
 
 			return isUploaded;
+		} catch (ApiValidationException apEx) {
+			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
+					+ " and flowidentifier " + flowIdentifier + " : " + apEx.getMessage(), apEx);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_CODE.getKey(), StatutEnum.ECH.getCode(), -1);
+			redisManager.hsetString(RedisKeysEnum.FT_ENCLOSURE.getKey(enclosureId),
+					EnclosureKeysEnum.STATUS_WORD.getKey(), StatutEnum.ECH.getWord(), -1);
+			throw apEx;
 		} catch (Exception e) {
 			LOGGER.error("Error while uploading enclosure " + enclosureId + " for chunk " + flowChunkNumber
 					+ " and flowidentifier " + flowIdentifier + " : " + e.getMessage(), e);
@@ -373,9 +377,9 @@ public class ValidationMailService {
 		if (preferences.getExpireDelay() != null) {
 			ApiValidationError dateFormatChecked = validDateFormat(preferences.getExpireDelay());
 			errorList.add(dateFormatChecked);
-			if(dateFormatChecked == null) {
-			ApiValidationError datePeriodChecked = validPeriodFormat(LocalDate.parse(preferences.getExpireDelay()));
-			errorList.add(datePeriodChecked);
+			if (dateFormatChecked == null) {
+				ApiValidationError datePeriodChecked = validPeriodFormat(LocalDate.parse(preferences.getExpireDelay()));
+				errorList.add(datePeriodChecked);
 			}
 		} else {
 			preferences.setExpireDelay(LocalDate.now().plusDays(30).toString());
@@ -482,16 +486,16 @@ public class ValidationMailService {
 	private ApiValidationError validDateFormat(String expireDelay) {
 
 		ApiValidationError dateFormatInfo = null;
-		
-		  try {
-	            LocalDate.parse(expireDelay);
-	        } catch (DateTimeParseException e) {
-				dateFormatInfo = new ApiValidationError();
-				dateFormatInfo.setCodeChamp(ValidationErrorEnum.FT011.getCodeChamp());
-				dateFormatInfo.setNumErreur(ValidationErrorEnum.FT011.getNumErreur());
-				dateFormatInfo.setLibelleErreur(ValidationErrorEnum.FT011.getLibelleErreur());
-	        }
-		
+
+		try {
+			LocalDate.parse(expireDelay);
+		} catch (DateTimeParseException e) {
+			dateFormatInfo = new ApiValidationError();
+			dateFormatInfo.setCodeChamp(ValidationErrorEnum.FT011.getCodeChamp());
+			dateFormatInfo.setNumErreur(ValidationErrorEnum.FT011.getNumErreur());
+			dateFormatInfo.setLibelleErreur(ValidationErrorEnum.FT011.getLibelleErreur());
+		}
+
 		return dateFormatInfo;
 	}
 
@@ -650,19 +654,19 @@ public class ValidationMailService {
 	private ApiValidationError checkChunkNumber(Integer flowChunkNumber) {
 
 		ApiValidationError validChunkNumber = null;
-		if (flowChunkNumber.equals(null)) {
+		if (flowChunkNumber == null) {
 			validChunkNumber = new ApiValidationError();
 			validChunkNumber.setCodeChamp(ValidationErrorEnum.FT208.getCodeChamp());
 			validChunkNumber.setNumErreur(ValidationErrorEnum.FT208.getNumErreur());
 			validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT208.getLibelleErreur());
-			}else {
-				if (flowChunkNumber <= 0 || flowChunkNumber != (int) flowChunkNumber) {
-					validChunkNumber = new ApiValidationError();
-					validChunkNumber.setCodeChamp(ValidationErrorEnum.FT2010.getCodeChamp());
-					validChunkNumber.setNumErreur(ValidationErrorEnum.FT2010.getNumErreur());
-					validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT2010.getLibelleErreur());
-				}
-		} 
+		} else {
+			if (flowChunkNumber <= 0 || flowChunkNumber != (int) flowChunkNumber) {
+				validChunkNumber = new ApiValidationError();
+				validChunkNumber.setCodeChamp(ValidationErrorEnum.FT2010.getCodeChamp());
+				validChunkNumber.setNumErreur(ValidationErrorEnum.FT2010.getNumErreur());
+				validChunkNumber.setLibelleErreur(ValidationErrorEnum.FT2010.getLibelleErreur());
+			}
+		}
 
 		return validChunkNumber;
 	}
@@ -731,9 +735,9 @@ public class ValidationMailService {
 			}
 		} else {
 			validFileSize = new ApiValidationError();
-			validFileSize.setCodeChamp(ValidationErrorEnum.FT2019.getCodeChamp());
-			validFileSize.setNumErreur(ValidationErrorEnum.FT2019.getNumErreur());
-			validFileSize.setLibelleErreur(ValidationErrorEnum.FT2019.getLibelleErreur());
+			validFileSize.setCodeChamp(ValidationErrorEnum.FT020.getCodeChamp());
+			validFileSize.setNumErreur(ValidationErrorEnum.FT020.getNumErreur());
+			validFileSize.setLibelleErreur(ValidationErrorEnum.FT020.getLibelleErreur());
 		}
 		return validFileSize;
 	}

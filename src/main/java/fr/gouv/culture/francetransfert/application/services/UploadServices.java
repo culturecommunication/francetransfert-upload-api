@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.amazonaws.services.s3.model.PartETag;
 import com.google.gson.Gson;
 
+import fr.gouv.culture.francetransfert.application.error.ApiValidationError;
 import fr.gouv.culture.francetransfert.application.error.ErrorEnum;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DirectoryRepresentation;
@@ -49,6 +50,7 @@ import fr.gouv.culture.francetransfert.core.enums.RootDirKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.RootFileKeysEnum;
 import fr.gouv.culture.francetransfert.core.enums.SourceEnum;
 import fr.gouv.culture.francetransfert.core.enums.StatutEnum;
+import fr.gouv.culture.francetransfert.core.enums.ValidationErrorEnum;
 import fr.gouv.culture.francetransfert.core.exception.MetaloadException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.model.FormulaireContactData;
@@ -60,6 +62,7 @@ import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
 import fr.gouv.culture.francetransfert.core.utils.DateUtils;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
+import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ExtensionNotFoundException;
 import fr.gouv.culture.francetransfert.domain.exceptions.InvalidCaptchaException;
 import fr.gouv.culture.francetransfert.domain.exceptions.UploadException;
@@ -210,7 +213,7 @@ public class UploadServices {
 
 	public boolean uploadFile(int flowChunkNumber, int flowTotalChunks, String flowIdentifier,
 			MultipartFile multipartFile, String enclosureId, String senderId)
-			throws MetaloadException, StorageException, IOException {
+			throws MetaloadException, StorageException, IOException, ApiValidationException {
 
 		checkExtension(multipartFile, enclosureId);
 
@@ -221,6 +224,13 @@ public class UploadServices {
 
 		String bucketName = RedisUtils.getBucketName(redisManager, enclosureId, bucketPrefix);
 		Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
+		if (redisFileInfo.isEmpty()) {
+			ApiValidationError unknowFile = new ApiValidationError();
+			unknowFile.setCodeChamp(ValidationErrorEnum.FT012.getCodeChamp());
+			unknowFile.setNumErreur(ValidationErrorEnum.FT012.getNumErreur());
+			unknowFile.setLibelleErreur(ValidationErrorEnum.FT012.getLibelleErreur());
+			throw new ApiValidationException(List.of(unknowFile), "Invalid File");
+		}
 		String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
 
 		if (RedisUtils.incrementCounterOfChunkIteration(redisManager, hashFid) == 1) {
@@ -287,7 +297,7 @@ public class UploadServices {
 			boolean validSender = stringUploadUtils.isValidEmailIgni(metadata.getSenderEmail().toLowerCase());
 			boolean validRecipients = false;
 			boolean validRecipientsIgni = false;
-			if (!metadata.getPublicLink().booleanValue() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
+			if (!metadata.getPublicLink() && !CollectionUtils.isEmpty(metadata.getRecipientEmails())) {
 				validRecipientsIgni = metadata.getRecipientEmails().stream().noneMatch(x -> {
 					return !stringUploadUtils.isValidEmailIgni(x);
 				});
