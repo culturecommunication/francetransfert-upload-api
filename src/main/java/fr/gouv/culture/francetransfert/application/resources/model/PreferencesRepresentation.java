@@ -40,5 +40,6 @@ public class PreferencesRepresentation {
 	private String expireDelay;
 	@JsonProperty("motDePasse")
 	private String password;
+	private boolean envoiMdpDestinataires;
 
 }

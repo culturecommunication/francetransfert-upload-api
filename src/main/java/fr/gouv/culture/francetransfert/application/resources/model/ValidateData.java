@@ -42,7 +42,6 @@ public class ValidateData {
    private String message;
    private String objet;
    private PreferencesRepresentation preferences;	
-   private boolean envoiMdpDestinataires;
 
    @Valid
    @JsonProperty("fichiers")

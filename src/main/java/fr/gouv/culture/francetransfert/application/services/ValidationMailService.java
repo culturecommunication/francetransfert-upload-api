@@ -156,7 +156,7 @@ public class ValidationMailService {
 					.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
 					.language(preferences.getLanguage()).rootFiles(files).rootDirs(rootDirs)
 					.zipPassword(preferences.getProtectionArchive()).source(SourceEnum.PUBLIC.getValue())
-					.envoiMdpDestinataires(metadata.isEnvoiMdpDestinataires())
+					.envoiMdpDestinataires(metadata.getPreferences().isEnvoiMdpDestinataires())
 					.publicLink(TypePliEnum.LINK.getKey().equalsIgnoreCase(metadata.getTypePli())).build();
 
 			EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
