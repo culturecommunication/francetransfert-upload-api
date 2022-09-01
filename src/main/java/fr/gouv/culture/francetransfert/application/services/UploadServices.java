@@ -226,9 +226,9 @@ public class UploadServices {
 		Map<String, String> redisFileInfo = RedisUtils.getFileInfo(redisManager, hashFid);
 		if (redisFileInfo.isEmpty()) {
 			ApiValidationError unknowFile = new ApiValidationError();
-			unknowFile.setCodeChamp(ValidationErrorEnum.FT012.getCodeChamp());
-			unknowFile.setNumErreur(ValidationErrorEnum.FT012.getNumErreur());
-			unknowFile.setLibelleErreur(ValidationErrorEnum.FT012.getLibelleErreur());
+			unknowFile.setCodeChamp(ValidationErrorEnum.FT2019.getCodeChamp());
+			unknowFile.setNumErreur(ValidationErrorEnum.FT2019.getNumErreur());
+			unknowFile.setLibelleErreur(ValidationErrorEnum.FT2019.getLibelleErreur());
 			throw new ApiValidationException(List.of(unknowFile), "Invalid File");
 		}
 		String fileNameWithPath = redisFileInfo.get(FileKeysEnum.REL_OBJ_KEY.getKey());
