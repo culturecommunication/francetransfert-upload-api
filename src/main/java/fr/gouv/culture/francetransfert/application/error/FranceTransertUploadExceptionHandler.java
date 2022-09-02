@@ -34,6 +34,7 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
+import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
 import fr.gouv.culture.francetransfert.domain.exceptions.BusinessDomainException;
 import fr.gouv.culture.francetransfert.domain.exceptions.ConfirmationCodeException;
 import fr.gouv.culture.francetransfert.domain.exceptions.DomainNotFoundException;
@@ -89,6 +90,13 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 				"UnauthorizedAccessException", errors);
 		LOG.error("UnauthorizedAccessException : " + ex.getMessage(), ex);
 		return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
+	}
+
+	@ExceptionHandler(UnauthorizedApiAccessException.class)
+	protected ResponseEntity<Void> handleUnauthorizedAccessException(UnauthorizedApiAccessException ex) {
+		LOG.error("Handle error UnauthorizedApiAccessException : " + ex.getMessage(), ex);
+		LOG.error("UnauthorizedAccessException : " + ex.getMessage(), ex);
+		return new ResponseEntity<Void>(null, new HttpHeaders(), HttpStatus.FORBIDDEN);
 	}
 
 	@ExceptionHandler(DomainNotFoundException.class)
@@ -230,6 +238,13 @@ public class FranceTransertUploadExceptionHandler extends ResponseEntityExceptio
 		LOG.error("generateError Type: {} -- id: {} -- message: {}", errorType, errorId, ex.getMessage(), ex);
 		return new ResponseEntity<>(new ApiError(HttpStatus.BAD_REQUEST.value(), errorType, errorId),
 				HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(ApiValidationException.class)
+	public ResponseEntity<ApiValidationErrorReturn> ApiValidationException(ApiValidationException ex) {
+		ApiValidationErrorReturn ret = new ApiValidationErrorReturn();
+		ret.setErreurs(ex.getErreurs());
+		return new ResponseEntity<ApiValidationErrorReturn>(ret, HttpStatus.UNPROCESSABLE_ENTITY);
 	}
 
 }
