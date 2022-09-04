@@ -7,6 +7,7 @@
 
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +37,6 @@ import fr.gouv.culture.francetransfert.application.error.UnauthorizedAccessExcep
 import fr.gouv.culture.francetransfert.application.resources.model.AddNewRecipientRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.ConfigRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DateUpdateRequest;
-import fr.gouv.culture.francetransfert.application.resources.model.DeleteRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.DeleteRequest;
 import fr.gouv.culture.francetransfert.application.resources.model.EnclosureRepresentation;
 import fr.gouv.culture.francetransfert.application.resources.model.FileInfoRepresentation;
@@ -99,9 +99,10 @@ public class UploadResources {
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
-		LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
-		uploadServices.processUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId, senderId,
-				senderToken);
+		//LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
+
+		uploadServices.processPrivateUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
+				senderId, senderToken);
 		response.setStatus(HttpStatus.OK.value());
 		// throw new UploadException(ErrorEnum.TECHNICAL_ERROR.getValue() + " while
 		// checking mail creating meta : ");
@@ -132,16 +133,15 @@ public class UploadResources {
 
 	@PostMapping("/delete-file")
 	@Operation(method = "GET", description = "Generate delete URL ")
-	public DeleteRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest)
+	public EnclosureRepresentation deleteFile(HttpServletResponse response, @RequestBody DeleteRequest deleteRequest)
 			throws MetaloadException {
 		LOGGER.info("start delete file {}", deleteRequest.getEnclosureId());
 		confirmationServices.validateAdminToken(deleteRequest.getEnclosureId(), deleteRequest.getToken(),
 				deleteRequest.getSenderMail());
-
 		uploadServices.validateExpirationDate(deleteRequest.getEnclosureId());
-		DeleteRepresentation deleteRepresentation = uploadServices.deleteFile(deleteRequest.getEnclosureId());
-		response.setStatus(deleteRepresentation.getStatus());
-		return deleteRepresentation;
+		EnclosureRepresentation enclosureRepresentation = uploadServices
+				.updateExpiredTimeStamp(deleteRequest.getEnclosureId(), LocalDate.now().minusDays(1));
+		return enclosureRepresentation;
 	}
 
 	@PostMapping("/update-expired-date")
@@ -183,8 +183,8 @@ public class UploadResources {
 		response.setStatus(HttpStatus.OK.value());
 		return enclosureRepresentation;
 	}
-	
-	//---
+
+	// ---
 
 	@GetMapping("/file-info")
 	@Operation(method = "GET", description = "Download Info without URL ")

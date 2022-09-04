@@ -7,11 +7,8 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import javax.validation.constraints.NotBlank;
-
-import com.fasterxml.jackson.annotation.JsonAlias;
-
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,11 +16,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-//@Builder
 @NoArgsConstructor
-public class DataRepresentation {
-	@NotBlank
-	@JsonAlias("nomFichier")
-	protected String name;
+@Builder
+public class InitialisationInfo {
+
+	private String idPli;
+	private StatusRepresentation statutPli;
 
 }
