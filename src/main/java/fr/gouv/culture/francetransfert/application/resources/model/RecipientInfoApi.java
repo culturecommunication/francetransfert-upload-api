@@ -40,7 +40,7 @@ public class RecipientInfoApi {
 		downloadDates = recInfo.getDownloadDates().stream().map(x -> {
 			try {
 				LocalDateTime parsedDate = LocalDateTime.parse(x);
-				return DateUtils.convertLocalDateTimeToString(parsedDate, "yyyy-MM-dd HH:mm:ss");
+				return DateUtils.convertLocalDateTimeToString(parsedDate, "yyyy-MM-dd'T'HH:mm:ss");
 			} catch (Exception e) {
 				return x;
 			}

@@ -43,7 +43,6 @@ public class ValidateData {
    private String objet;
    private PreferencesRepresentation preferences;	
 
-   @Valid
    @JsonProperty("fichiers")
    private List<FileRepresentationApi> rootFiles;
       

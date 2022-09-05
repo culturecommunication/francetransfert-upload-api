@@ -55,7 +55,7 @@ public class ValidateUpload {
 	   @JsonProperty("numMorceauFichier")
 	   private Integer flowChunkNumber;
 	   @JsonProperty("tailleMorceauFichier")
-	   private long flowChunkSize;
+	   private Long flowChunkSize;
 	   @JsonProperty("totalMorceauxFichier")
 	   private Integer flowTotalChunks;
       

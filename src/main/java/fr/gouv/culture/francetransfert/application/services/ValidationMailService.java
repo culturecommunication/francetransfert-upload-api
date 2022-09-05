@@ -14,21 +14,30 @@
 
 package fr.gouv.culture.francetransfert.application.services;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,7 +110,7 @@ public class ValidationMailService {
 	private RedisManager redisManager;
 
 	public InitialisationInfo validateMailData(ValidateData metadata, String headerAddr, String remoteAddr)
-			throws ApiValidationException {
+			throws ApiValidationException, ParseException {
 
 		if (StringUtils.isBlank(headerAddr)) {
 			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
@@ -365,7 +374,7 @@ public class ValidationMailService {
 		}
 	}
 
-	private void validatePreference(List<ApiValidationError> errorList, PreferencesRepresentation preferences) {
+	private void validatePreference(List<ApiValidationError> errorList, PreferencesRepresentation preferences) throws ParseException {
 
 		if (preferences.getLanguage() != null) {
 			ApiValidationError langueCourrielChecked = validLangueCourriel(preferences.getLanguage());
@@ -378,6 +387,11 @@ public class ValidationMailService {
 			ApiValidationError dateFormatChecked = validDateFormat(preferences.getExpireDelay());
 			errorList.add(dateFormatChecked);
 			if (dateFormatChecked == null) {
+				
+				SimpleDateFormat dateParser = new SimpleDateFormat("yyyy-MM-dd");
+			
+			    Date date = dateParser.parse(preferences.getExpireDelay());			
+				preferences.setExpireDelay(dateParser.format(date));
 				ApiValidationError datePeriodChecked = validPeriodFormat(LocalDate.parse(preferences.getExpireDelay()));
 				errorList.add(datePeriodChecked);
 			}
@@ -486,16 +500,16 @@ public class ValidationMailService {
 	private ApiValidationError validDateFormat(String expireDelay) {
 
 		ApiValidationError dateFormatInfo = null;
+		SimpleDateFormat dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");			
 
-		try {
-			LocalDate.parse(expireDelay);
-		} catch (DateTimeParseException e) {
-			dateFormatInfo = new ApiValidationError();
-			dateFormatInfo.setCodeChamp(ValidationErrorEnum.FT011.getCodeChamp());
-			dateFormatInfo.setNumErreur(ValidationErrorEnum.FT011.getNumErreur());
-			dateFormatInfo.setLibelleErreur(ValidationErrorEnum.FT011.getLibelleErreur());
-		}
-
+		    try {
+				dateParser.parse(expireDelay);
+			} catch (ParseException e) {
+				dateFormatInfo = new ApiValidationError();
+				dateFormatInfo.setCodeChamp(ValidationErrorEnum.FT011.getCodeChamp());
+				dateFormatInfo.setNumErreur(ValidationErrorEnum.FT011.getNumErreur());
+				dateFormatInfo.setLibelleErreur(ValidationErrorEnum.FT011.getLibelleErreur());
+			}
 		return dateFormatInfo;
 	}
 
@@ -652,9 +666,9 @@ public class ValidationMailService {
 	}
 
 	private ApiValidationError checkChunkNumber(Integer flowChunkNumber) {
-
 		ApiValidationError validChunkNumber = null;
-		if (flowChunkNumber == null) {
+		
+		if (flowChunkNumber == null || StringUtils.isBlank(flowChunkNumber.toString())) {
 			validChunkNumber = new ApiValidationError();
 			validChunkNumber.setCodeChamp(ValidationErrorEnum.FT208.getCodeChamp());
 			validChunkNumber.setNumErreur(ValidationErrorEnum.FT208.getNumErreur());
@@ -674,7 +688,7 @@ public class ValidationMailService {
 	private ApiValidationError checkTotalChunks(Integer flowTotalChunks) {
 
 		ApiValidationError validTotalChunks = null;
-		if (!flowTotalChunks.equals(null)) {
+		if (flowTotalChunks != null && StringUtils.isNotBlank(flowTotalChunks.toString())) {
 			if (flowTotalChunks <= 0 || flowTotalChunks != (int) flowTotalChunks) {
 				validTotalChunks = new ApiValidationError();
 				validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2012.getCodeChamp());
@@ -694,19 +708,21 @@ public class ValidationMailService {
 	private ApiValidationError checkTotalChunkNumber(Integer flowChunkNumber, Integer flowTotalChunks) {
 
 		ApiValidationError validTotalChunksNumber = null;
-		if (flowChunkNumber > flowTotalChunks) {
-			validTotalChunksNumber = new ApiValidationError();
-			validTotalChunksNumber.setCodeChamp(ValidationErrorEnum.FT209.getCodeChamp());
-			validTotalChunksNumber.setNumErreur(ValidationErrorEnum.FT209.getNumErreur());
-			validTotalChunksNumber.setLibelleErreur(ValidationErrorEnum.FT209.getLibelleErreur());
+		if( flowChunkNumber != null && StringUtils.isNotBlank(flowChunkNumber.toString()) && flowTotalChunks != null && StringUtils.isNotBlank(flowTotalChunks.toString())) {
+			if (flowChunkNumber > flowTotalChunks) {
+				validTotalChunksNumber = new ApiValidationError();
+				validTotalChunksNumber.setCodeChamp(ValidationErrorEnum.FT209.getCodeChamp());
+				validTotalChunksNumber.setNumErreur(ValidationErrorEnum.FT209.getNumErreur());
+				validTotalChunksNumber.setLibelleErreur(ValidationErrorEnum.FT209.getLibelleErreur());
+			}
 		}
 		return validTotalChunksNumber;
 	}
 
-	private ApiValidationError checkFlowChunkSize(long flowChunkSize) {
+	private ApiValidationError checkFlowChunkSize(	Long flowChunkSize) {
 
 		ApiValidationError validFlowChunkSize = null;
-		if (!Objects.isNull(flowChunkSize)) {
+		if (flowChunkSize != null && StringUtils.isNotBlank(flowChunkSize.toString())) {
 			if (flowChunkSize <= 0) {
 				validFlowChunkSize = new ApiValidationError();
 				validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2014.getCodeChamp());
@@ -723,10 +739,10 @@ public class ValidationMailService {
 		return validFlowChunkSize;
 	}
 
-	private ApiValidationError checkFileSize(long fileSize) {
+	private ApiValidationError checkFileSize(Long fileSize) {
 
 		ApiValidationError validFileSize = null;
-		if (!Objects.isNull(fileSize)) {
+		if (fileSize != null && StringUtils.isNotBlank(fileSize.toString())) {
 			if (fileSize <= 0) {
 				validFileSize = new ApiValidationError();
 				validFileSize.setCodeChamp(ValidationErrorEnum.FT2018.getCodeChamp());
