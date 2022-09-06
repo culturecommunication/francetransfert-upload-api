@@ -18,6 +18,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -74,6 +75,7 @@ import fr.gouv.culture.francetransfert.core.exception.StatException;
 import fr.gouv.culture.francetransfert.core.exception.StorageException;
 import fr.gouv.culture.francetransfert.core.services.RedisManager;
 import fr.gouv.culture.francetransfert.core.utils.Base64CryptoService;
+import fr.gouv.culture.francetransfert.core.utils.DateUtils;
 import fr.gouv.culture.francetransfert.core.utils.RedisUtils;
 import fr.gouv.culture.francetransfert.core.utils.StringUploadUtils;
 import fr.gouv.culture.francetransfert.domain.exceptions.ApiValidationException;
@@ -272,7 +274,7 @@ public class ValidationMailService {
 	}
 
 	public PackageInfoRepresentation getInfoPli(StatusInfo metadata, String headerAddr, String remoteAddr)
-			throws ApiValidationException, MetaloadException, StatException {
+			throws ApiValidationException, MetaloadException, StatException, ParseException {
 
 		if (StringUtils.isBlank(headerAddr)) {
 			throw new UnauthorizedApiAccessException("Erreur d’authentification : aucun objet de réponse renvoyé");
@@ -325,9 +327,15 @@ public class ValidationMailService {
 			String zipPassword = RedisUtils.getEnclosureValue(redisManager, metadata.getEnclosureId(),
 					EnclosureKeysEnum.PASSWORD_ZIP.getKey());
 
+			SimpleDateFormat dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");								   					
+			LocalDateTime exipireEnclosureDate = DateUtils.convertStringToLocalDateTime(
+					redisManager.getHgetString(RedisKeysEnum.FT_ENCLOSURE.getKey(metadata.getEnclosureId()),
+							EnclosureKeysEnum.EXPIRED_TIMESTAMP.getKey())).withHour(0).withMinute(0).withSecond(0);
+			 String date = dateParser.format(dateParser.parse(exipireEnclosureDate.toString()));	
+			 
 			preferences = PreferencesRepresentation.builder().language(language).password(passwordUnHashed)
 					.protectionArchive(Boolean.parseBoolean(zipPassword))
-					.expireDelay(fileInfoRepresentation.getValidUntilDate().toString()).build();
+					.expireDelay(date).build();
 
 			data = PackageInfoRepresentation.builder().idPli(metadata.getEnclosureId()).statutPli(statutPli)
 					.typePli(typePli).courrielExpediteur(fileInfoRepresentation.getSenderEmail())

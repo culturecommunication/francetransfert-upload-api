@@ -129,7 +129,7 @@ public class PublicResources {
 	public PackageInfoRepresentation packageInfo(HttpServletResponse response, HttpServletRequest request,
 			@RequestParam(value = "idPli", required = false) String enclosureId,
 			@RequestParam(value = "courrielExpediteur", required = false) String senderMail)
-			throws ApiValidationException, MetaloadException, StatException {
+			throws ApiValidationException, MetaloadException, StatException, ParseException {
 
 		String headerAddr = request.getHeader(KEY);
 		String remoteAddr = request.getHeader(FOR);
