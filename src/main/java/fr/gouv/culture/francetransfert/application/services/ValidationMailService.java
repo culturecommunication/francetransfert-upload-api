@@ -584,8 +584,10 @@ public class ValidationMailService {
 		boolean nameCheck = false;
 
 		for (Map.Entry<String, String> currentFile : filesMap.entrySet()) {
-			idCheck = StringUtils.isNotEmpty(currentFile.getValue());
-			nameCheck = StringUtils.isNotEmpty(currentFile.getKey());
+			idCheck = StringUtils.isNotEmpty(currentFile.getValue())
+					&& !currentFile.getValue().equalsIgnoreCase("null");
+			nameCheck = StringUtils.isNotEmpty(currentFile.getKey())
+					&& !currentFile.getValue().equalsIgnoreCase("null");
 			if (!idCheck) {
 				validFiles = new ApiValidationError();
 				validFiles.setCodeChamp(ValidationErrorEnum.FT023.getCodeChamp());
