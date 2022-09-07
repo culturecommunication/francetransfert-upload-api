@@ -79,16 +79,19 @@ public class UploadResources {
 
 	@GetMapping("/upload")
 	@Operation(method = "GET", description = "Upload")
-	public void chunkExists(HttpServletResponse response, @RequestParam("flowChunkNumber") int flowChunkNumber,
+	public boolean chunkExists(HttpServletResponse response, @RequestParam("flowChunkNumber") int flowChunkNumber,
 			@RequestParam("flowChunkSize") int flowChunkSize,
 			@RequestParam("flowCurrentChunkSize") int flowCurrentChunkSize,
 			@RequestParam("flowTotalSize") int flowTotalSize, @RequestParam("flowIdentifier") String flowIdentifier,
 			@RequestParam("flowFilename") String flowFilename,
 			@RequestParam("flowRelativePath") String flowRelativePath,
 			@RequestParam("flowTotalChunks") int flowTotalChunks, @RequestParam("enclosureId") String enclosureId) {
-		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		uploadServices.chunkExists(flowChunkNumber, hashFid);
-		response.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+		if (uploadServices.chunkExists(flowChunkNumber, enclosureId, flowIdentifier)) {
+			return true;
+		} else {
+			String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
+			throw new UploadException("Checked chunk doest not exist : " + hashFid);
+		}
 	}
 
 	@PostMapping("/upload")
@@ -99,7 +102,8 @@ public class UploadResources {
 			@RequestParam("flowFilename") String flowFilename, @RequestParam("file") MultipartFile file,
 			@RequestParam("enclosureId") String enclosureId, @RequestParam("senderId") String senderId,
 			@RequestParam("senderToken") String senderToken) throws MetaloadException, StorageException {
-		//LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId, flowChunkNumber, flowTotalChunks);
+		// LOGGER.info("upload chunk number for enclosure {}: {}/{} ", enclosureId,
+		// flowChunkNumber, flowTotalChunks);
 
 		uploadServices.processPrivateUpload(flowChunkNumber, flowTotalChunks, flowIdentifier, file, enclosureId,
 				senderId, senderToken);

@@ -218,7 +218,7 @@ public class UploadServices {
 		checkExtension(multipartFile, enclosureId);
 
 		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
-		if (chunkExists(flowChunkNumber, hashFid)) {
+		if (chunkExists(flowChunkNumber, enclosureId, flowIdentifier)) {
 			return true; // multipart is uploaded
 		}
 
@@ -267,12 +267,12 @@ public class UploadServices {
 		return isUploaded;
 	}
 
-	public boolean chunkExists(int flowChunkNumber, String hashFid) {
+	public boolean chunkExists(int flowChunkNumber, String enclosureId, String flowIdentifier) {
+		String hashFid = RedisUtils.generateHashsha1(enclosureId + ":" + flowIdentifier);
 		try {
 			return RedisUtils.getNumberOfPartEtags(redisManager, hashFid).contains(flowChunkNumber);
 		} catch (Exception e) {
-			String uuid = UUID.randomUUID().toString();
-			throw new UploadException("Chunk doest not exist : " + e.getMessage(), uuid, e);
+			throw new UploadException("Checked chunk doest not exist : " + e.getMessage(), hashFid, e);
 		}
 	}
 
