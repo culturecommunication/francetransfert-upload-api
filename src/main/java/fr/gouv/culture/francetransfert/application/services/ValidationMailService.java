@@ -688,8 +688,8 @@ public class ValidationMailService {
 	private ApiValidationError checkTotalChunks(Integer flowTotalChunks) {
 
 		ApiValidationError validTotalChunks = null;
-		if (flowTotalChunks != null && StringUtils.isNotBlank(flowTotalChunks.toString())) {
-			if (flowTotalChunks <= 0 || flowTotalChunks != (int) flowTotalChunks) {
+		if (flowTotalChunks != null) {
+			if (flowTotalChunks <= 0) {
 				validTotalChunks = new ApiValidationError();
 				validTotalChunks.setCodeChamp(ValidationErrorEnum.FT2012.getCodeChamp());
 				validTotalChunks.setNumErreur(ValidationErrorEnum.FT2012.getNumErreur());
@@ -725,7 +725,7 @@ public class ValidationMailService {
 			validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2014.getCodeChamp());
 			validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2014.getNumErreur());
 			validFlowChunkSize.setLibelleErreur(ValidationErrorEnum.FT2014.getLibelleErreur());
-		} else {
+		} else if (flowChunkSize == null) {
 			validFlowChunkSize = new ApiValidationError();
 			validFlowChunkSize.setCodeChamp(ValidationErrorEnum.FT2013.getCodeChamp());
 			validFlowChunkSize.setNumErreur(ValidationErrorEnum.FT2013.getNumErreur());
@@ -743,7 +743,7 @@ public class ValidationMailService {
 			validFileSize.setCodeChamp(ValidationErrorEnum.FT2018.getCodeChamp());
 			validFileSize.setNumErreur(ValidationErrorEnum.FT2018.getNumErreur());
 			validFileSize.setLibelleErreur(ValidationErrorEnum.FT2018.getLibelleErreur());
-		} else {
+		} else if (fileSize == null) {
 			validFileSize = new ApiValidationError();
 			validFileSize.setCodeChamp(ValidationErrorEnum.FT020.getCodeChamp());
 			validFileSize.setNumErreur(ValidationErrorEnum.FT020.getNumErreur());
