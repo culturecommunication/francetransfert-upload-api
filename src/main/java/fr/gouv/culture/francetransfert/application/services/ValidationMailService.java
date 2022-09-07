@@ -402,8 +402,7 @@ public class ValidationMailService {
 				try {
 					date = DAY_DATE_PARSER.parse(preferences.getExpireDelay());
 				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					LOGGER.error("Date check parsing error", e);
 				}
 				preferences.setExpireDelay(DAY_DATE_PARSER.format(date));
 				ApiValidationError datePeriodChecked = validPeriodFormat(LocalDate.parse(preferences.getExpireDelay()));
