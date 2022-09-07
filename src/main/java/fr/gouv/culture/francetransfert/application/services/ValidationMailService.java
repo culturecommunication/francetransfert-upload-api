@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -513,11 +514,10 @@ public class ValidationMailService {
 	private ApiValidationError validDateFormat(String expireDelay) {
 
 		ApiValidationError dateFormatInfo = null;
-		SimpleDateFormat dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
 		try {
-			dateParser.parse(expireDelay);
-		} catch (ParseException e) {
+			dtf.parse(expireDelay);
+		} catch (DateTimeParseException e) {
 			dateFormatInfo = new ApiValidationError();
 			dateFormatInfo.setCodeChamp(ValidationErrorEnum.FT011.getCodeChamp());
 			dateFormatInfo.setNumErreur(ValidationErrorEnum.FT011.getNumErreur());
