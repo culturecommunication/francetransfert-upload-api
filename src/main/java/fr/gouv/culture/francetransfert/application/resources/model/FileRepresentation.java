@@ -27,7 +27,7 @@ public class FileRepresentation extends DataRepresentation {
 	@JsonAlias("idFichier")
 	private String fid;
 	@JsonAlias("tailleFichier")
-	private long size;
+	private Long size;
 
 	public FileRepresentation(FileRepresentationApi file) {
 		fid = file.getFid();

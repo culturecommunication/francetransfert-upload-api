@@ -14,6 +14,8 @@
 
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
+import java.text.ParseException;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -59,7 +61,7 @@ public class PublicResources {
 	@PostMapping("/initPli")
 	@Operation(method = "POST", description = "initPli")
 	public InitialisationInfo validateCode(HttpServletResponse response, HttpServletRequest request,
-			@Valid @RequestBody ValidateData metadata) throws ApiValidationException {
+			@Valid @RequestBody ValidateData metadata) throws ApiValidationException, ParseException {
 
 		String headerAddr = request.getHeader(KEY);
 		String remoteAddr = request.getHeader(FOR);
@@ -73,9 +75,10 @@ public class PublicResources {
 	@PostMapping("/chargementPli")
 	@Operation(method = "POST", description = "chargementPli")
 	public InitialisationInfo uploadData(HttpServletResponse response, HttpServletRequest request,
-			@RequestParam("numMorceauFichier") int flowChunkNumber,
-			@RequestParam("totalMorceauxFichier") int flowTotalChunks,
-			@RequestParam("tailleMorceauFichier") long flowChunkSize, @RequestParam("tailleFichier") long flowTotalSize,
+			@RequestParam(value = "numMorceauFichier", required = false) Integer flowChunkNumber,
+			@RequestParam(value = "totalMorceauxFichier", required = false) Integer flowTotalChunks,
+			@RequestParam(value = "tailleMorceauFichier", required = false) Long flowChunkSize,
+			@RequestParam(value = "tailleFichier", required = false) Long flowTotalSize,
 			@RequestParam("idFichier") String flowIdentifier, @RequestParam("nomFichier") String flowFilename,
 			@RequestParam("fichier") MultipartFile file, @RequestParam("idPli") String enclosureId,
 			@RequestParam("courrielExpediteur") String senderId)
