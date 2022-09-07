@@ -77,7 +77,7 @@ public class PublicResources {
 	public InitialisationInfo uploadData(HttpServletResponse response, HttpServletRequest request,
 			@RequestParam(value = "numMorceauFichier", required = false) Integer flowChunkNumber,
 			@RequestParam(value = "totalMorceauxFichier", required = false) Integer flowTotalChunks,
-			@RequestParam(value = "tailleMorceauFichier", required = false) Long flowChunkSize, 
+			@RequestParam(value = "tailleMorceauFichier", required = false) Long flowChunkSize,
 			@RequestParam(value = "tailleFichier", required = false) Long flowTotalSize,
 			@RequestParam("idFichier") String flowIdentifier, @RequestParam("nomFichier") String flowFilename,
 			@RequestParam("fichier") MultipartFile file, @RequestParam("idPli") String enclosureId,
@@ -129,7 +129,7 @@ public class PublicResources {
 	public PackageInfoRepresentation packageInfo(HttpServletResponse response, HttpServletRequest request,
 			@RequestParam(value = "idPli", required = false) String enclosureId,
 			@RequestParam(value = "courrielExpediteur", required = false) String senderMail)
-			throws ApiValidationException, MetaloadException, StatException, ParseException {
+			throws ApiValidationException, MetaloadException, StatException {
 
 		String headerAddr = request.getHeader(KEY);
 		String remoteAddr = request.getHeader(FOR);
