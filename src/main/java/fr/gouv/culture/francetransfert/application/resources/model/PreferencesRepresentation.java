@@ -14,10 +14,9 @@
 
 package fr.gouv.culture.francetransfert.application.resources.model;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -31,6 +30,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PreferencesRepresentation {
 
 	@JsonProperty("langueCourriel")
@@ -40,6 +40,6 @@ public class PreferencesRepresentation {
 	private String expireDelay;
 	@JsonProperty("motDePasse")
 	private String password;
-	private boolean envoiMdpDestinataires;
+	private Boolean envoiMdpDestinataires;
 
 }

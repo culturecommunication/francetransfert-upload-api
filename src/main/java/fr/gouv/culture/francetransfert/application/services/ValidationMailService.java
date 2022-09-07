@@ -166,7 +166,7 @@ public class ValidationMailService {
 					.recipientEmails(metadata.getRecipientEmails()).expireDelay(daysBetween)
 					.language(preferences.getLanguage()).rootFiles(files).rootDirs(rootDirs)
 					.zipPassword(preferences.getProtectionArchive()).source(SourceEnum.PUBLIC.getValue())
-					.envoiMdpDestinataires(metadata.getPreferences().isEnvoiMdpDestinataires())
+					.envoiMdpDestinataires(Boolean.TRUE.equals(metadata.getPreferences().getEnvoiMdpDestinataires()))
 					.publicLink(TypePliEnum.LINK.getKey().equalsIgnoreCase(metadata.getTypePli())).build();
 
 			EnclosureRepresentation dataRedis = uploadServices.createMetaDataEnclosureInRedis(data);
@@ -337,7 +337,8 @@ public class ValidationMailService {
 			String date = exipireEnclosureDate.format(dtf);
 
 			preferences = PreferencesRepresentation.builder().language(language).password(passwordUnHashed)
-					.protectionArchive(Boolean.parseBoolean(zipPassword)).expireDelay(date).build();
+					.protectionArchive(Boolean.parseBoolean(zipPassword)).expireDelay(date).envoiMdpDestinataires(null)
+					.build();
 
 			data = PackageInfoRepresentation.builder().idPli(metadata.getEnclosureId()).statutPli(statutPli)
 					.typePli(typePli).courrielExpediteur(fileInfoRepresentation.getSenderEmail())

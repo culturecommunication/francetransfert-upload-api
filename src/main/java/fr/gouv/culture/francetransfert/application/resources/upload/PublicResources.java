@@ -14,8 +14,6 @@
 
 package fr.gouv.culture.francetransfert.application.resources.upload;
 
-import java.text.ParseException;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -61,7 +59,7 @@ public class PublicResources {
 	@PostMapping("/initPli")
 	@Operation(method = "POST", description = "initPli")
 	public InitialisationInfo validateCode(HttpServletResponse response, HttpServletRequest request,
-			@Valid @RequestBody ValidateData metadata) throws ApiValidationException, ParseException {
+			@Valid @RequestBody ValidateData metadata) throws ApiValidationException {
 
 		String headerAddr = request.getHeader(KEY);
 		String remoteAddr = request.getHeader(FOR);
